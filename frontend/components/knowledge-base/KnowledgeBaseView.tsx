@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { PageContainer } from '@/components/layout/PageContainer';
-import { FileText, Upload, Database, CheckCircle2 } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import Image from 'next/image';
 
 export const KnowledgeBaseView: React.FC = () => {

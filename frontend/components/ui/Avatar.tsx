@@ -17,6 +17,7 @@ export const Avatar: React.FC<AvatarProps> = ({ src, name, size = 'md', status }
 
   return (
     <div className={`avatar avatar-${size}`}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       {src ? <img src={src} alt={name} /> : <span>{initials}</span>}
       {status ? <span className={`avatar-status avatar-status-${status}`} /> : null}
     </div>

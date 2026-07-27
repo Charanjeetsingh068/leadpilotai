@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { PageContainer } from '@/components/layout/PageContainer';
-import { User, Phone, Mail, Calendar, ShieldCheck } from 'lucide-react';
 import Image from 'next/image';
 
 export interface LeadDetailViewProps {

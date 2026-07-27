@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { Search } from '@/components/ui/Search';
-import { Bot, UserCheck } from 'lucide-react';
 
 export interface ChatSummary {
   id: string;

@@ -19,7 +19,7 @@ interface NotificationState {
   markAllAsRead: () => void;
 }
 
-export const useNotificationStore = create<NotificationState>((set, get) => ({
+export const useNotificationStore = create<NotificationState>((set) => ({
   unreadCount: 8,
   isPanelOpen: false,
   notifications: [

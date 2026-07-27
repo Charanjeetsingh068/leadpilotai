@@ -2402,12 +2402,83 @@ body:has(.auth-page-bg) {
 .flex-1 { flex: 1; }
 .text-right { text-align: right; }
 
+/* Mobile Menu Toggle Button */
+.mobile-menu-toggle-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--color-text-main);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  margin-right: 0.5rem;
+}
 
+.mobile-menu-toggle-btn:hover {
+  background-color: var(--color-bg-subtle);
+}
 
+/* Sidebar Margin Transitions */
+.app-main {
+  margin-left: var(--sidebar-expanded-width);
+  transition: margin-left var(--transition-normal);
+}
 
+.sidebar-collapsed .app-main {
+  margin-left: var(--sidebar-collapsed-width);
+}
 
+/* Mobile responsive media queries */
+@media (max-width: 1024px) {
+  .mobile-menu-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
+  /* Main container takes full width on mobile/tablet */
+  .app-main, .sidebar-collapsed .app-main {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
 
+  /* Sidebar acts as a floating drawer overlay */
+  .sidebar-container {
+    left: -250px !important;
+    width: var(--sidebar-expanded-width) !important;
+    transition: left var(--transition-normal) !important;
+    z-index: 1000 !important;
+    box-shadow: var(--shadow-lg);
+  }
 
+  .sidebar-expanded .sidebar-container {
+    left: 0 !important;
+  }
 
+  /* Backdrop overlay when sidebar is active */
+  .mobile-sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    z-index: 999;
+  }
+
+  .sidebar-expanded .mobile-sidebar-overlay {
+    display: block;
+  }
+
+  /* Flex wrap adjustments for dashboard components on smaller viewports */
+  .dashboard-header-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dashboard-columns-grid {
+    grid-template-columns: 1fr;
+  }
+}
 

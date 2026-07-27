@@ -101,7 +101,7 @@ export const OverviewDashboard: React.FC = () => {
             Good morning, {profile.name.split(' ')[0]} 👋
           </h1>
           <p className="dashboard-subtitle-text">
-            Here's what's happening with your business today.
+            Heres whats happening with your business today.
           </p>
         </div>
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot, CheckCheck, User } from 'lucide-react';
+import { Bot, CheckCheck } from 'lucide-react';
 import { MessageSender, MessageStatus } from '@/types/conversation.types';
 
 export interface MessageBubbleProps {
@@ -21,7 +21,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   senderName,
   content,
   mediaUrl,
-  status = 'READ',
   timestamp,
   aiMetadata,
 }) => {

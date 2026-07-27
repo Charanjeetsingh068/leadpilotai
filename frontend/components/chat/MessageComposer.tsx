@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { Send, Paperclip, Zap } from 'lucide-react';
+import { Send, Zap } from 'lucide-react';
 
 export interface MessageComposerProps {
   onSendMessage: (content: string) => void;

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { PageContainer } from '@/components/layout/PageContainer';
-import { BarChart3, TrendingUp, Download } from 'lucide-react';
+import { Download } from 'lucide-react';
 import Image from 'next/image';
 
 export const ReportsView: React.FC = () => {

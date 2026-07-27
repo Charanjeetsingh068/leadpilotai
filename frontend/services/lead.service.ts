@@ -1,5 +1,5 @@
 import { apiClient } from './api.client';
-import { Lead, LeadFilterParams, LeadNote, TimelineEvent } from '@/types/lead.types';
+import { Lead, LeadFilterParams, LeadNote } from '@/types/lead.types';
 import { ApiResponse } from '@/types/api.types';
 import { CreateLeadFormData } from '@/utils/validators/lead.schemas';
 

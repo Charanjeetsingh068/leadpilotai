@@ -15,81 +15,87 @@ export default function ConversationDetailPage() {
   const params = useParams();
   const conversationId = String(params.id || '');
 
-  const [conversations, setConversations] = useState<ConversationSummary[]>([
-    {
-      id: 'conv-101',
-      leadId: 'lead-101',
-      leadName: 'Vikram Malhotra',
-      leadPhone: '+91 98112 23344',
-      leadProject: 'Grand Residency',
-      leadScore: 88,
-      isAiAutomated: true,
-      unreadCount: 0,
-      lastMessageContent: 'Would Saturday 3 PM work for your site visit?',
-      lastMessageAt: new Date().toISOString(),
-    },
-    {
-      id: 'conv-102',
-      leadId: 'lead-102',
-      leadName: 'Ananya Roy',
-      leadPhone: '+91 98223 34455',
-      leadProject: 'Skyline Towers',
-      leadScore: 94,
-      isAiAutomated: false,
-      unreadCount: 2,
-      lastMessageContent: 'Can you confirm the price list for 3 BHK?',
-      lastMessageAt: new Date(Date.now() - 3600000).toISOString(),
-    },
-  ]);
+  const [conversations, setConversations] = useState<ConversationSummary[]>(() => {
+    const now = Date.now();
+    return [
+      {
+        id: 'conv-101',
+        leadId: 'lead-101',
+        leadName: 'Vikram Malhotra',
+        leadPhone: '+91 98112 23344',
+        leadProject: 'Grand Residency',
+        leadScore: 88,
+        isAiAutomated: true,
+        unreadCount: 0,
+        lastMessageContent: 'Would Saturday 3 PM work for your site visit?',
+        lastMessageAt: new Date(now).toISOString(),
+      },
+      {
+        id: 'conv-102',
+        leadId: 'lead-102',
+        leadName: 'Ananya Roy',
+        leadPhone: '+91 98223 34455',
+        leadProject: 'Skyline Towers',
+        leadScore: 94,
+        isAiAutomated: false,
+        unreadCount: 2,
+        lastMessageContent: 'Can you confirm the price list for 3 BHK?',
+        lastMessageAt: new Date(now - 3600000).toISOString(),
+      },
+    ];
+  });
 
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'msg-1',
-      conversationId,
-      sender: 'LEAD',
-      content: 'Hi, I saw your ad for Grand Residency. What is the starting price?',
-      timestamp: new Date(Date.now() - 7200000).toISOString(),
-    },
-    {
-      id: 'msg-2',
-      conversationId,
-      sender: 'AI',
-      senderName: 'LeadPilot AI',
-      content: 'Hello Vikram! Premium 2 & 3 BHK apartments start at ₹85 Lakhs. Would you like our detailed floor plan brochure?',
-      timestamp: new Date(Date.now() - 7100000).toISOString(),
-      aiMetadata: {
-        intent: 'PRICING_INQUIRY',
-        confidenceScore: 0.98,
-        ragDocumentUsed: 'Grand_Residency_Brochure_v2.pdf',
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    const now = Date.now();
+    return [
+      {
+        id: 'msg-1',
+        conversationId,
+        sender: 'LEAD',
+        content: 'Hi, I saw your ad for Grand Residency. What is the starting price?',
+        timestamp: new Date(now - 7200000).toISOString(),
       },
-    },
-    {
-      id: 'msg-3',
-      conversationId,
-      sender: 'LEAD',
-      content: 'Yes please send floor plans and schedule a site visit for this weekend.',
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
-    },
-    {
-      id: 'msg-4',
-      conversationId,
-      sender: 'SYSTEM',
-      content: 'Lead status auto-updated to QUALIFIED (Score: 88/100)',
-      timestamp: new Date(Date.now() - 3500000).toISOString(),
-    },
-    {
-      id: 'msg-5',
-      conversationId,
-      sender: 'AI',
-      senderName: 'LeadPilot AI',
-      content: 'Would Saturday 3 PM work for your site visit?',
-      timestamp: new Date(Date.now() - 1800000).toISOString(),
-      aiMetadata: {
-        intent: 'SITE_VISIT_BOOKING',
-        confidenceScore: 0.96,
+      {
+        id: 'msg-2',
+        conversationId,
+        sender: 'AI',
+        senderName: 'LeadPilot AI',
+        content: 'Hello Vikram! Premium 2 & 3 BHK apartments start at ₹85 Lakhs. Would you like our detailed floor plan brochure?',
+        timestamp: new Date(now - 7100000).toISOString(),
+        aiMetadata: {
+          intent: 'PRICING_INQUIRY',
+          confidenceScore: 0.98,
+          ragDocumentUsed: 'Grand_Residency_Brochure_v2.pdf',
+        },
       },
-    },
-  ]);
+      {
+        id: 'msg-3',
+        conversationId,
+        sender: 'LEAD',
+        content: 'Yes please send floor plans and schedule a site visit for this weekend.',
+        timestamp: new Date(now - 3600000).toISOString(),
+      },
+      {
+        id: 'msg-4',
+        conversationId,
+        sender: 'SYSTEM',
+        content: 'Lead status auto-updated to QUALIFIED (Score: 88/100)',
+        timestamp: new Date(now - 3500000).toISOString(),
+      },
+      {
+        id: 'msg-5',
+        conversationId,
+        sender: 'AI',
+        senderName: 'LeadPilot AI',
+        content: 'Would Saturday 3 PM work for your site visit?',
+        timestamp: new Date(now - 1800000).toISOString(),
+        aiMetadata: {
+          intent: 'SITE_VISIT_BOOKING',
+          confidenceScore: 0.96,
+        },
+      },
+    ];
+  });
 
   const [isSending, setIsSending] = useState(false);
   const [isTogglingAi, setIsTogglingAi] = useState(false);
@@ -124,7 +130,16 @@ export default function ConversationDetailPage() {
   }, [conversationId]);
 
   useEffect(() => {
-    fetchChatData();
+    let ignore = false;
+    async function init() {
+      if (!ignore) {
+        await fetchChatData();
+      }
+    }
+    init();
+    return () => {
+      ignore = true;
+    };
   }, [fetchChatData]);
 
   const handleSendMessage = async (content: string) => {

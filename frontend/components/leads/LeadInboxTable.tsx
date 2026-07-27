@@ -7,7 +7,7 @@ import { TableSkeletonRow } from '@/components/ui/Skeleton';
 import { LeadSourceIcon } from './LeadSourceIcon';
 import { Lead, LeadStatus } from '@/types/lead.types';
 import { Select } from '@/components/ui/Select';
-import { MessageSquare, ExternalLink, UserPlus, PauseCircle, PlayCircle, Archive, Trash2 } from 'lucide-react';
+import { MessageSquare, UserPlus, Archive, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 export interface LeadInboxTableProps {
@@ -21,26 +21,12 @@ export interface LeadInboxTableProps {
   onDelete: (leadId: string) => void;
 }
 
-const STATUS_BADGE: Record<LeadStatus, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'neutral' }> = {
-  NEW: { label: 'New Ingested', variant: 'info' },
-  AI_STARTED: { label: 'AI Started', variant: 'info' },
-  AI_IN_PROGRESS: { label: 'AI In Progress', variant: 'info' },
-  QUALIFIED: { label: 'AI Qualified', variant: 'success' },
-  HUMAN_APPROVAL_REQUIRED: { label: 'Approval Required', variant: 'warning' },
-  SITE_VISIT_SCHEDULED: { label: 'Site Visit Booked', variant: 'warning' },
-  CONVERTED: { label: 'Converted', variant: 'success' },
-  LOST: { label: 'Lost', variant: 'danger' },
-  ARCHIVED: { label: 'Archived', variant: 'neutral' },
-};
-
 export const LeadInboxTable: React.FC<LeadInboxTableProps> = ({
   leads,
-  selectedLeadId,
   isLoading,
   onSelectLead,
   onStatusChange,
   onAssign,
-  onToggleAi,
   onDelete,
 }) => {
   const columns: Column<Lead>[] = [

@@ -44,7 +44,7 @@ export const AuthService = {
     try {
       const res = await apiClient.get<ApiResponse<User>>('/auth/me');
       return res.data;
-    } catch (err) {
+    } catch {
       return {
         success: true,
         message: 'Fetched current user profile',

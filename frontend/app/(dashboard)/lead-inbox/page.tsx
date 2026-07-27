@@ -39,10 +39,9 @@ export default function LeadInboxPage() {
   const [project, setProject] = useState<string>('');
   const [salesUser, setSalesUser] = useState<string>('');
   const [page, setPage] = useState<number>(1);
-  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalPages] = useState<number>(1);
 
   const loadData = useCallback(async () => {
-    setHasError(false);
     try {
       await fetchLeads({
         search: search || undefined,
@@ -59,7 +58,17 @@ export default function LeadInboxPage() {
   }, [fetchLeads, search, source, status, project, salesUser, page]);
 
   useEffect(() => {
-    loadData();
+    let ignore = false;
+    async function init() {
+      if (!ignore) {
+        setHasError(false);
+        await loadData();
+      }
+    }
+    init();
+    return () => {
+      ignore = true;
+    };
   }, [loadData]);
 
   const handleSelectLead = (lead: Lead) => {

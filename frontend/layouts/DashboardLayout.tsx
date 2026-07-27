@@ -12,17 +12,21 @@ export interface DashboardLayoutProps {
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
-  const { isSidebarCollapsed, activeDrawer, closeDrawer } = useUIStore();
+  const { isSidebarCollapsed, activeDrawer, closeDrawer, toggleSidebar } = useUIStore();
 
-  const marginLeft = isSidebarCollapsed
-    ? 'var(--sidebar-collapsed-width)'
-    : 'var(--sidebar-expanded-width)';
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 1024 && !isSidebarCollapsed) {
+      toggleSidebar();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <ProtectedRoute>
-      <div className="app-layout">
+      <div className={`app-layout ${isSidebarCollapsed ? 'sidebar-collapsed' : 'sidebar-expanded'}`}>
         <Sidebar />
-        <div className="app-main" style={{ marginLeft }}>
+        <div className="mobile-sidebar-overlay" onClick={toggleSidebar} />
+        <div className="app-main">
           <Header />
           <main className="app-content">{children}</main>
         </div>

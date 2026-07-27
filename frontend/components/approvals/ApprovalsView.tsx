@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { PageContainer } from '@/components/layout/PageContainer';
-import { CheckSquare, AlertCircle, Check, X } from 'lucide-react';
 import Image from 'next/image';
 
 export const ApprovalsView: React.FC = () => {

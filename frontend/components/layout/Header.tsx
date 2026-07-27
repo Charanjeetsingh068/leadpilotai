@@ -1,13 +1,15 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { Search, HelpCircle } from 'lucide-react';
+import { Search, HelpCircle, Menu } from 'lucide-react';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import { NotificationBell } from './NotificationBell';
 import { WorkspaceSwitcher } from './WorkspaceSwitcher';
 import { ProfileMenu } from './ProfileMenu';
+import { useUIStore } from '@/store/useUIStore';
 
 export const Header: React.FC = () => {
+  const { toggleSidebar } = useUIStore();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -21,9 +23,18 @@ export const Header: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-
   return (
     <header className="header-container">
+      <button
+        type="button"
+        className="mobile-menu-toggle-btn"
+        onClick={toggleSidebar}
+        title="Toggle Menu"
+        aria-label="Toggle Menu"
+      >
+        <Menu size={20} />
+      </button>
+
       {/* Left Search Bar matching reference image */}
       <div className="header-search-wrapper">
         <Search size={16} className="header-search-icon" />

@@ -22,8 +22,6 @@ import {
   FileText,
   Bot,
   ChevronRight,
-  Plus,
-  CheckCircle2,
   FileUp,
 } from 'lucide-react';
 import { fetchDashboardOverview } from '@/services/dashboard.service';
@@ -241,7 +239,7 @@ export const OverviewDashboard: React.FC = () => {
             Good morning, Arjun 👋
           </h1>
           <p style={{ fontSize: '0.875rem', color: '#64748b', margin: '0.25rem 0 0 0' }}>
-            Here's what's happening with your business today.
+            Heres whats happening with your business today.
           </p>
         </div>
 
@@ -297,7 +295,7 @@ export const OverviewDashboard: React.FC = () => {
             <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Users size={16} />
             </div>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748b' }}>Today's Leads</span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748b' }}>Todays Leads</span>
           </div>
           <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a' }}>{metrics?.todaysLeads.value}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: '#16a34a', marginTop: '0.25rem', fontWeight: 600 }}>
@@ -550,18 +548,18 @@ export const OverviewDashboard: React.FC = () => {
                         activity.iconType === 'whatsapp'
                           ? '#dcfce7'
                           : activity.iconType === 'robot'
-                          ? '#f3e8ff'
-                          : activity.iconType === 'calendar'
-                          ? '#fef3c7'
-                          : '#e0f2fe',
+                            ? '#f3e8ff'
+                            : activity.iconType === 'calendar'
+                              ? '#fef3c7'
+                              : '#e0f2fe',
                       color:
                         activity.iconType === 'whatsapp'
                           ? '#16a34a'
                           : activity.iconType === 'robot'
-                          ? '#9333ea'
-                          : activity.iconType === 'calendar'
-                          ? '#ea580c'
-                          : '#0284c7',
+                            ? '#9333ea'
+                            : activity.iconType === 'calendar'
+                              ? '#ea580c'
+                              : '#0284c7',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',

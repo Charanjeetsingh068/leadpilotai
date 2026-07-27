@@ -5,7 +5,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { LeadSourceIcon } from './LeadSourceIcon';
 import { Lead } from '@/types/lead.types';
-import { MessageSquare, ExternalLink, UserPlus, Phone, Calendar, Building2 } from 'lucide-react';
+import { MessageSquare, ExternalLink, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 
 export interface LeadPreviewDrawerProps {
