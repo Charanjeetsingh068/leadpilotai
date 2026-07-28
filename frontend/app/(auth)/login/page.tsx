@@ -34,7 +34,7 @@ export default function LoginPage() {
     try {
       await login(data);
       toast.success('Successfully logged in! Welcome back.');
-      router.push('/lead-inbox');
+      router.push('/overview');
     } catch (err: unknown) {
       const errorMsg =
         err && typeof err === 'object' && 'response' in err
@@ -54,31 +54,14 @@ export default function LoginPage() {
       {/* Elevated Rounded Login Card Container */}
       <div className="auth-card-container">
         {/* Card Header */}
-        <div style={{ marginBottom: '1.75rem' }}>
-          <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', margin: '0 0 0.4rem 0' }}>
-            Welcome back
-          </h2>
-          <p style={{ fontSize: '0.9rem', color: '#64748b', margin: 0 }}>
-            Login to access your workspace
-          </p>
+        <div className="auth-header-margin">
+          <h2 className="auth-card-title">Welcome back</h2>
+          <p className="auth-card-subtitle">Login to access your workspace</p>
         </div>
 
         {/* Server Error Alert Banner */}
         {serverError ? (
-          <div
-            style={{
-              padding: '0.75rem 1rem',
-              borderRadius: 'var(--radius-md)',
-              backgroundColor: 'var(--color-danger-bg)',
-              border: '1px solid var(--color-danger-border)',
-              color: 'var(--color-danger-text)',
-              fontSize: '0.85rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              marginBottom: '1.25rem',
-            }}
-          >
+          <div className="auth-alert-banner">
             <AlertCircle size={16} />
             <span>{serverError}</span>
           </div>
@@ -88,9 +71,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit(onSubmit)}>
           {/* Email Input */}
           <div className="form-group">
-            <label className="form-label" style={{ fontWeight: 600, color: '#334155' }}>
-              Email
-            </label>
+            <label className="form-label auth-form-label">Email</label>
             <div className="input-icon-group">
               <Mail size={18} className="input-left-icon" />
               <input
@@ -106,10 +87,8 @@ export default function LoginPage() {
           </div>
 
           {/* Password Input */}
-          <div className="form-group" style={{ marginTop: '1rem' }}>
-            <label className="form-label" style={{ fontWeight: 600, color: '#334155' }}>
-              Password
-            </label>
+          <div className="form-group auth-form-group-margin">
+            <label className="form-label auth-form-label">Password</label>
             <div className="input-icon-group">
               <Lock size={18} className="input-left-icon" />
               <input
@@ -133,35 +112,19 @@ export default function LoginPage() {
           </div>
 
           {/* Checkbox & Forgot Password */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '1.25rem 0' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#475569', cursor: 'pointer' }}>
-              <input type="checkbox" style={{ borderRadius: '4px', accentColor: '#2563eb' }} defaultChecked />
+          <div className="auth-checkbox-row">
+            <label className="auth-checkbox-label">
+              <input type="checkbox" className="lead-checkbox" defaultChecked />
               <span>Remember me</span>
             </label>
 
-            <Link href="/forgot-password" style={{ fontSize: '0.85rem', fontWeight: 600, color: '#2563eb' }}>
+            <Link href="/forgot-password" className="auth-forgot-link">
               Forgot Password?
             </Link>
           </div>
 
           {/* Login Submit Button */}
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={isLoading}
-            style={{
-              width: '100%',
-              height: '46px',
-              backgroundColor: '#2563eb',
-              borderRadius: 'var(--radius-md)',
-              fontSize: '0.95rem',
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-            }}
-          >
+          <button type="submit" className="auth-submit-btn" disabled={isLoading}>
             {isLoading ? (
               <span>Logging in...</span>
             ) : (
@@ -202,16 +165,16 @@ export default function LoginPage() {
         </button>
 
         {/* Create Org Link */}
-        <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.875rem', color: '#64748b' }}>
+        <div className="auth-register-text">
           <span>New to LeadPilot AI? </span>
-          <Link href="/register" style={{ fontWeight: 600, color: '#2563eb' }}>
+          <Link href="/register" className="auth-register-link">
             Create Organization
           </Link>
         </div>
       </div>
 
       {/* Security Note Outside Card at Bottom */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '1.25rem', fontSize: '0.75rem', color: '#94a3b8' }}>
+      <div className="auth-security-outer">
         <ShieldCheck size={14} />
         <span>Secure login protected by enterprise-grade encryption</span>
       </div>

@@ -3,6 +3,8 @@ import { LeadTimelineRepository } from '../repositories/leadTimeline.repository'
 import { LeadNotesRepository } from '../repositories/leadNotes.repository';
 import { TimelineEventType, LeadSource, LeadStatus } from '../enums/lead.enums';
 import { ApiError } from '../utils/apiError';
+import { MessageModel } from '../models/Message.model';
+
 
 export interface CreateLeadPayload {
   name: string;
@@ -206,6 +208,71 @@ export class LeadService {
     return { success: true };
   }
 
+  public async getLeadTimeline(id: string) {
+    return this.timelineRepository.findByLeadId(id);
+  }
+
+  public async getLeadNotes(id: string) {
+    return this.notesRepository.findByLeadId(id);
+  }
+
+  public async getLeadConversation(id: string) {
+    const messages = await MessageModel.find({ leadId: id }).sort({ createdAt: 1 }).lean();
+    return messages;
+  }
+
+  public async updateLead(id: string, payload: Partial<CreateLeadPayload>) {
+    const lead = await this.leadRepository.findById(id);
+    if (!lead) {
+      throw new ApiError(404, 'Lead not found');
+    }
+    Object.assign(lead, payload);
+    await lead.save();
+    return lead;
+  }
+
+  public async bulkAssignLeads(leadIds: string[], salesUserId: string, assignedBy: string) {
+    const results = await Promise.all(
+      leadIds.map((id) => this.assignLead(id, salesUserId, assignedBy, 'Bulk assign action'))
+    );
+    return results;
+  }
+
+  public async bulkUpdateStatus(leadIds: string[], status: LeadStatus, actorId?: string) {
+    const results = await Promise.all(
+      leadIds.map((id) => this.updateLeadStatus(id, status, actorId))
+    );
+    return results;
+  }
+
+  public async importLeads(leadsData: any[], organizationId: string, createdBy?: string) {
+    const createdLeads = [];
+    for (const item of leadsData) {
+      const lead = await this.createLead({
+        name: item.name || 'Unnamed Lead',
+        phone: item.phone || '',
+        email: item.email || '',
+        source: item.source || LeadSource.MANUAL_ENTRY,
+        project: item.project || '',
+        campaign: item.campaign || '',
+        industry: item.industry || '',
+        budget: item.budget || '',
+        timeline: item.timeline || '',
+        location: item.location || '',
+        notes: item.notes || '',
+        organizationId,
+        createdBy,
+      });
+      createdLeads.push(lead);
+    }
+    return createdLeads;
+  }
+
+  public async exportLeads(organizationId: string, options: LeadFilterOptions) {
+    const result = await this.leadRepository.findAllWithFilters(organizationId, { ...options, limit: 1000, page: 1 });
+    return result.leads;
+  }
+
   public async getDashboardOverview(organizationId: string, period?: string) {
     let startDate: Date | undefined;
     const now = new Date();
@@ -240,3 +307,4 @@ export class LeadService {
     };
   }
 }
+

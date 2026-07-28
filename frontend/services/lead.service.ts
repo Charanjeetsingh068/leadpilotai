@@ -38,4 +38,45 @@ export const LeadService = {
     const res = await apiClient.delete<ApiResponse<null>>(`/leads/${id}`);
     return res.data;
   },
+
+  getLeadConversation: async (id: string): Promise<ApiResponse<any[]>> => {
+    const res = await apiClient.get<ApiResponse<any[]>>(`/leads/${id}/conversation`);
+    return res.data;
+  },
+
+  getLeadTimeline: async (id: string): Promise<ApiResponse<any[]>> => {
+    const res = await apiClient.get<ApiResponse<any[]>>(`/leads/${id}/timeline`);
+    return res.data;
+  },
+
+  getLeadNotes: async (id: string): Promise<ApiResponse<LeadNote[]>> => {
+    const res = await apiClient.get<ApiResponse<LeadNote[]>>(`/leads/${id}/notes`);
+    return res.data;
+  },
+
+  updateLead: async (id: string, payload: Partial<Lead>): Promise<ApiResponse<Lead>> => {
+    const res = await apiClient.put<ApiResponse<Lead>>(`/leads/${id}`, payload);
+    return res.data;
+  },
+
+  bulkAssign: async (leadIds: string[], salesUserId: string): Promise<ApiResponse<Lead[]>> => {
+    const res = await apiClient.post<ApiResponse<Lead[]>>('/leads/assign', { leadIds, salesUserId });
+    return res.data;
+  },
+
+  bulkStatus: async (leadIds: string[], status: Lead['status']): Promise<ApiResponse<Lead[]>> => {
+    const res = await apiClient.post<ApiResponse<Lead[]>>('/leads/status', { leadIds, status });
+    return res.data;
+  },
+
+  importLeads: async (leads: Partial<Lead>[]): Promise<ApiResponse<Lead[]>> => {
+    const res = await apiClient.post<ApiResponse<Lead[]>>('/leads/import', { leads });
+    return res.data;
+  },
+
+  exportLeads: async (params?: LeadFilterParams): Promise<ApiResponse<Lead[]>> => {
+    const res = await apiClient.get<ApiResponse<Lead[]>>('/leads/export', { params });
+    return res.data;
+  },
 };
+

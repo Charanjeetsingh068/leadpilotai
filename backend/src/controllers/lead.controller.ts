@@ -125,4 +125,94 @@ export class LeadController {
       next(error);
     }
   };
+
+  public getLeadConversation = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = String(req.params.id);
+      const conversation = await this.leadService.getLeadConversation(id);
+      sendResponse(res, 200, 'Lead conversation retrieved', conversation);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public getLeadTimeline = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = String(req.params.id);
+      const timeline = await this.leadService.getLeadTimeline(id);
+      sendResponse(res, 200, 'Lead timeline retrieved', timeline);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public getLeadNotes = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = String(req.params.id);
+      const notes = await this.leadService.getLeadNotes(id);
+      sendResponse(res, 200, 'Lead notes retrieved', notes);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public updateLead = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = String(req.params.id);
+      const lead = await this.leadService.updateLead(id, req.body);
+      sendResponse(res, 200, 'Lead updated successfully', lead);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public bulkAssign = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { leadIds, salesUserId } = req.body;
+      const assignedBy = req.user?.id || 'system';
+      const result = await this.leadService.bulkAssignLeads(leadIds, salesUserId, assignedBy);
+      sendResponse(res, 200, 'Leads assigned successfully', result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public bulkStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { leadIds, status } = req.body;
+      const actorId = req.user?.id;
+      const result = await this.leadService.bulkUpdateStatus(leadIds, status as LeadStatus, actorId);
+      sendResponse(res, 200, 'Lead status updated for selected leads', result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public importLeads = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const organizationId = req.user?.organizationId || 'org_demo_default';
+      const createdBy = req.user?.id;
+      const leadsData = req.body.leads || req.body;
+      const leads = await this.leadService.importLeads(Array.isArray(leadsData) ? leadsData : [leadsData], organizationId, createdBy);
+      sendResponse(res, 201, 'Leads imported successfully', leads);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public exportLeads = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const organizationId = req.user?.organizationId || 'org_demo_default';
+      const { source, status, search } = req.query;
+      const leads = await this.leadService.exportLeads(organizationId, {
+        source: source as string | undefined,
+        status: status as string | undefined,
+        search: search as string | undefined,
+      });
+      sendResponse(res, 200, 'Leads exported successfully', leads);
+    } catch (error) {
+      next(error);
+    }
+  };
 }
+

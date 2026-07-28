@@ -7,8 +7,7 @@ export interface StatCardProps {
   trend: string;
   isPositive: boolean;
   icon: React.ReactNode;
-  iconBgColor: string;
-  iconColor: string;
+  variantClass?: string;
 }
 
 export const StatCard: React.FC<StatCardProps> = ({
@@ -17,19 +16,13 @@ export const StatCard: React.FC<StatCardProps> = ({
   trend,
   isPositive,
   icon,
-  iconBgColor,
-  iconColor,
+  variantClass = 'stat-icon-blue',
 }) => {
   return (
     <div className="stat-kpi-card">
       <div>
         <div className="stat-kpi-header">
-          <div
-            className="stat-icon-circle"
-            style={{ backgroundColor: iconBgColor, color: iconColor }}
-          >
-            {icon}
-          </div>
+          <div className={`stat-icon-circle ${variantClass}`}>{icon}</div>
           <span className="stat-title">{title}</span>
         </div>
         <div className="stat-value">{value}</div>

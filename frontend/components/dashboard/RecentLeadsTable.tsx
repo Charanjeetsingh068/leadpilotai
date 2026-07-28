@@ -12,6 +12,7 @@ export interface RecentLeadsTableProps {
 
 const STATUS_BADGE: Record<LeadStatus, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'neutral' }> = {
   NEW: { label: 'New Ingested', variant: 'info' },
+  CONTACTED: { label: 'Contacted', variant: 'info' },
   AI_STARTED: { label: 'AI Started', variant: 'info' },
   AI_IN_PROGRESS: { label: 'AI In Progress', variant: 'info' },
   QUALIFIED: { label: 'AI Qualified', variant: 'success' },

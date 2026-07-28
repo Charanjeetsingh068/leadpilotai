@@ -18,7 +18,20 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiredPermission,
 }) => {
   const router = useRouter();
-  const { isAuthenticated, isInitialized, isLoading, role, hasPermission } = useAuthStore();
+  const {
+    isAuthenticated,
+    isInitialized,
+    isLoading,
+    role,
+    hasPermission,
+    fetchCurrentUser,
+  } = useAuthStore();
+
+  useEffect(() => {
+    if (!isInitialized && !isLoading) {
+      fetchCurrentUser();
+    }
+  }, [isInitialized, isLoading, fetchCurrentUser]);
 
   useEffect(() => {
     if (isInitialized && !isAuthenticated) {
@@ -27,7 +40,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }, [isInitialized, isAuthenticated, router]);
 
   if (!isInitialized || isLoading) {
-    return <Loader fullPage text="Authenticating..." />;
+    return <Loader fullPage text="Loading LeadPilot AI Workspace..." />;
   }
 
   if (!isAuthenticated) {
@@ -36,7 +49,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   if (allowedRoles && role && !allowedRoles.includes(role)) {
     return (
-      <div className="card" style={{ margin: '2rem', textAlign: 'center' }}>
+      <div className="lead-note-card text-center file-upload-dashed-box modal-footer-top">
         <h2>Access Denied</h2>
         <p className="text-muted">You do not have permission to view this page.</p>
       </div>
@@ -45,7 +58,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   if (requiredPermission && !hasPermission(requiredPermission)) {
     return (
-      <div className="card" style={{ margin: '2rem', textAlign: 'center' }}>
+      <div className="lead-note-card text-center file-upload-dashed-box modal-footer-top">
         <h2>Access Denied</h2>
         <p className="text-muted">Missing required permission: {requiredPermission}</p>
       </div>

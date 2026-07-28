@@ -98,10 +98,10 @@ export const OverviewDashboard: React.FC = () => {
       <div className="dashboard-header-bar">
         <div>
           <h1 className="dashboard-title-text">
-            Good morning, {profile.name.split(' ')[0]} 👋
+            Good morning, {profile?.name?.split(' ')[0] || 'User'} 👋
           </h1>
           <p className="dashboard-subtitle-text">
-            Heres whats happening with your business today.
+            {"Here's what's happening with your business today."}
           </p>
         </div>
 
@@ -127,8 +127,7 @@ export const OverviewDashboard: React.FC = () => {
           trend={metrics?.todaysLeads.trend || '14% vs yesterday'}
           isPositive={metrics?.todaysLeads.isPositive ?? true}
           icon={<Users size={16} />}
-          iconBgColor="#eff6ff"
-          iconColor="#2563eb"
+          variantClass="stat-icon-blue"
         />
 
         <StatCard
@@ -137,8 +136,7 @@ export const OverviewDashboard: React.FC = () => {
           trend={metrics?.qualifiedLeads.trend || '12% vs yesterday'}
           isPositive={metrics?.qualifiedLeads.isPositive ?? true}
           icon={<MessageSquare size={16} />}
-          iconBgColor="#dcfce7"
-          iconColor="#16a34a"
+          variantClass="stat-icon-green"
         />
 
         <StatCard
@@ -147,8 +145,7 @@ export const OverviewDashboard: React.FC = () => {
           trend={metrics?.pendingReply.trend || '8% vs yesterday'}
           isPositive={metrics?.pendingReply.isPositive ?? false}
           icon={<MessageCircle size={16} />}
-          iconBgColor="#ffedd5"
-          iconColor="#ea580c"
+          variantClass="stat-icon-orange"
         />
 
         <StatCard
@@ -157,8 +154,7 @@ export const OverviewDashboard: React.FC = () => {
           trend={metrics?.siteVisits.trend || '5% vs yesterday'}
           isPositive={metrics?.siteVisits.isPositive ?? true}
           icon={<CalendarIcon size={16} />}
-          iconBgColor="#f3e8ff"
-          iconColor="#9333ea"
+          variantClass="stat-icon-purple"
         />
 
         <StatCard
@@ -167,8 +163,7 @@ export const OverviewDashboard: React.FC = () => {
           trend={metrics?.bookings.trend || '3% vs yesterday'}
           isPositive={metrics?.bookings.isPositive ?? true}
           icon={<Tag size={16} />}
-          iconBgColor="#e0f2fe"
-          iconColor="#0284c7"
+          variantClass="stat-icon-cyan"
         />
 
         <StatCard
@@ -177,8 +172,7 @@ export const OverviewDashboard: React.FC = () => {
           trend={metrics?.revenue.trend || '16% vs yesterday'}
           isPositive={metrics?.revenue.isPositive ?? true}
           icon={<IndianRupee size={16} />}
-          iconBgColor="#dcfce7"
-          iconColor="#16a34a"
+          variantClass="stat-icon-green"
         />
       </div>
 
@@ -212,8 +206,8 @@ export const OverviewDashboard: React.FC = () => {
                     <tr key={lead.id} className="recent-leads-tr">
                       <td className="recent-leads-td">
                         <div className="lead-user-wrapper">
-                          <div className="lead-avatar-circle">
-                            {lead.avatarInitials}
+                          <div className="lead-avatar-circle avatar-green">
+                            {lead.avatarInitials || 'LS'}
                           </div>
                           <div>
                             <div className="lead-user-name">{lead.name}</div>
@@ -268,32 +262,28 @@ export const OverviewDashboard: React.FC = () => {
                 title="Connect Facebook"
                 description="Capture leads from Facebook Ads"
                 icon={<Share2 size={18} />}
-                iconBgColor="#eff6ff"
-                iconColor="#1877f2"
+                variantClass="stat-icon-blue"
               />
 
               <QuickActionCard
                 title="Connect WhatsApp"
                 description="Connect your official WhatsApp number"
                 icon={<MessageSquare size={18} />}
-                iconBgColor="#dcfce7"
-                iconColor="#16a34a"
+                variantClass="stat-icon-green"
               />
 
               <QuickActionCard
                 title="Add Manual Lead"
                 description="Add a new lead manually"
                 icon={<UserPlus size={18} />}
-                iconBgColor="#f1f5f9"
-                iconColor="#475569"
+                variantClass="stat-icon-gray"
               />
 
               <QuickActionCard
                 title="Upload Knowledge Base"
                 description="Upload documents to train your AI"
                 icon={<FileUp size={18} />}
-                iconBgColor="#f3e8ff"
-                iconColor="#9333ea"
+                variantClass="stat-icon-purple"
               />
             </div>
           </div>

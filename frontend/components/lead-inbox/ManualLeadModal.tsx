@@ -74,7 +74,7 @@ export const ManualLeadModal: React.FC<ManualLeadModalProps> = ({ isOpen, onClos
           <textarea className="textarea" rows={3} placeholder="Customer preferences..." {...register('notes')} />
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+        <div className="lead-actions-right modal-footer-top">
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>

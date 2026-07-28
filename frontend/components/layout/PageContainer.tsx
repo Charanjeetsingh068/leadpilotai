@@ -7,6 +7,7 @@ export interface PageContainerProps {
   subtitle?: string;
   action?: React.ReactNode;
   children: React.ReactNode;
+  fluid?: boolean;
 }
 
 export const PageContainer: React.FC<PageContainerProps> = ({
@@ -14,11 +15,12 @@ export const PageContainer: React.FC<PageContainerProps> = ({
   subtitle,
   action,
   children,
+  fluid = false,
 }) => {
   return (
-    <div className="page-container">
+    <div className={`page-container ${fluid ? 'fluid' : ''}`}>
       {title ? <PageHeader title={title} subtitle={subtitle} action={action} /> : null}
-      <ContentWrapper>{children}</ContentWrapper>
+      <ContentWrapper fluid={fluid}>{children}</ContentWrapper>
     </div>
   );
 };

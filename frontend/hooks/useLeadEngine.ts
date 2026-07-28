@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useLeadStore } from '@/store/useLeadStore';
 import { LeadService } from '@/services/lead.service';
-import { LeadStatus, LeadFilterParams } from '@/types/lead.types';
+import { Lead, LeadStatus, LeadFilterParams } from '@/types/lead.types';
 import toast from 'react-hot-toast';
 
 export const useLeadEngine = () => {
@@ -22,13 +22,14 @@ export const useLeadEngine = () => {
   } = useLeadStore();
 
   const fetchLeads = useCallback(
-    async (params?: Partial<LeadFilterParams>) => {
+    async (params?: Partial<LeadFilterParams>): Promise<Lead[] | undefined> => {
       setLoading(true);
       const combinedParams = { ...filters, ...params };
       try {
         const res = await LeadService.getLeads(combinedParams);
         if (res.success && res.data) {
           setLeads(res.data);
+          return res.data;
         }
       } catch {
         toast.error('Failed to fetch leads.');

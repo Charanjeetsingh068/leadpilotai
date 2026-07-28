@@ -1,7 +1,8 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
 export type MessageSender = 'LEAD' | 'AI' | 'AGENT' | 'SYSTEM';
-export type MessageStatus = 'SENT' | 'DELIVERED' | 'READ' | 'FAILED';
+export type MessageStatus = 'SENT' | 'DELIVERED' | 'READ' | 'SEEN' | 'FAILED';
+export type AttachmentType = 'IMAGE' | 'PDF' | 'VIDEO' | 'VOICE' | 'LOCATION' | 'CONTACT';
 
 export interface IMessageDocument extends Document {
   conversationId: Types.ObjectId;
@@ -11,7 +12,11 @@ export interface IMessageDocument extends Document {
   senderName?: string;
   content: string;
   mediaUrl?: string;
+  attachmentType?: AttachmentType;
+  fileName?: string;
+  fileSize?: string;
   status: MessageStatus;
+  replyToMessageId?: string;
   aiMetadata?: {
     intent?: string;
     confidenceScore?: number;
@@ -34,11 +39,18 @@ const MessageSchema = new Schema<IMessageDocument>(
     senderName: { type: String },
     content: { type: String, required: true },
     mediaUrl: { type: String },
+    attachmentType: {
+      type: String,
+      enum: ['IMAGE', 'PDF', 'VIDEO', 'VOICE', 'LOCATION', 'CONTACT'],
+    },
+    fileName: { type: String },
+    fileSize: { type: String },
     status: {
       type: String,
-      enum: ['SENT', 'DELIVERED', 'READ', 'FAILED'],
+      enum: ['SENT', 'DELIVERED', 'READ', 'SEEN', 'FAILED'],
       default: 'SENT',
     },
+    replyToMessageId: { type: String },
     aiMetadata: {
       intent: { type: String },
       confidenceScore: { type: Number },

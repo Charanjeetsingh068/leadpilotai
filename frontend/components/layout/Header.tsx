@@ -57,7 +57,7 @@ export const Header: React.FC = () => {
 
         <button
           type="button"
-          className="icon-action-btn"
+          className="icon-action-btn icon-action-btn-help"
           title="Help & Documentation"
           aria-label="Help"
         >

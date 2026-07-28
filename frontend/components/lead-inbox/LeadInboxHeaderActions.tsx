@@ -1,6 +1,5 @@
-import React from 'react';
-import { Button } from '@/components/ui/Button';
-import { Plus, Upload, Download, RefreshCw } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Upload, Download, ChevronDown } from 'lucide-react';
 
 export interface LeadInboxHeaderActionsProps {
   onAddLead: () => void;
@@ -14,28 +13,39 @@ export const LeadInboxHeaderActions: React.FC<LeadInboxHeaderActionsProps> = ({
   onAddLead,
   onImportCSV,
   onExport,
-  onRefresh,
-  isRefreshing = false,
 }) => {
+  const [isAddOpen, setIsAddOpen] = useState<boolean>(false);
+
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-      <Button variant="primary" size="sm" leftIcon={<Plus size={14} />} onClick={onAddLead}>
-        Add Lead
-      </Button>
-      <Button variant="outline" size="sm" leftIcon={<Upload size={14} />} onClick={onImportCSV}>
-        Import CSV
-      </Button>
-      <Button variant="outline" size="sm" leftIcon={<Download size={14} />} onClick={onExport}>
-        Export
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        leftIcon={<RefreshCw size={14} className={isRefreshing ? 'spin-icon' : ''} />}
-        onClick={onRefresh}
-      >
-        Refresh
-      </Button>
+    <div className="lead-actions-right">
+      <button type="button" className="lead-btn-secondary" onClick={onExport}>
+        <Download size={14} /> Export
+      </button>
+
+      <button type="button" className="lead-btn-secondary" onClick={onImportCSV}>
+        <Upload size={14} /> Import
+      </button>
+
+      <div className="pos-relative">
+        <button
+          type="button"
+          className="lead-btn-primary-dropdown"
+          onClick={() => setIsAddOpen(!isAddOpen)}
+        >
+          <Plus size={16} /> Add Lead <ChevronDown size={14} />
+        </button>
+
+        {isAddOpen && (
+          <div className="dropdown-menu shadow-dropdown text-left" onClick={() => setIsAddOpen(false)}>
+            <button type="button" className="dropdown-item" onClick={onAddLead}>
+              Add Single Lead
+            </button>
+            <button type="button" className="dropdown-item" onClick={onImportCSV}>
+              Import CSV File
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

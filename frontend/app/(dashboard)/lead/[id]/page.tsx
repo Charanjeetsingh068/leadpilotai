@@ -1,178 +1,184 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { PageContainer } from '@/components/layout/PageContainer';
-import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { LeadService } from '@/services/lead.service';
+import { LeadDetailsHeader } from '@/components/lead-details/LeadDetailsHeader';
+import { CustomerProfilePanel } from '@/components/lead-details/CustomerProfilePanel';
+import { LeadDetailsTabs } from '@/components/lead-details/LeadDetailsTabs';
+import { TimelineTab } from '@/components/lead-details/TimelineTab';
+import { ConversationTab } from '@/components/lead-details/ConversationTab';
+import { AISummaryTab } from '@/components/lead-details/AISummaryTab';
+import { NotesTab } from '@/components/lead-details/NotesTab';
+import { DocumentsTab } from '@/components/lead-details/DocumentsTab';
+import { RightWidgetsPanel } from '@/components/lead-details/RightWidgetsPanel';
+import { StickyActionBar } from '@/components/lead-details/StickyActionBar';
+
+import { AssignLeadModal } from '@/components/lead-details/AssignLeadModal';
+import { BookSiteVisitModal } from '@/components/lead-details/BookSiteVisitModal';
+import { MarkQualifiedModal } from '@/components/lead-details/MarkQualifiedModal';
+import { RejectLeadModal } from '@/components/lead-details/RejectLeadModal';
+
+import { useLeadDetailsStore } from '@/store/useLeadDetailsStore';
+import { useLeadStore } from '@/store/useLeadStore';
 import { Lead } from '@/types/lead.types';
-import { MessageSquare, Phone, Mail, Calendar, CheckCircle, Clock, ShieldCheck } from 'lucide-react';
-import Link from 'next/link';
+
+const ALL_MOCK_LEADS: Record<string, Lead> = {
+  lead_1: {
+    id: 'lead_1',
+    name: 'Rohit Sharma',
+    phone: '+91 98765 43210',
+    email: 'rohit.sharma@example.com',
+    project: 'Sunshine Villas - 2 BHK',
+    source: 'FACEBOOK_ADS',
+    qualificationScore: 85,
+    status: 'NEW',
+    organizationId: 'org_1',
+    createdAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+    updatedAt: new Date().toISOString(),
+    budget: '₹50 - ₹70 Lakhs',
+    location: 'Indore, MP',
+    assignedSalesUser: { id: 'usr_1', name: 'Neha Singh', email: 'neha@leadpilot.ai' },
+  },
+  lead_2: {
+    id: 'lead_2',
+    name: 'Priya Verma',
+    phone: '+91 91234 56789',
+    email: 'priya.v@example.com',
+    project: 'Green Heights - 3 BHK',
+    source: 'INSTAGRAM_ADS',
+    qualificationScore: 72,
+    status: 'CONTACTED',
+    organizationId: 'org_1',
+    createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+    updatedAt: new Date().toISOString(),
+    budget: '₹80 - ₹1 Cr',
+    location: 'Bhopal, MP',
+    assignedSalesUser: { id: 'usr_2', name: 'Amit Kumar', email: 'amit@leadpilot.ai' },
+  },
+  lead_3: {
+    id: 'lead_3',
+    name: 'Amit Kumar',
+    phone: '+91 99887 76655',
+    email: 'amit.k@example.com',
+    project: 'Royal Residency',
+    source: 'GOOGLE_ADS',
+    qualificationScore: 68,
+    status: 'AI_IN_PROGRESS',
+    organizationId: 'org_1',
+    createdAt: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
+    updatedAt: new Date().toISOString(),
+    budget: '₹40 - ₹60 Lakhs',
+    location: 'Ujjain, MP',
+    assignedSalesUser: { id: 'usr_3', name: 'Raj Mehta', email: 'raj@leadpilot.ai' },
+  },
+  lead_4: {
+    id: 'lead_4',
+    name: 'Sneha Iyer',
+    phone: '+91 87654 32109',
+    email: 'sneha.iyer@example.com',
+    project: 'Lake View Homes',
+    source: 'WEBSITE_FORM',
+    qualificationScore: 90,
+    status: 'QUALIFIED',
+    organizationId: 'org_1',
+    createdAt: new Date(Date.now() - 18 * 60 * 1000).toISOString(),
+    updatedAt: new Date().toISOString(),
+    budget: '₹1.2 Cr+',
+    location: 'Indore, MP',
+    assignedSalesUser: { id: 'usr_1', name: 'Neha Singh', email: 'neha@leadpilot.ai' },
+  },
+  lead_5: {
+    id: 'lead_5',
+    name: 'Vikram Singh',
+    phone: '+91 76543 21098',
+    email: 'vikram.singh@example.com',
+    project: 'Park Avenue',
+    source: 'MANUAL_ENTRY',
+    qualificationScore: 55,
+    status: 'NEW',
+    organizationId: 'org_1',
+    createdAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
+    updatedAt: new Date().toISOString(),
+    budget: '₹35 - ₹50 Lakhs',
+    location: 'Dewas, MP',
+    assignedSalesUser: { id: 'usr_4', name: 'Rohit Tiwari', email: 'rohit.t@leadpilot.ai' },
+  },
+};
 
 export default function LeadDetailPage() {
   const params = useParams();
-  const leadId = String(params.id);
+  const leadId = String(params?.id || '');
 
-  const [lead, setLead] = useState<Lead | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { activeTab, setLead } = useLeadDetailsStore();
+  const activeLeadInStore = useLeadStore((s) => s.activeLead);
+  const leadsInStore = useLeadStore((s) => s.leads);
 
   useEffect(() => {
-    const fetchLead = async () => {
-      setIsLoading(true);
-      try {
-        const res = await LeadService.getLeadById(leadId);
-        if (res.success && res.data) {
-          setLead(res.data);
-        }
-      } catch {
-        // Fallback baseline for client preview
-        setLead({
-          id: leadId,
-          name: 'Vikram Malhotra',
-          phone: '+91 98112 23344',
-          email: 'vikram@example.com',
-          source: 'FACEBOOK_ADS',
-          status: 'QUALIFIED',
-          qualificationScore: 88,
-          organizationId: 'org_demo',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    if (!leadId) return;
 
-    if (leadId) fetchLead();
-  }, [leadId]);
+    // 1. Try finding in useLeadStore.leads
+    let found = leadsInStore.find((l) => l.id === leadId);
 
-  if (isLoading) {
-    return (
-      <PageContainer title="Loading Profile...">
-        <p>Loading lead details...</p>
-      </PageContainer>
-    );
-  }
+    // 2. Try checking activeLead in store
+    if (!found && activeLeadInStore?.id === leadId) {
+      found = activeLeadInStore;
+    }
 
-  if (!lead) {
-    return (
-      <PageContainer title="Lead Not Found">
-        <p>The requested lead profile could not be found.</p>
-      </PageContainer>
-    );
-  }
+    // 3. Try checking ALL_MOCK_LEADS lookup table
+    if (!found && ALL_MOCK_LEADS[leadId]) {
+      found = ALL_MOCK_LEADS[leadId];
+    }
+
+    // 4. Fallback default lead
+    if (!found) {
+      found = ALL_MOCK_LEADS.lead_3;
+    }
+
+    if (found) {
+      setLead(found);
+    }
+  }, [leadId, leadsInStore, activeLeadInStore, setLead]);
 
   return (
-    <PageContainer
-      title={`Lead Profile: ${lead.name}`}
-      subtitle={`Ingested via ${lead.source.replace('_', ' ')} • ID: ${lead.id}`}
-      action={
-        <Link
-          href={`/conversation/${lead.id}`}
-          className="btn btn-primary"
-          style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center' }}
-        >
-          <MessageSquare size={16} />
-          Open WhatsApp Chat
-        </Link>
-      }
-    >
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
-        {/* Left Column: Contact & Metadata */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <Card title="Contact & Ingestion Metadata">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '0.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <Phone size={18} className="text-muted" />
-                <div>
-                  <span className="text-muted" style={{ fontSize: '0.75rem', display: 'block' }}>Phone Number</span>
-                  <span style={{ fontWeight: 600 }}>{lead.phone}</span>
-                </div>
-              </div>
+    <div className="lead-detail-page-container">
+      {/* Top Header Section with Back Navigation & Metrics */}
+      <LeadDetailsHeader />
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <Mail size={18} className="text-muted" />
-                <div>
-                  <span className="text-muted" style={{ fontSize: '0.75rem', display: 'block' }}>Email Address</span>
-                  <span style={{ fontWeight: 500 }}>{lead.email || 'Not provided'}</span>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <Calendar size={18} className="text-muted" />
-                <div>
-                  <span className="text-muted" style={{ fontSize: '0.75rem', display: 'block' }}>Ingested Date</span>
-                  <span style={{ fontWeight: 500 }}>{new Date(lead.createdAt).toLocaleDateString()}</span>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <ShieldCheck size={18} className="text-muted" />
-                <div>
-                  <span className="text-muted" style={{ fontSize: '0.75rem', display: 'block' }}>Current Status</span>
-                  <Badge variant="success" label={lead.status} />
-                </div>
-              </div>
-            </div>
-          </Card>
+      {/* Main 3-Column Grid Layout */}
+      <div className="lead-detail-main-grid">
+        {/* Left Column: Customer Profile */}
+        <div className="grid-col-profile">
+          <CustomerProfilePanel />
         </div>
 
-        {/* Right Column: AI Qualification & Activity Timeline */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <Card title="AI Qualification Analysis">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem' }}>
-              <div
-                className="badge badge-success"
-                style={{
-                  width: '56px',
-                  height: '56px',
-                  fontSize: '1.25rem',
-                  fontWeight: 'bold',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '50%',
-                }}
-              >
-                {lead.qualificationScore}
-              </div>
-              <div>
-                <h4 style={{ margin: 0 }}>High Intent Qualification</h4>
-                <p className="text-muted" style={{ margin: '0.25rem 0 0 0', fontSize: '0.875rem' }}>
-                  AI confirmed budget range matching Luxury 3BHK criteria with site visit intent.
-                </p>
-              </div>
+        {/* Center Column: Tabs & Active Tab Feed */}
+        <div className="grid-col-center">
+          <div className="lead-detail-card center-workspace-card">
+            <LeadDetailsTabs />
+            <div className="tab-content-area">
+              {activeTab === 'timeline' && <TimelineTab />}
+              {activeTab === 'conversation' && <ConversationTab />}
+              {activeTab === 'ai-summary' && <AISummaryTab />}
+              {activeTab === 'notes' && <NotesTab />}
+              {activeTab === 'documents' && <DocumentsTab />}
             </div>
+          </div>
+        </div>
 
-            <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-              <Badge variant="neutral" label="Budget: INR 1.5 Cr - 2.0 Cr" />
-              <Badge variant="neutral" label="Timeline: Within 30 Days" />
-              <Badge variant="neutral" label="Preferred Location: Sector 62" />
-            </div>
-          </Card>
-
-          <Card title="Activity Timeline & Audit Log">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                <CheckCircle size={18} style={{ color: 'var(--color-success-main)', marginTop: '2px' }} />
-                <div>
-                  <span style={{ fontWeight: 600, fontSize: '0.875rem', display: 'block' }}>Site Visit Slot Selected</span>
-                  <span className="text-muted" style={{ fontSize: '0.75rem' }}>Scheduled for Saturday, 3:00 PM via WhatsApp Bot</span>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                <Clock size={18} style={{ color: 'var(--color-primary-600)', marginTop: '2px' }} />
-                <div>
-                  <span style={{ fontWeight: 600, fontSize: '0.875rem', display: 'block' }}>Project Brochure Sent</span>
-                  <span className="text-muted" style={{ fontSize: '0.75rem' }}>AI automatically dispatched PDF via WhatsApp</span>
-                </div>
-              </div>
-            </div>
-          </Card>
+        {/* Right Column: Lead Info & Stacked Widgets */}
+        <div className="grid-col-widgets">
+          <RightWidgetsPanel />
         </div>
       </div>
-    </PageContainer>
+
+      {/* Sticky Bottom Action Bar */}
+      <StickyActionBar />
+
+      {/* Modal Dialogs */}
+      <AssignLeadModal />
+      <BookSiteVisitModal />
+      <MarkQualifiedModal />
+      <RejectLeadModal />
+    </div>
   );
 }

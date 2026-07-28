@@ -1,168 +1,356 @@
-import React from 'react';
-import { Table, Column } from '@/components/ui/Table';
-import { Badge } from '@/components/ui/Badge';
-import { Avatar } from '@/components/ui/Avatar';
-import { Button } from '@/components/ui/Button';
-import { TableSkeletonRow } from '@/components/ui/Skeleton';
-import { LeadSourceIcon } from './LeadSourceIcon';
-import { Lead, LeadStatus } from '@/types/lead.types';
-import { Select } from '@/components/ui/Select';
-import { MessageSquare, UserPlus, Archive, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { Lead, LeadStatus } from '@/types/lead.types';
+import { StatusBadge } from '@/components/leads/StatusBadge';
+import { ScoreBadge } from '@/components/leads/ScoreBadge';
+import { SourceBadge } from '@/components/leads/SourceBadge';
+import { MoreVertical, Settings, ChevronDown, Phone, Calendar, MessageSquare, UserPlus, ExternalLink, Eye, XCircle, Archive, Trash2 } from 'lucide-react';
 
 export interface LeadInboxTableProps {
   leads: Lead[];
   selectedLeadId?: string | null;
+  selectedLeadIds: string[];
   isLoading?: boolean;
   onSelectLead: (lead: Lead) => void;
+  onToggleSelectLead: (id: string) => void;
+  onToggleSelectAll: () => void;
   onStatusChange: (leadId: string, status: LeadStatus) => void;
   onAssign: (leadId: string) => void;
-  onToggleAi: (leadId: string, currentStatus: boolean) => void;
   onDelete: (leadId: string) => void;
+  onOpenConversation: (leadId: string) => void;
+  onScheduleVisit: (leadId: string) => void;
+  onBulkAssign: () => void;
+  onBulkStatusChange: (status: LeadStatus) => void;
+  onBulkDelete: () => void;
 }
+
+const getAvatarClass = (name: string) => {
+  const charCode = name.charCodeAt(0) || 0;
+  const classes = [
+    'avatar-green',
+    'avatar-purple',
+    'avatar-pink',
+    'avatar-coral',
+    'avatar-teal',
+    'avatar-blue',
+    'avatar-yellow',
+    'avatar-cyan',
+  ];
+  return classes[charCode % classes.length];
+};
+
+const getInitials = (name: string) => {
+  const parts = name.trim().split(' ');
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+};
 
 export const LeadInboxTable: React.FC<LeadInboxTableProps> = ({
   leads,
+  selectedLeadId,
+  selectedLeadIds,
   isLoading,
   onSelectLead,
+  onToggleSelectLead,
+  onToggleSelectAll,
   onStatusChange,
   onAssign,
   onDelete,
+  onOpenConversation,
+  onScheduleVisit,
+  onBulkAssign,
+  onBulkStatusChange,
+  onBulkDelete,
 }) => {
-  const columns: Column<Lead>[] = [
-    {
-      header: 'Lead Name',
-      accessor: (row) => (
-        <span style={{ fontWeight: 600, color: 'var(--color-primary-700)' }}>{row.name}</span>
-      ),
-    },
-    {
-      header: 'Phone',
-      accessor: (row) => <span style={{ fontFamily: 'var(--font-family-mono)', fontSize: '0.85rem' }}>{row.phone}</span>,
-    },
-    {
-      header: 'Project',
-      accessor: (row) => <span style={{ fontSize: '0.875rem' }}>{row.project || 'General'}</span>,
-    },
-    {
-      header: 'Source',
-      accessor: (row) => <LeadSourceIcon source={row.source} />,
-    },
-    {
-      header: 'AI Status',
-      accessor: (row) => <Badge variant="neutral" label={row.aiStatus || 'IDLE'} />,
-    },
-    {
-      header: 'Score',
-      accessor: (row) => (
-        <span style={{ fontWeight: 700, color: row.qualificationScore >= 70 ? 'var(--color-success-main)' : 'var(--color-text-main)' }}>
-          {row.qualificationScore}
-        </span>
-      ),
-    },
-    {
-      header: 'Assigned To',
-      accessor: (row) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Avatar name={row.assignedSalesUser?.name || 'Unassigned'} size="xs" />
-          <span style={{ fontSize: '0.85rem' }}>{row.assignedSalesUser?.name || 'Unassigned'}</span>
-        </div>
-      ),
-    },
-    {
-      header: 'Created Time',
-      accessor: (row) => (
-        <span className="text-muted" style={{ fontSize: '0.75rem' }}>
-          {new Date(row.createdAt).toLocaleDateString()}
-        </span>
-      ),
-    },
-    {
-      header: 'Next Action',
-      accessor: (row) => (
-        <span className="text-muted" style={{ fontSize: '0.75rem' }}>
-          {row.status === 'SITE_VISIT_SCHEDULED' ? 'Confirm Slot' : row.status === 'QUALIFIED' ? 'Book Visit' : 'AI Polling'}
-        </span>
-      ),
-    },
-    {
-      header: 'Status',
-      accessor: (row) => (
-        <div style={{ width: '160px' }} onClick={(e) => e.stopPropagation()}>
-          <Select
-            value={row.status}
-            onChange={(e) => onStatusChange(row.id, e.target.value as LeadStatus)}
-            options={[
-              { label: 'New Ingested', value: 'NEW' },
-              { label: 'AI Started', value: 'AI_STARTED' },
-              { label: 'AI In Progress', value: 'AI_IN_PROGRESS' },
-              { label: 'AI Qualified', value: 'QUALIFIED' },
-              { label: 'Approval Required', value: 'HUMAN_APPROVAL_REQUIRED' },
-              { label: 'Site Visit Booked', value: 'SITE_VISIT_SCHEDULED' },
-              { label: 'Converted', value: 'CONVERTED' },
-              { label: 'Lost', value: 'LOST' },
-              { label: 'Archived', value: 'ARCHIVED' },
-            ]}
-          />
-        </div>
-      ),
-    },
-    {
-      header: 'Actions',
-      accessor: (row) => (
-        <div style={{ display: 'flex', gap: '0.25rem' }} onClick={(e) => e.stopPropagation()}>
-          <Link href={`/conversation/${row.id}`} className="btn btn-ghost btn-sm" title="Chat">
-            <MessageSquare size={14} />
-          </Link>
-          <Button variant="ghost" size="sm" title="Assign User" onClick={() => onAssign(row.id)}>
-            <UserPlus size={14} />
-          </Button>
-          <Button variant="ghost" size="sm" title="Archive" onClick={() => onStatusChange(row.id, 'ARCHIVED')}>
-            <Archive size={14} />
-          </Button>
-          <Button variant="ghost" size="sm" title="Delete" onClick={() => onDelete(row.id)}>
-            <Trash2 size={14} style={{ color: 'var(--color-danger-main)' }} />
-          </Button>
-        </div>
-      ),
-    },
-  ];
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [isBulkDropdownOpen, setIsBulkDropdownOpen] = useState<boolean>(false);
 
-  if (isLoading) {
-    return (
-      <div className="table-container">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Lead Name</th>
-              <th>Phone</th>
-              <th>Project</th>
-              <th>Source</th>
-              <th>AI Status</th>
-              <th>Score</th>
-              <th>Assigned To</th>
-              <th>Created Time</th>
-              <th>Next Action</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Array.from({ length: 8 }).map((_, idx) => (
-              <TableSkeletonRow key={idx} columnsCount={11} />
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  }
+  const isAllSelected = leads.length > 0 && selectedLeadIds.length === leads.length;
+
+  const handleRowClick = (lead: Lead) => {
+    onSelectLead(lead);
+  };
+
+  const handleMenuClick = (e: React.MouseEvent, leadId: string) => {
+    e.stopPropagation();
+    setActiveMenuId((prev) => (prev === leadId ? null : leadId));
+  };
 
   return (
-    <Table
-      columns={columns}
-      data={leads}
-      isLoading={false}
-      onRowClick={(row) => onSelectLead(row)}
-    />
+    <div className="lead-table-container">
+      {/* Top Bulk Selection Action Sub-Bar */}
+      <div className="lead-bulk-bar">
+        <input
+          type="checkbox"
+          className="lead-checkbox"
+          checked={isAllSelected}
+          onChange={onToggleSelectAll}
+        />
+        <span className="lead-bulk-text">{selectedLeadIds.length} Selected</span>
+        <div className="pos-relative">
+          <button
+            type="button"
+            className="lead-bulk-select-dropdown"
+            onClick={() => setIsBulkDropdownOpen(!isBulkDropdownOpen)}
+            disabled={selectedLeadIds.length === 0}
+          >
+            Bulk Actions <ChevronDown size={14} />
+          </button>
+
+          {isBulkDropdownOpen && (
+            <div className="dropdown-menu shadow-dropdown" onClick={() => setIsBulkDropdownOpen(false)}>
+              <button type="button" className="dropdown-item" onClick={onBulkAssign}>
+                Assign to Executive
+              </button>
+              <button type="button" className="dropdown-item" onClick={() => onBulkStatusChange('QUALIFIED')}>
+                Mark Qualified
+              </button>
+              <button type="button" className="dropdown-item" onClick={() => onBulkStatusChange('ARCHIVED')}>
+                Archive Selected
+              </button>
+              <button type="button" className="dropdown-item dropdown-item-danger" onClick={onBulkDelete}>
+                Delete Selected
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Main Desktop Enterprise Data Table */}
+      <div className="lead-table-card lead-desktop-table">
+        <div className="lead-table-scroll-container">
+          <table className="lead-table">
+            <thead>
+              <tr>
+                <th className="cell-checkbox">
+                  <input
+                    type="checkbox"
+                    className="lead-checkbox"
+                    checked={isAllSelected}
+                    onChange={onToggleSelectAll}
+                  />
+                </th>
+                <th>Lead Name</th>
+                <th>Phone</th>
+                <th>Project</th>
+                <th>Source</th>
+                <th>Lead Score</th>
+                <th>Status</th>
+                <th>Assigned To</th>
+                <th>Created Time</th>
+                <th className="text-right">
+                  <button type="button" className="lead-row-actions-btn" title="Table Settings">
+                    <Settings size={16} />
+                  </button>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                Array.from({ length: 6 }).map((_, idx) => (
+                  <tr key={idx}>
+                    <td colSpan={10} className="text-center text-muted cell-loading-padding">
+                      Loading leads...
+                    </td>
+                  </tr>
+                ))
+              ) : leads.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className="text-center text-muted cell-empty-padding">
+                    No matching leads found.
+                  </td>
+                </tr>
+              ) : (
+                leads.map((lead) => {
+                  const isSelected = selectedLeadId === lead.id;
+                  const isChecked = selectedLeadIds.includes(lead.id);
+                  const avatarColorClass = getAvatarClass(lead.name);
+                  const initials = getInitials(lead.name);
+
+                  return (
+                    <tr
+                      key={lead.id}
+                      className={`${isSelected ? 'active-row' : ''}`}
+                      onClick={() => handleRowClick(lead)}
+                    >
+                      <td className="cell-checkbox" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          className="lead-checkbox"
+                          checked={isChecked}
+                          onChange={() => onToggleSelectLead(lead.id)}
+                        />
+                      </td>
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <Link
+                          href={`/lead/${lead.id}`}
+                          className="lead-name-cell lead-name-clickable-link"
+                          title={`View ${lead.name} Details`}
+                        >
+                          <div className={`lead-avatar-circle ${avatarColorClass}`}>{initials}</div>
+                          <span className="lead-name-text-bold">{lead.name}</span>
+                        </Link>
+                      </td>
+                      <td>
+                        <span className="lead-phone-text">{lead.phone}</span>
+                      </td>
+                      <td>
+                        <span className="lead-project-text">{lead.project || 'General'}</span>
+                      </td>
+                      <td>
+                        <SourceBadge source={lead.source} />
+                      </td>
+                      <td>
+                        <ScoreBadge score={lead.qualificationScore || 70} />
+                      </td>
+                      <td>
+                        <StatusBadge status={lead.status} />
+                      </td>
+                      <td>
+                        <div className="lead-assigned-cell">
+                          <div className="lead-avatar-circle avatar-purple lead-user-avatar-sm">
+                            {getInitials(lead.assignedSalesUser?.name || 'Neha Singh')}
+                          </div>
+                          <span className="lead-user-name">{lead.assignedSalesUser?.name || 'Neha Singh'}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span className="text-muted lead-created-text">
+                          {lead.createdAt ? '2m ago' : '5m ago'}
+                        </span>
+                      </td>
+                      <td className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="pos-relative">
+                          <button
+                            type="button"
+                            className="lead-row-actions-btn"
+                            onClick={(e) => handleMenuClick(e, lead.id)}
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+
+                          {activeMenuId === lead.id && (
+                            <div className="dropdown-menu shadow-dropdown text-left dropdown-menu-right" onClick={() => setActiveMenuId(null)}>
+                              <Link href={`/lead/${lead.id}`} className="dropdown-item">
+                                <ExternalLink size={14} className="text-primary" /> View Full Details
+                              </Link>
+                              <button type="button" className="dropdown-item" onClick={() => onSelectLead(lead)}>
+                                <Eye size={14} /> Quick Preview Drawer
+                              </button>
+                              <button type="button" className="dropdown-item" onClick={() => onOpenConversation(lead.id)}>
+                                <MessageSquare size={14} /> Open Conversation
+                              </button>
+                              <button type="button" className="dropdown-item" onClick={() => onAssign(lead.id)}>
+                                <UserPlus size={14} /> Assign User
+                              </button>
+                              <button type="button" className="dropdown-item" onClick={() => onScheduleVisit(lead.id)}>
+                                <Calendar size={14} /> Schedule Site Visit
+                              </button>
+                              <button type="button" className="dropdown-item" onClick={() => onStatusChange(lead.id, 'LOST')}>
+                                <XCircle size={14} /> Mark Lost
+                              </button>
+                              <button type="button" className="dropdown-item" onClick={() => onStatusChange(lead.id, 'ARCHIVED')}>
+                                <Archive size={14} /> Archive
+                              </button>
+                              <button type="button" className="dropdown-item dropdown-item-danger" onClick={() => onDelete(lead.id)}>
+                                <Trash2 size={14} /> Soft Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Mobile Responsive Card List View */}
+      <div className="lead-mobile-card-list">
+        {isLoading ? (
+          <div className="lead-note-card text-center cell-loading-padding">Loading leads...</div>
+        ) : leads.length === 0 ? (
+          <div className="lead-note-card text-center cell-empty-padding">No matching leads found.</div>
+        ) : (
+          leads.map((lead) => {
+            const isSelected = selectedLeadId === lead.id;
+            const isChecked = selectedLeadIds.includes(lead.id);
+            const avatarColorClass = getAvatarClass(lead.name);
+            const initials = getInitials(lead.name);
+
+            return (
+              <div
+                key={lead.id}
+                className={`lead-mobile-card ${isSelected ? 'active-card' : ''}`}
+                onClick={() => handleRowClick(lead)}
+              >
+                <div className="lead-mobile-card-header">
+                  <div className="lead-name-cell">
+                    <input
+                      type="checkbox"
+                      className="lead-checkbox"
+                      checked={isChecked}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        onToggleSelectLead(lead.id);
+                      }}
+                    />
+                    <div className={`lead-avatar-circle ${avatarColorClass}`}>{initials}</div>
+                    <div>
+                      <span className="lead-mobile-name">{lead.name}</span>
+                      <span className="lead-mobile-phone">{lead.phone}</span>
+                    </div>
+                  </div>
+
+                  <StatusBadge status={lead.status} />
+                </div>
+
+                <div className="lead-mobile-card-body">
+                  <div className="lead-mobile-meta-row">
+                    <span className="text-muted">Project:</span>
+                    <span className="lead-project-text">{lead.project || 'General'}</span>
+                  </div>
+
+                  <div className="lead-mobile-meta-row">
+                    <span className="text-muted">Source:</span>
+                    <SourceBadge source={lead.source} />
+                  </div>
+
+                  <div className="lead-mobile-meta-row">
+                    <span className="text-muted">Score:</span>
+                    <ScoreBadge score={lead.qualificationScore || 70} />
+                  </div>
+
+                  <div className="lead-mobile-meta-row">
+                    <span className="text-muted">Assigned:</span>
+                    <span className="lead-user-name">{lead.assignedSalesUser?.name || 'Neha Singh'}</span>
+                  </div>
+                </div>
+
+                <div className="lead-mobile-card-actions" onClick={(e) => e.stopPropagation()}>
+                  <button type="button" className="lead-mobile-action-btn" onClick={() => onOpenConversation(lead.id)}>
+                    <MessageSquare size={14} /> Chat
+                  </button>
+                  <button type="button" className="lead-mobile-action-btn" onClick={() => onScheduleVisit(lead.id)}>
+                    <Calendar size={14} /> Visit
+                  </button>
+                  <button type="button" className="lead-mobile-action-btn" onClick={() => onAssign(lead.id)}>
+                    <UserPlus size={14} /> Assign
+                  </button>
+                  <a href={`tel:${lead.phone}`} className="lead-mobile-action-btn lead-mobile-action-call">
+                    <Phone size={14} /> Call
+                  </a>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
   );
 };

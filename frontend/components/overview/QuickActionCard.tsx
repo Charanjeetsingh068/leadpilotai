@@ -5,8 +5,7 @@ export interface QuickActionCardProps {
   title: string;
   description: string;
   icon: React.ReactNode;
-  iconBgColor: string;
-  iconColor: string;
+  variantClass?: string;
   onClick?: () => void;
 }
 
@@ -14,18 +13,12 @@ export const QuickActionCard: React.FC<QuickActionCardProps> = ({
   title,
   description,
   icon,
-  iconBgColor,
-  iconColor,
+  variantClass = 'stat-icon-blue',
   onClick,
 }) => {
   return (
     <div className="quick-action-box" onClick={onClick}>
-      <div
-        className="quick-action-icon-bg"
-        style={{ backgroundColor: iconBgColor, color: iconColor }}
-      >
-        {icon}
-      </div>
+      <div className={`quick-action-icon-bg ${variantClass}`}>{icon}</div>
       <div className="quick-action-content">
         <h4 className="quick-action-title">{title}</h4>
         <p className="quick-action-desc">{description}</p>

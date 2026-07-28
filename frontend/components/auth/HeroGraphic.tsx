@@ -3,12 +3,12 @@ import { MessageSquare, Share2, Camera, Globe, Bot } from 'lucide-react';
 
 export const HeroGraphic: React.FC = () => {
   return (
-    <div className="hero-graphic-container" style={{ margin: 0 }}>
+    <div className="hero-graphic-container">
       {/* Floating Channel Badges & AI Robot Circle */}
       <div className="hero-floating-box">
         {/* Central Robot Avatar */}
         <div className="hero-robot-circle">
-          <Bot size={28} style={{ color: '#2563eb' }} />
+          <Bot size={28} className="lead-source-icon-facebook" />
         </div>
 
         {/* Floating WhatsApp Icon */}
@@ -28,16 +28,15 @@ export const HeroGraphic: React.FC = () => {
 
         {/* Floating Google Icon */}
         <div className="hero-badge-google" title="Google Ads Lead Forms">
-          <Globe size={10} style={{ color: '#ea4335' }} />
+          <Globe size={10} className="lead-source-icon-google" />
         </div>
       </div>
 
-      {/* Mini CRM Dashboard Card Preview (Exact Screenshot Match) */}
+      {/* Mini CRM Dashboard Card Preview */}
       <div className="hero-mini-card">
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '0.5rem', alignItems: 'center' }}>
+        <div className="hero-mini-card-grid">
           {/* Left Column: Lead Status Rows */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-            {/* Row 1: Qualified Badge */}
+          <div className="hero-card-column-left">
             <div className="hero-card-row">
               <div className="hero-card-meta">
                 <div className="hero-avatar-placeholder" />
@@ -46,7 +45,6 @@ export const HeroGraphic: React.FC = () => {
               <span className="badge-qualified">Qualified</span>
             </div>
 
-            {/* Row 2: In Progress Badge */}
             <div className="hero-card-row">
               <div className="hero-card-meta">
                 <div className="hero-avatar-placeholder" />
@@ -55,7 +53,6 @@ export const HeroGraphic: React.FC = () => {
               <span className="badge-in-progress">In Progress</span>
             </div>
 
-            {/* Row 3: Site Visit Badge */}
             <div className="hero-card-row">
               <div className="hero-card-meta">
                 <div className="hero-avatar-placeholder" />
@@ -66,7 +63,7 @@ export const HeroGraphic: React.FC = () => {
           </div>
 
           {/* Right Column: Trending Upwards Line Chart */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="hero-card-column-right">
             <svg width="70" height="35" viewBox="0 0 100 40" fill="none">
               <path
                 d="M0 32 C 25 15, 45 35, 65 18 C 80 8, 90 18, 100 4"
@@ -81,29 +78,27 @@ export const HeroGraphic: React.FC = () => {
 
         {/* Bottom Graphic Row: Bar Chart & 3x3 Skeleton Grid */}
         <div className="hero-card-footer">
-          {/* Bar Chart Bars */}
           <div className="hero-bars-group">
             <div className="hero-bar-1" />
             <div className="hero-bar-2" />
             <div className="hero-bar-3" />
           </div>
 
-          {/* 3x3 Skeleton Grid Lines */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', width: '50%' }}>
-            <div style={{ display: 'flex', gap: '3px' }}>
-              <div style={{ flex: 1, height: '3px', backgroundColor: '#e2e8f0', borderRadius: '2px' }} />
-              <div style={{ flex: 1, height: '3px', backgroundColor: '#e2e8f0', borderRadius: '2px' }} />
-              <div style={{ flex: 1, height: '3px', backgroundColor: '#e2e8f0', borderRadius: '2px' }} />
+          <div className="hero-skeleton-grid">
+            <div className="hero-skeleton-row">
+              <div className="hero-skeleton-cell" />
+              <div className="hero-skeleton-cell" />
+              <div className="hero-skeleton-cell" />
             </div>
-            <div style={{ display: 'flex', gap: '3px' }}>
-              <div style={{ flex: 1, height: '3px', backgroundColor: '#e2e8f0', borderRadius: '2px' }} />
-              <div style={{ flex: 1, height: '3px', backgroundColor: '#e2e8f0', borderRadius: '2px' }} />
-              <div style={{ flex: 1, height: '3px', backgroundColor: '#e2e8f0', borderRadius: '2px' }} />
+            <div className="hero-skeleton-row">
+              <div className="hero-skeleton-cell" />
+              <div className="hero-skeleton-cell" />
+              <div className="hero-skeleton-cell" />
             </div>
-            <div style={{ display: 'flex', gap: '3px' }}>
-              <div style={{ flex: 1, height: '3px', backgroundColor: '#e2e8f0', borderRadius: '2px' }} />
-              <div style={{ flex: 1, height: '3px', backgroundColor: '#e2e8f0', borderRadius: '2px' }} />
-              <div style={{ flex: 1, height: '3px', backgroundColor: '#e2e8f0', borderRadius: '2px' }} />
+            <div className="hero-skeleton-row">
+              <div className="hero-skeleton-cell" />
+              <div className="hero-skeleton-cell" />
+              <div className="hero-skeleton-cell" />
             </div>
           </div>
         </div>

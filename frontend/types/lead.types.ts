@@ -8,6 +8,7 @@ export type LeadSource =
 
 export type LeadStatus =
   | 'NEW'
+  | 'CONTACTED'
   | 'AI_STARTED'
   | 'AI_IN_PROGRESS'
   | 'QUALIFIED'
@@ -16,6 +17,7 @@ export type LeadStatus =
   | 'CONVERTED'
   | 'LOST'
   | 'ARCHIVED';
+
 
 export interface TimelineEvent {
   id: string;

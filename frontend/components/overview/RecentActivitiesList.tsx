@@ -21,7 +21,7 @@ export const RecentActivitiesList: React.FC<RecentActivitiesListProps> = ({ acti
         </button>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div className="activity-feed-list">
         {activities.map((act) => {
           const typeClass =
             act.iconType === 'whatsapp'

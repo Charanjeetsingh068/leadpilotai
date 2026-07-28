@@ -37,7 +37,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
           onClose={closeDrawer}
           title="Notifications"
         >
-          <div style={{ padding: '1rem 0' }}>
+          <div className="lead-latest-message-section">
             <p className="text-muted">No new unread notifications.</p>
           </div>
         </Drawer>

@@ -38,7 +38,7 @@ interface NavConfig {
 const NAV_ITEMS: NavConfig[] = [
   { href: '/overview', label: 'Overview', icon: <Home size={18} /> },
   { href: '/lead-inbox', label: 'Leads', icon: <Users size={18} /> },
-  { href: '/conversation', label: 'Conversations', icon: <MessageSquare size={18} />, badge: 18 },
+  { href: '/conversation', label: 'Conversations', icon: <MessageSquare size={18} />, badge: 23 },
   { href: '/qualification', label: 'AI Qualification', icon: <Sparkles size={18} /> },
   { href: '/ai-agents', label: 'AI Agents', icon: <Bot size={18} /> },
   { href: '/whatsapp', label: 'WhatsApp', icon: <MessageSquare size={18} /> },
