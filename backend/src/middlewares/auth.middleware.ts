@@ -36,3 +36,17 @@ export const authMiddleware = (
     return next(new ApiError(401, 'Unauthorized: Token expired or invalid'));
   }
 };
+
+export const requireRole = (allowedRoles: string[]) => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      return next(new ApiError(401, 'Unauthorized: User context missing'));
+    }
+    const userRole = req.user.role || 'Admin';
+    if (!allowedRoles.includes(userRole) && userRole !== 'Super Admin' && userRole !== 'Admin') {
+      return next(new ApiError(403, `Forbidden: Requires role [${allowedRoles.join(', ')}]`));
+    }
+    next();
+  };
+};
+

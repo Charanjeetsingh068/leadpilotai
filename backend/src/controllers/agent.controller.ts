@@ -20,7 +20,8 @@ export class AgentController {
         sortBy: sortBy as string | undefined,
         sortOrder: sortOrder as 'asc' | 'desc' | undefined,
         page: page ? Number(page) : 1,
-        limit: limit ? Number(limit) : 6,
+        limit: limit ? Number(limit) : 50,
+
       });
 
       const meta = {

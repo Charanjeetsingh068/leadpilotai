@@ -13,8 +13,9 @@ export interface AgentFilterOptions {
 export class AgentRepository {
   async findAllWithFilters(options: AgentFilterOptions) {
     const page = options.page || 1;
-    const limit = options.limit || 6;
+    const limit = options.limit || 50;
     const skip = (page - 1) * limit;
+
 
     const where: any = {};
 

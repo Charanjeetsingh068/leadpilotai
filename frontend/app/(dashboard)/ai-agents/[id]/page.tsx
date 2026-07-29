@@ -215,7 +215,7 @@ export default function AIAgentConfigPage() {
 
         <button
           type="button"
-          onClick={() => router.push(`/conversations`)}
+          onClick={() => router.push(`/ai-agents/${agentId}/qualification-flow`)}
           className="agent-launcher-btn"
         >
           <Bot size={14} />
@@ -224,7 +224,7 @@ export default function AIAgentConfigPage() {
 
         <button
           type="button"
-          onClick={() => router.push(`/ai-whatsapp-conversation`)}
+          onClick={() => router.push(`/ai-agents/${agentId}/whatsapp`)}
           className="agent-launcher-btn"
         >
           <MessageCircle size={14} />
@@ -233,7 +233,7 @@ export default function AIAgentConfigPage() {
 
         <button
           type="button"
-          onClick={() => router.push(`/ai-whatsapp-conversation`)}
+          onClick={() => router.push(`/ai-agents/${agentId}/playground`)}
           className="agent-launcher-btn"
         >
           <Send size={14} />
@@ -242,12 +242,13 @@ export default function AIAgentConfigPage() {
 
         <button
           type="button"
-          onClick={() => router.push(`/reports`)}
+          onClick={() => router.push(`/ai-agents/${agentId}/analytics`)}
           className="agent-launcher-btn"
         >
           <Sparkles size={14} />
           <span>Analytics</span>
         </button>
+
       </div>
 
       {/* Navigation Tabs Bar (7 Tabs) */}

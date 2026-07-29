@@ -209,9 +209,16 @@ model AIAgent {
   whatsappFollowups   WhatsAppFollowupSequence[]
   whatsappRules       WhatsAppAutomationRule[]
   whatsappLogs        WhatsAppLog[]
+  whatsappBusinessHours WhatsAppBusinessHours[]
+  whatsappHumanTakeovers WhatsAppHumanTakeover[]
+  whatsappMedias        WhatsAppMedia[]
+  whatsappUsages        WhatsAppUsage[]
+  testingSessions       AITestingSession[]
 }
 
+
 model KnowledgeBase {
+
   id           String                 @id @default(uuid()) @db.Uuid
   name         String
   aiAgentId    String?                @db.Uuid
@@ -565,14 +572,18 @@ model Integration {
 model WhatsAppConnection {
   id               String    @id @default(uuid()) @db.Uuid
   phoneNumber      String    @default("+91 98765 43210")
+  phoneNumberId    String?   @default("10987654321")
   businessAccount  String    @default("Acme Real Estate")
   wabaId           String    @default("1029384756")
   status           String    @default("Connected and Active")
   qualityRating    String    @default("High")
+  rateLimit        String    @default("95% available")
   webhookUrl       String    @default("https://app.leadpilotai.com/api/whatsapp/webhook/1029384756")
   verifyToken      String    @default("leadpilot_verify_secret_102938")
   webhookStatus    String    @default("Active")
   lastReceivedAt   DateTime? @default(now())
+  workspaceId      String?   @db.Uuid
+  companyId        String?   @db.Uuid
   aiAgentId        String?   @db.Uuid
   aiAgent          AIAgent?  @relation(fields: [aiAgentId], references: [id], onDelete: Cascade)
   createdAt        DateTime  @default(now())
@@ -580,20 +591,34 @@ model WhatsAppConnection {
 }
 
 model WhatsAppTemplate {
-  id              String    @id @default(uuid()) @db.Uuid
+  id              String                  @id @default(uuid()) @db.Uuid
   name            String
-  category        String    @default("Marketing")
-  language        String    @default("English")
-  bodyText        String?   @db.Text
+  category        String                  @default("Marketing")
+  language        String                  @default("English")
+  bodyText        String?                 @db.Text
   header          String?
   footer          String?
-  status          String    @default("Approved")
-  qualityRating   String    @default("High")
-  lastApprovedAt  DateTime? @default(now())
-  aiAgentId       String?   @db.Uuid
-  aiAgent         AIAgent?  @relation(fields: [aiAgentId], references: [id], onDelete: Cascade)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @default(now()) @updatedAt
+  status          String                  @default("Approved")
+  qualityRating   String                  @default("High")
+  variables       String?                 @db.Text
+  lastApprovedAt  DateTime?               @default(now())
+  workspaceId     String?                 @db.Uuid
+  companyId       String?                 @db.Uuid
+  aiAgentId       String?                 @db.Uuid
+  aiAgent         AIAgent?                @relation(fields: [aiAgentId], references: [id], onDelete: Cascade)
+  versions        WhatsAppTemplateVersion[]
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @default(now()) @updatedAt
+}
+
+model WhatsAppTemplateVersion {
+  id          String           @id @default(uuid()) @db.Uuid
+  templateId  String           @db.Uuid
+  template    WhatsAppTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  version     Int              @default(1)
+  bodyText    String           @db.Text
+  status      String           @default("Approved")
+  createdAt   DateTime         @default(now())
 }
 
 model WhatsAppFollowupSequence {
@@ -603,6 +628,9 @@ model WhatsAppFollowupSequence {
   durationDays     Int       @default(3)
   activeLeadsCount Int       @default(1248)
   stepsJson        String?   @db.Text
+  status           String    @default("Active")
+  workspaceId      String?   @db.Uuid
+  companyId        String?   @db.Uuid
   aiAgentId        String?   @db.Uuid
   aiAgent          AIAgent?  @relation(fields: [aiAgentId], references: [id], onDelete: Cascade)
   createdAt        DateTime  @default(now())
@@ -612,13 +640,69 @@ model WhatsAppFollowupSequence {
 model WhatsAppAutomationRule {
   id               String    @id @default(uuid()) @db.Uuid
   ruleName         String?   @default("Auto Rule")
+  priority         Int       @default(1)
   triggerCondition String?   @default("No Reply 10 min")
   action           String?   @default("Send Reminder")
   channel          String?   @default("WhatsApp")
+  retries          Int       @default(3)
   status           String    @default("Active")
+  workspaceId      String?   @db.Uuid
+  companyId        String?   @db.Uuid
   aiAgentId        String?   @db.Uuid
   aiAgent          AIAgent?  @relation(fields: [aiAgentId], references: [id], onDelete: Cascade)
   createdAt        DateTime  @default(now())
+}
+
+model WhatsAppBusinessHours {
+  id                  String    @id @default(uuid()) @db.Uuid
+  workingDays         String[]  @default(["Mon", "Tue", "Wed", "Thu", "Fri"])
+  workingHours        String    @default("09:00 AM - 08:00 PM")
+  lunchHours          String?   @default("01:00 PM - 02:00 PM")
+  holidayCalendar     String?   @default("National Holidays India")
+  timeZone            String    @default("Asia/Kolkata (GMT +05:30)")
+  weekendRules        String?   @default("Auto Response Only")
+  afterHoursBehaviour String?   @default("Send Away Message & Queue Lead")
+  workspaceId         String?   @db.Uuid
+  companyId           String?   @db.Uuid
+  aiAgentId           String?   @db.Uuid
+  aiAgent             AIAgent?  @relation(fields: [aiAgentId], references: [id], onDelete: Cascade)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @default(now()) @updatedAt
+}
+
+model WhatsAppHumanTakeover {
+  id             String    @id @default(uuid()) @db.Uuid
+  assignTeam     String    @default("Sales Team Alpha")
+  assignUser     String?   @default("Arjun Mehta")
+  department     String    @default("Real Estate Sales")
+  escalationTime String    @default("15 minutes")
+  timeoutMinutes Int       @default(30)
+  manualOverride Boolean   @default(false)
+  isAiPaused     Boolean   @default(false)
+  internalNotes  String?   @db.Text
+  workspaceId    String?   @db.Uuid
+  companyId      String?   @db.Uuid
+  aiAgentId      String?   @db.Uuid
+  aiAgent        AIAgent?  @relation(fields: [aiAgentId], references: [id], onDelete: Cascade)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
+}
+
+model WhatsAppMedia {
+  id              String    @id @default(uuid()) @db.Uuid
+  name            String
+  fileUrl         String
+  type            String    @default("PDF")
+  category        String    @default("Brochure")
+  fileSize        String    @default("2.4 MB")
+  version         String    @default("v1.0")
+  knowledgeBaseId String?   @db.Uuid
+  workspaceId     String?   @db.Uuid
+  companyId       String?   @db.Uuid
+  aiAgentId       String?   @db.Uuid
+  aiAgent         AIAgent?  @relation(fields: [aiAgentId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt
 }
 
 model WhatsAppLog {
@@ -628,8 +712,226 @@ model WhatsAppLog {
   messageContent  String?   @db.Text
   deliveryStatus  String    @default("Delivered")
   readStatus      String    @default("Read")
+  retryCount      Int       @default(0)
+  errorMessage    String?
   wabaId          String?   @default("1029384756")
+  workspaceId     String?   @db.Uuid
+  companyId       String?   @db.Uuid
   aiAgentId       String?   @db.Uuid
   aiAgent         AIAgent?  @relation(fields: [aiAgentId], references: [id], onDelete: Cascade)
   createdAt       DateTime  @default(now())
 }
+
+model WhatsAppUsage {
+  id                           String    @id @default(uuid()) @db.Uuid
+  dailyUsed                    Int       @default(3210)
+  dailyLimit                   Int       @default(10000)
+  remaining                    Int       @default(6790)
+  usedPercentage               Float     @default(32.0)
+  rateLimitAvailablePercentage Float     @default(95.0)
+  activeWorkflowsCount         Int       @default(4)
+  templatesCount               Int       @default(12)
+  messagesSentToday            Int       @default(3210)
+  messagesDeliveredPercentage  Float     @default(98.7)
+  autoResponsesCount           Int       @default(2856)
+  humanTakeoversCount          Int       @default(128)
+  blockedMessagesCount         Int       @default(12)
+  workspaceId                  String?   @db.Uuid
+  companyId                    String?   @db.Uuid
+  aiAgentId                    String?   @db.Uuid
+  aiAgent                      AIAgent?  @relation(fields: [aiAgentId], references: [id], onDelete: Cascade)
+  createdAt                    DateTime  @default(now())
+  updatedAt                    DateTime  @default(now()) @updatedAt
+}
+
+model WhatsAppWebhook {
+  id          String    @id @default(uuid()) @db.Uuid
+  eventType   String    @default("message_received")
+  payload     String    @db.Text
+  processed   Boolean   @default(true)
+  error       String?
+  workspaceId String?   @db.Uuid
+  companyId   String?   @db.Uuid
+  aiAgentId   String?   @db.Uuid
+  createdAt   DateTime  @default(now())
+}
+
+model WhatsAppMessage {
+  id           String    @id @default(uuid()) @db.Uuid
+  fromNumber   String
+  toNumber     String
+  body         String    @db.Text
+  status       String    @default("SENT")
+  mediaUrl     String?
+  aiAgentId    String?   @db.Uuid
+  workspaceId  String?   @db.Uuid
+  createdAt    DateTime  @default(now())
+}
+
+model AITestingSession {
+  id              String             @id @default(uuid()) @db.Uuid
+  sessionId       String             @default("TEST-8452")
+  workspaceId     String?            @db.Uuid
+  companyId       String?            @db.Uuid
+  aiAgentId       String?            @db.Uuid
+  aiAgent         AIAgent?           @relation(fields: [aiAgentId], references: [id], onDelete: Cascade)
+  knowledgeBaseId String?            @db.Uuid
+  flowId          String?            @db.Uuid
+  scenario        String             @default("Real Estate - General Inquiry")
+  language        String             @default("English")
+  mode            String             @default("Chat")
+  status          String             @default("Active")
+  startedAt       DateTime           @default(now())
+  createdBy       String?            @default("Arjun Mehta")
+  messages        AITestingMessage[]
+  metrics         AITestingMetric[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @default(now()) @updatedAt
+}
+
+model AITestingMessage {
+  id                    String           @id @default(uuid()) @db.Uuid
+  sessionId             String           @db.Uuid
+  session               AITestingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sender                String           
+  senderName            String           @default("Customer (You)")
+  message               String           @db.Text
+  response              String?          @db.Text
+  intent                String?
+  entities              String?          @db.Text 
+  knowledgeUsed         String?          @db.Text 
+  promptTokens          Int              @default(320)
+  completionTokens      Int              @default(192)
+  totalTokens           Int              @default(512)
+  responseTimeMs        Int              @default(2300)
+  confidenceScore       Float            @default(92.0)
+  knowledgeMatch        Float            @default(91.0)
+  leadScore             Int              @default(85)
+  recommendedNextAction String?
+  conversationStage     String?          @default("Proposal")
+  createdAt             DateTime         @default(now())
+}
+
+model AITestingMetric {
+  id                String           @id @default(uuid()) @db.Uuid
+  sessionId         String           @db.Uuid
+  session           AITestingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  leadScore         Int              @default(85)
+  confidenceScore   Float            @default(92.0)
+  responseTimeSec   Float            @default(2.3)
+  totalTokens       Int              @default(512)
+  knowledgeMatchPct Float            @default(91.0)
+  intentDetected    String           @default("Property Inquiry")
+  entitiesJson      String?          @db.Text
+  knowledgeUsedJson String?          @db.Text
+  recommendedAction String?          @default("Suggest site visit and share payment plan.")
+  conversationStage String?          @default("Proposal")
+  createdAt         DateTime         @default(now())
+}
+
+model AITestingScenario {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  category    String   @default("Real Estate")
+  description String?
+  promptsJson String?  @db.Text
+  createdAt   DateTime @default(now())
+}
+
+model AnalyticsDaily {
+  id                 String   @id @default(uuid()) @db.Uuid
+  date               DateTime @default(now())
+  totalConversations Int      @default(5842)
+  qualifiedLeads     Int      @default(1248)
+  siteVisitsBooked   Int      @default(328)
+  bookingsDeals      Int      @default(86)
+  conversionRate     Float    @default(3.28)
+  revenueImpactLakh  Float    @default(48.6)
+  workspaceId        String?  @db.Uuid
+  companyId          String?  @db.Uuid
+  aiAgentId          String?  @db.Uuid
+  createdAt          DateTime @default(now())
+}
+
+model AnalyticsHourly {
+  id                 String   @id @default(uuid()) @db.Uuid
+  hourOfDay          Int      @default(10) 
+  dayOfWeek          String   @default("Mon") 
+  conversationVolume Int      @default(120)
+  workspaceId        String?  @db.Uuid
+  companyId          String?  @db.Uuid
+  aiAgentId          String?  @db.Uuid
+  createdAt          DateTime @default(now())
+}
+
+model AnalyticsAgent {
+  id                String   @id @default(uuid()) @db.Uuid
+  agentName         String   @default("Property Advisor AI")
+  conversations     Int      @default(5842)
+  qualifiedLeads    Int      @default(1248)
+  qualificationRate Float    @default(21.4)
+  avgResponseTime   String   @default("2.3s")
+  csatScore         Float    @default(4.6)
+  bookings          Int      @default(86)
+  revenueLakh       Float    @default(48.6)
+  workspaceId       String?  @db.Uuid
+  companyId         String?  @db.Uuid
+  aiAgentId         String?  @db.Uuid
+  createdAt         DateTime @default(now())
+}
+
+model AnalyticsChannel {
+  id           String   @id @default(uuid()) @db.Uuid
+  channelName  String   @default("WhatsApp") 
+  count        Int      @default(4256)
+  percentage   Float    @default(72.9)
+  workspaceId  String?  @db.Uuid
+  companyId    String?  @db.Uuid
+  aiAgentId    String?  @db.Uuid
+  createdAt    DateTime @default(now())
+}
+
+model AnalyticsIntent {
+  id           String   @id @default(uuid()) @db.Uuid
+  intentName   String   @default("Pricing Inquiry")
+  count        Int      @default(1246)
+  percentage   Float    @default(21.3)
+  workspaceId  String?  @db.Uuid
+  companyId    String?  @db.Uuid
+  aiAgentId    String?  @db.Uuid
+  createdAt    DateTime @default(now())
+}
+
+model AnalyticsHandover {
+  id           String   @id @default(uuid()) @db.Uuid
+  reason       String   @default("Complex Query")
+  count        Int      @default(312)
+  percentage   Float    @default(41.7)
+  workspaceId  String?  @db.Uuid
+  companyId    String?  @db.Uuid
+  aiAgentId    String?  @db.Uuid
+  createdAt    DateTime @default(now())
+}
+
+model AnalyticsKnowledge {
+  id               String   @id @default(uuid()) @db.Uuid
+  documentName     String   @default("Sunrise Residency Brochure.pdf")
+  usageCount       Int      @default(1420)
+  avgSimilarityPct Float    @default(87.4)
+  workspaceId      String?  @db.Uuid
+  companyId        String?  @db.Uuid
+  aiAgentId        String?  @db.Uuid
+  createdAt        DateTime @default(now())
+}
+
+model AnalyticsCache {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String   @unique
+  payload   String   @db.Text
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+
+

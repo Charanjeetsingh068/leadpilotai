@@ -17,6 +17,8 @@ export const createApp = (): Application => {
   app.use(cookieParser());
 
   app.use('/api/v1', masterRouter);
+  app.use('/api', masterRouter);
+
 
   app.use(errorMiddleware);
 

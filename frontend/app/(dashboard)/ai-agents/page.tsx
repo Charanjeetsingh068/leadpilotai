@@ -71,15 +71,24 @@ export default function AIAgentsPage() {
         AgentClientService.getRecentActivity(),
       ]);
 
-      if (agentsRes.success && Array.isArray(agentsRes.data)) {
-        setAgents(agentsRes.data);
+      if (agentsRes) {
+        if (Array.isArray(agentsRes.data)) {
+          setAgents(agentsRes.data);
+        } else if (Array.isArray(agentsRes)) {
+          setAgents(agentsRes);
+        }
       }
-      if (metricsRes.success && metricsRes.data) {
+      if (metricsRes && metricsRes.data) {
         setMetrics(metricsRes.data);
       }
-      if (activityRes.success && Array.isArray(activityRes.data)) {
-        setActivities(activityRes.data);
+      if (activityRes) {
+        if (Array.isArray(activityRes.data)) {
+          setActivities(activityRes.data);
+        } else if (Array.isArray(activityRes)) {
+          setActivities(activityRes);
+        }
       }
+
     } catch {
       toast.error('Failed to load AI Agents data.');
     } finally {
