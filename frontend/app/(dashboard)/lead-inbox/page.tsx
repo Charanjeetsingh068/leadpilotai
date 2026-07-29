@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { LeadFiltersBar } from '@/components/lead-inbox/LeadFiltersBar';
 import { LeadInboxTable } from '@/components/lead-inbox/LeadInboxTable';
 import { LeadPreviewDrawer } from '@/components/lead-inbox/LeadPreviewDrawer';
@@ -179,6 +180,7 @@ const MOCK_FALLBACK_LEADS: Lead[] = [
 ];
 
 export default function LeadInboxPage() {
+  const router = useRouter();
   const { fetchLeads, updateStatus, assignLead, softDelete } = useLeadEngine();
 
   const {
@@ -224,32 +226,22 @@ export default function LeadInboxPage() {
         limit: pagination.limit,
       });
 
-      if (data && data.length > 0) {
+      if (Array.isArray(data)) {
         setLeads(data);
-        setPagination({ total: data.length, totalPages: Math.ceil(data.length / pagination.limit) });
-        if (!activeLead) {
-          setActiveLead(data[0]);
-          setDrawerOpen(true);
-        }
-      } else {
-        setLeads(MOCK_FALLBACK_LEADS);
-        setPagination({ total: 248, totalPages: 25 });
-        if (!activeLead) {
-          setActiveLead(MOCK_FALLBACK_LEADS[0]);
-          setDrawerOpen(true);
+        if (data.length > 0) {
+          if (!activeLead || !data.find((l) => l.id === activeLead.id)) {
+            setActiveLead(data[0]);
+          }
+        } else {
+          setActiveLead(null);
         }
       }
     } catch {
-      setLeads(MOCK_FALLBACK_LEADS);
-      setPagination({ total: 248, totalPages: 25 });
-      if (!activeLead) {
-        setActiveLead(MOCK_FALLBACK_LEADS[0]);
-        setDrawerOpen(true);
-      }
+      setHasError(true);
     } finally {
       setLoading(false);
     }
-  }, [fetchLeads, filters, pagination.page, pagination.limit, setLeads, setPagination, setActiveLead, setDrawerOpen, activeLead, setLoading]);
+  }, [fetchLeads, filters, pagination.page, pagination.limit, setLeads, setActiveLead, activeLead, setLoading]);
 
   useEffect(() => {
     loadData();
@@ -335,7 +327,7 @@ export default function LeadInboxPage() {
             onProjectChange={(val) => setFilters({ project: val || undefined, page: 1 })}
             onSalesUserChange={(val) => setFilters({ assignedSalesUser: val || undefined, page: 1 })}
             onReset={resetFilters}
-            onAddLead={() => setIsAddModalOpen(true)}
+            onAddLead={() => router.push('/leads/new')}
             onImportCSV={() => setIsImportModalOpen(true)}
             onExport={handleExport}
             onRefresh={loadData}

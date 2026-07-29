@@ -1,6 +1,11 @@
 import React from 'react';
-import { KnowledgeBaseView } from '@/components/knowledge-base/KnowledgeBaseView';
+import { KnowledgeLayout } from '@/components/knowledge-base/KnowledgeLayout';
+import { OverviewTab } from '@/components/knowledge-base/tabs/OverviewTab';
 
-export default function KnowledgeBasePage() {
-  return <KnowledgeBaseView />;
+export default function GlobalKnowledgeOverviewPage() {
+  return (
+    <KnowledgeLayout>
+      <OverviewTab />
+    </KnowledgeLayout>
+  );
 }

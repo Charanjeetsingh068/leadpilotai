@@ -409,47 +409,50 @@ export default function AIWhatsAppConversationPage() {
 
   return (
     <PageContainer fluid>
-      <div className={`whatsapp-workspace-container ${mobileView === 'chat' ? 'mobile-show-chat' : 'mobile-show-list'}`}>
-        {/* Left Column: All Conversations List Panel (320px) */}
-        <ConversationListPanel
-          conversations={conversations.length > 0 ? conversations : DEFAULT_CONVERSATIONS}
-          activeId={activeConv?.id}
-          onSelect={handleSelectConversation}
+      <div className="whatsapp-page-wrapper">
+        {/* Top Header metadata bar (Spans full page width) */}
+        <ConversationTopHeader
+          activeConv={activeConv}
+          onMobileBack={() => setMobileView('list')}
         />
 
-        {/* Right Workspace Section: Top Header + Main 2-Column Grid */}
-        <div className="conv-right-workspace-section">
-          {/* Top Header metadata bar (Spans across Center Workspace + Right Panel) */}
-          <ConversationTopHeader
-            activeConv={activeConv}
-            onMobileBack={() => setMobileView('list')}
+        {/* Bottom Workspace: Conversation List + Main Grid (Chat + AI Summary) */}
+        <div className={`whatsapp-workspace-container ${mobileView === 'chat' ? 'mobile-show-chat' : 'mobile-show-list'}`}>
+          {/* Left Column: All Conversations List Panel (320px) */}
+          <ConversationListPanel
+            conversations={conversations.length > 0 ? conversations : DEFAULT_CONVERSATIONS}
+            activeId={activeConv?.id}
+            onSelect={handleSelectConversation}
           />
 
-          {/* Main Content Grid: Center Workspace & Right AI Summary */}
-          <div className="conv-main-content-grid">
-            {/* Center Panel & Bottom Sticky Action Bar */}
-            <div className="conv-center-column-wrapper">
-              <ConversationArea
-                activeConv={activeConv}
-                messages={activeMessages.length > 0 ? activeMessages : DEFAULT_MESSAGES}
-                onSendMessage={handleSendMessage}
-                onQuickShortcut={handleQuickShortcut}
-              />
+          {/* Right Workspace Section: Main 2-Column Grid + Bottom Action Bar */}
+          <div className="conv-right-workspace-section">
+            {/* Main Content Grid: Center Workspace & Right AI Summary */}
+            <div className="conv-main-content-grid">
+              {/* Center Panel */}
+              <div className="conv-center-column-wrapper">
+                <ConversationArea
+                  activeConv={activeConv}
+                  messages={activeMessages.length > 0 ? activeMessages : DEFAULT_MESSAGES}
+                  onSendMessage={handleSendMessage}
+                  onQuickShortcut={handleQuickShortcut}
+                />
+              </div>
 
-              <BottomActionBar
-                activeConv={activeConv}
-                onPauseAi={handlePauseAi}
-                onResumeAi={handleResumeAi}
-                onTakeOver={handleTakeOver}
-                onApproveReply={handleApproveReply}
-                onAssignSalesperson={handleAssignSalesperson}
-                onBookSiteVisit={handleBookSiteVisit}
-                onExport={handleExport}
-              />
+              {/* Right Panel: AI Summary & Agent Card */}
+              <AISummaryRightPanel activeConv={activeConv} />
             </div>
 
-            {/* Right Panel: AI Summary & Agent Card */}
-            <AISummaryRightPanel activeConv={activeConv} />
+            <BottomActionBar
+              activeConv={activeConv}
+              onPauseAi={handlePauseAi}
+              onResumeAi={handleResumeAi}
+              onTakeOver={handleTakeOver}
+              onApproveReply={handleApproveReply}
+              onAssignSalesperson={handleAssignSalesperson}
+              onBookSiteVisit={handleBookSiteVisit}
+              onExport={handleExport}
+            />
           </div>
         </div>
       </div>

@@ -1,0 +1,635 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Company {
+  id         String      @id @default(uuid()) @db.Uuid
+  name       String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  workspaces Workspace[]
+  users      User[]
+}
+
+model Workspace {
+  id         String      @id @default(uuid()) @db.Uuid
+  name       String
+  companyId  String      @db.Uuid
+  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  leads      Lead[]
+  settings   Setting[]
+}
+
+model Role {
+  id          String       @id @default(uuid()) @db.Uuid
+  name        String       @unique
+  description String?
+  permissions Permission[]
+  users       User[]
+}
+
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  description String?
+  roles       Role[]
+}
+
+model User {
+  id               String          @id @default(uuid()) @db.Uuid
+  name             String
+  email            String          @unique
+  passwordHash     String
+  roleId           String?         @db.Uuid
+  role             Role?           @relation(fields: [roleId], references: [id])
+  organizationId   String
+  companyId        String?         @db.Uuid
+  company          Company?        @relation(fields: [companyId], references: [id])
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  sessions         UserSession[]
+  assignedLeads    Lead[]          @relation("AssignedSales")
+  createdLeads     Lead[]          @relation("CreatedBy")
+  leadNotes        LeadNote[]
+  notifications    Notification[]
+  activityLogs     ActivityLog[]
+  humanApprovals   HumanApproval[] @relation("Actor")
+}
+
+model UserSession {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @db.Uuid
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshToken String   @unique
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+}
+
+model LeadSource {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  createdAt DateTime @default(now())
+  leads     Lead[]
+}
+
+model Project {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
+
+model Lead {
+  id                  String          @id @default(uuid()) @db.Uuid
+  name                String
+  phone               String
+  email               String?
+  sourceId            String?         @db.Uuid
+  source              LeadSource?     @relation(fields: [sourceId], references: [id])
+  sourceName          String?         
+  campaign            String?
+  project             String?
+  industry            String?
+  budget              String?
+  timeline            String?
+  location            String?
+  status              String          @default("NEW") 
+  qualificationScore  Int             @default(0)
+  isDeleted           Boolean         @default(false)
+  workspaceId         String?         @db.Uuid
+  workspace           Workspace?      @relation(fields: [workspaceId], references: [id])
+  assignedSalesUserId String?         @db.Uuid
+  assignedSalesUser   User?           @relation("AssignedSales", fields: [assignedSalesUserId], references: [id])
+  createdByUserId     String?         @db.Uuid
+  createdByUser       User?           @relation("CreatedBy", fields: [createdByUserId], references: [id])
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  notes               LeadNote[]
+  tags                LeadTag[]
+  conversations       Conversation[]
+  humanApprovals      HumanApproval[]
+  bookings            Booking[]
+  siteVisits          SiteVisit[]
+  activityLogs        ActivityLog[]
+}
+
+model LeadNote {
+  id        String   @id @default(uuid()) @db.Uuid
+  leadId    String   @db.Uuid
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  authorId  String   @db.Uuid
+  author    User     @relation(fields: [authorId], references: [id])
+  content   String
+  createdAt DateTime @default(now())
+}
+
+model LeadTag {
+  id     String @id @default(uuid()) @db.Uuid
+  name   String
+  leadId String @db.Uuid
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
+
+model Conversation {
+  id                 String          @id @default(uuid()) @db.Uuid
+  leadId             String          @db.Uuid
+  lead               Lead            @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  organizationId     String
+  isAiAutomated      Boolean         @default(true)
+  unreadCount        Int             @default(0)
+  lastMessageContent String?
+  lastMessageAt      DateTime        @default(now())
+  status             String          @default("Active")
+  pendingAiReply     String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  messages           Message[]
+  humanApprovals     HumanApproval[]
+  aiAgentId          String?         @db.Uuid
+  aiAgent            AIAgent?        @relation(fields: [aiAgentId], references: [id])
+}
+
+model Message {
+  id             String       @id @default(uuid()) @db.Uuid
+  conversationId String       @db.Uuid
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         String       
+  senderName     String
+  content        String
+  status         String       @default("SENT") 
+  createdAt      DateTime     @default(now())
+}
+
+model AIAgent {
+  id                  String          @id @default(uuid()) @db.Uuid
+  name                String
+  industry            String
+  department          String?         @default("Sales")
+  description         String?
+  avatar              String?
+  agentCode           String?         @default("PROP_ADVISOR_01")
+  defaultLanguage     String?         @default("English (India)")
+  supportedLanguages  String[]        @default(["English", "Hindi", "Hinglish"])
+  businessHours       String?         @default("09:00 AM - 08:00 PM")
+  workingDays         String[]        @default(["Mon", "Tue", "Wed", "Thu", "Fri"])
+  timeZone            String?         @default("Asia/Kolkata (GMT +05:30)")
+  model               String          @default("GPT-4o")
+  temperature         Float           @default(0.7)
+  maxTokens           Int             @default(1500)
+  responseTone        String?         @default("Professional")
+  responseStyle       String?         @default("Helpful & Consultative")
+  responseLength      String?         @default("Medium")
+  typingSpeed         String?         @default("Natural")
+  status              String          @default("Active") 
+  connectedWhatsapp   String?         @default("+91 98765 43210")
+  knowledgeVersion    String?         @default("v2.4.1")
+  activeLeadsCount    Int             @default(250)
+  conversationsToday  Int             @default(180)
+  qualificationRate   Float           @default(68.0)
+  avgResponseTime     String?         @default("2.4s")
+  humanTakeoverRate   Float           @default(12.0)
+  systemPrompt        String?
+  welcomeMessage      String?
+  autoApproval        Boolean         @default(false)
+  confidenceThreshold Int             @default(80)
+  workspaceId         String?         @db.Uuid
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @default(now()) @updatedAt
+  conversations       Conversation[]
+  knowledgeBases      KnowledgeBase[]
+  qualificationFlows  QualificationFlow[]
+  whatsappConnections WhatsAppConnection[]
+  whatsappTemplates   WhatsAppTemplate[]
+  whatsappFollowups   WhatsAppFollowupSequence[]
+  whatsappRules       WhatsAppAutomationRule[]
+  whatsappLogs        WhatsAppLog[]
+}
+
+model KnowledgeBase {
+  id           String                 @id @default(uuid()) @db.Uuid
+  name         String
+  aiAgentId    String?                @db.Uuid
+  aiAgent      AIAgent?               @relation(fields: [aiAgentId], references: [id])
+  createdAt    DateTime               @default(now())
+  documents    KnowledgeDocument[]
+  faqs         KnowledgeFAQ[]
+  websites     KnowledgeWebsite[]
+  media        KnowledgeMedia[]
+  datasources  KnowledgeDataSource[]
+  trainingJobs KnowledgeTrainingJob[]
+  versions     KnowledgeVersion[]
+}
+
+model KnowledgeDocument {
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String
+  fileUrl         String?
+  type            String           @default("PDF")
+  category        String           @default("Brochure")
+  pagesCount      Int?             @default(12)
+  chunksCount     Int?             @default(640)
+  status          String           @default("Indexed") 
+  uploadedBy      String?          @default("Arjun Mehta")
+  fileSize        String?          @default("2.4 MB")
+  knowledgeBaseId String           @db.Uuid
+  knowledgeBase   KnowledgeBase    @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @default(now()) @updatedAt
+  chunks          KnowledgeChunk[]
+}
+
+model KnowledgeChunk {
+  id         String            @id @default(uuid()) @db.Uuid
+  documentId String            @db.Uuid
+  document   KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  content    String
+  createdAt  DateTime          @default(now())
+}
+
+model KnowledgeFAQ {
+  id              String        @id @default(uuid()) @db.Uuid
+  question        String
+  answer          String
+  category        String        @default("General")
+  priority        String        @default("High")
+  language        String        @default("English")
+  status          String        @default("Active")
+  usageCount      Int           @default(0)
+  confidence      Float         @default(95.0)
+  knowledgeBaseId String?       @db.Uuid
+  knowledgeBase   KnowledgeBase? @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @default(now()) @updatedAt
+}
+
+model KnowledgeWebsite {
+  id              String        @id @default(uuid()) @db.Uuid
+  url             String
+  pagesCount      Int           @default(12)
+  chunksCount     Int           @default(340)
+  status          String        @default("Synced")
+  depth           Int           @default(3)
+  knowledgeBaseId String?       @db.Uuid
+  knowledgeBase   KnowledgeBase? @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  lastSyncAt      DateTime      @default(now())
+  createdAt       DateTime      @default(now())
+}
+
+model KnowledgeMedia {
+  id              String        @id @default(uuid()) @db.Uuid
+  title           String
+  type            String        @default("Video")
+  fileUrl         String?
+  fileSize        String?       @default("45 MB")
+  ocrText         String?
+  status          String        @default("Processed")
+  chunksCount     Int           @default(120)
+  knowledgeBaseId String?       @db.Uuid
+  knowledgeBase   KnowledgeBase? @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+}
+
+model KnowledgeDataSource {
+  id               String        @id @default(uuid()) @db.Uuid
+  name             String
+  type             String        @default("Google Drive")
+  status           String        @default("Connected")
+  autoSyncSchedule String?       @default("Daily @ 12 AM")
+  knowledgeBaseId  String?       @db.Uuid
+  knowledgeBase    KnowledgeBase? @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  lastSyncAt       DateTime      @default(now())
+  createdAt        DateTime      @default(now())
+}
+
+model KnowledgeTrainingJob {
+  id                  String        @id @default(uuid()) @db.Uuid
+  jobName             String
+  status              String        @default("Completed")
+  progress            Int           @default(100)
+  chunksProcessed     Int           @default(24856)
+  embeddingsGenerated Int           @default(24856)
+  startedAt           DateTime      @default(now())
+  completedAt         DateTime?     @default(now())
+  knowledgeBaseId     String?       @db.Uuid
+  knowledgeBase       KnowledgeBase? @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+}
+
+model KnowledgeVersion {
+  id              String        @id @default(uuid()) @db.Uuid
+  version         String        @default("v2.4.1")
+  description     String?       @default("Updated brochure and price list")
+  documentCount   Int           @default(342)
+  chunkCount      Int           @default(24856)
+  createdBy       String        @default("Arjun Mehta")
+  knowledgeBaseId String?       @db.Uuid
+  knowledgeBase   KnowledgeBase? @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+}
+
+model QualificationFlow {
+  id              String                 @id @default(uuid()) @db.Uuid
+  name            String                 @default("Property Advisor Qualification Flow")
+  description     String?                @default("Design the conversation flow to qualify leads and capture the right information.")
+  status          String                 @default("Published")
+  lastPublishedAt DateTime?              @default(now())
+  aiAgentId       String?                @db.Uuid
+  aiAgent         AIAgent?               @relation(fields: [aiAgentId], references: [id])
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @default(now()) @updatedAt
+  nodes           FlowNode[]
+  edges           FlowEdge[]
+  versions        FlowVersion[]
+  questions       FlowQuestion[]
+  scoreRules      FlowScoreRule[]
+  actions         FlowAction[]
+  testSessions    FlowTestSession[]
+  executionLogs   FlowExecutionHistory[]
+}
+
+model FlowVersion {
+  id                  String            @id @default(uuid()) @db.Uuid
+  version             String            @default("v1.2.0")
+  status              String            @default("Published")
+  qualificationFlowId String            @db.Uuid
+  qualificationFlow   QualificationFlow @relation(fields: [qualificationFlowId], references: [id], onDelete: Cascade)
+  publishedBy         String?           @default("Arjun Mehta")
+  snapshotJson        String?           @db.Text
+  createdAt           DateTime          @default(now())
+}
+
+model FlowNode {
+  id                  String            @id @default(uuid()) @db.Uuid
+  nodeId              String            
+  type                String            
+  label               String
+  subtitle            String?
+  posX                Float             @default(0)
+  posY                Float             @default(0)
+  config              String?           @db.Text
+  qualificationFlowId String            @db.Uuid
+  qualificationFlow   QualificationFlow @relation(fields: [qualificationFlowId], references: [id], onDelete: Cascade)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @default(now()) @updatedAt
+}
+
+model FlowEdge {
+  id                  String            @id @default(uuid()) @db.Uuid
+  edgeId              String            
+  sourceNodeId        String
+  targetNodeId        String
+  label               String?
+  qualificationFlowId String            @db.Uuid
+  qualificationFlow   QualificationFlow @relation(fields: [qualificationFlowId], references: [id], onDelete: Cascade)
+  createdAt           DateTime          @default(now())
+}
+
+model FlowQuestion {
+  id                  String            @id @default(uuid()) @db.Uuid
+  questionText        String
+  questionType        String            @default("Single Choice")
+  options             String?           @db.Text
+  saveAnswerTo        String?           @default("Budget Range")
+  scoreImpact         Int               @default(10)
+  qualificationFlowId String            @db.Uuid
+  qualificationFlow   QualificationFlow @relation(fields: [qualificationFlowId], references: [id], onDelete: Cascade)
+  createdAt           DateTime          @default(now())
+}
+
+model FlowScoreRule {
+  id                  String            @id @default(uuid()) @db.Uuid
+  conditionText       String
+  points              Int               @default(10)
+  category            String            @default("Budget")
+  qualificationFlowId String            @db.Uuid
+  qualificationFlow   QualificationFlow @relation(fields: [qualificationFlowId], references: [id], onDelete: Cascade)
+  createdAt           DateTime          @default(now())
+}
+
+model FlowAction {
+  id                  String            @id @default(uuid()) @db.Uuid
+  actionType          String
+  target              String?
+  qualificationFlowId String            @db.Uuid
+  qualificationFlow   QualificationFlow @relation(fields: [qualificationFlowId], references: [id], onDelete: Cascade)
+  createdAt           DateTime          @default(now())
+}
+
+model FlowTestSession {
+  id                  String            @id @default(uuid()) @db.Uuid
+  sessionName         String            @default("Interactive Simulation")
+  status              String            @default("Active")
+  qualificationFlowId String            @db.Uuid
+  qualificationFlow   QualificationFlow @relation(fields: [qualificationFlowId], references: [id], onDelete: Cascade)
+  createdAt           DateTime          @default(now())
+}
+
+model FlowExecutionHistory {
+  id                  String            @id @default(uuid()) @db.Uuid
+  leadId              String?           @db.Uuid
+  leadName            String?           @default("Rahul Sharma")
+  nodeExecuted        String
+  scoreAssigned       Int               @default(10)
+  qualificationFlowId String            @db.Uuid
+  qualificationFlow   QualificationFlow @relation(fields: [qualificationFlowId], references: [id], onDelete: Cascade)
+  executedAt          DateTime          @default(now())
+}
+
+model PromptTemplate {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  content   String
+  createdAt DateTime @default(now())
+}
+
+model AutomationRule {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  trigger   String
+  action    String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model WhatsAppAccount {
+  id          String   @id @default(uuid()) @db.Uuid
+  phoneNumber String   @unique
+  status      String   @default("Connected")
+  createdAt   DateTime @default(now())
+}
+
+model HumanApproval {
+  id                    String         @id @default(uuid()) @db.Uuid
+  leadId                String         @db.Uuid
+  lead                  Lead           @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  conversationId        String         @db.Uuid
+  conversation          Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  pendingReplyText      String
+  reason                String
+  priority              String         @default("Medium") 
+  status                String         @default("Pending") 
+  confidenceScore       Int            @default(80)
+  rejectionReason       String?
+  assignedSalespersonId String?        @db.Uuid
+  assignedActorId       String?        @db.Uuid
+  assignedActor         User?          @relation("Actor", fields: [assignedActorId], references: [id])
+  organizationId        String
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+}
+
+model Booking {
+  id          String   @id @default(uuid()) @db.Uuid
+  leadId      String   @db.Uuid
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  bookingDate DateTime
+  status      String   @default("Confirmed")
+  createdAt   DateTime @default(now())
+}
+
+model SiteVisit {
+  id          String   @id @default(uuid()) @db.Uuid
+  leadId      String   @db.Uuid
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  visitDate   DateTime
+  status      String   @default("Scheduled")
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Analytics {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  leadId      String?  @db.Uuid
+  lead        Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  userId      String?  @db.Uuid
+  user        User?    @relation(fields: [userId], references: [id])
+  eventType   String
+  title       String
+  description String
+  actorType   String   
+  createdAt   DateTime @default(now())
+}
+
+model Document {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  fileUrl   String
+  createdAt DateTime @default(now())
+}
+
+model Media {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  fileUrl   String
+  createdAt DateTime @default(now())
+}
+
+model Setting {
+  id          String    @id @default(uuid()) @db.Uuid
+  workspaceId String    @db.Uuid
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  key         String
+  value       String
+  createdAt   DateTime  @default(now())
+}
+
+model Integration {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  config    String   
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model WhatsAppConnection {
+  id               String    @id @default(uuid()) @db.Uuid
+  phoneNumber      String    @default("+91 98765 43210")
+  businessAccount  String    @default("Acme Real Estate")
+  wabaId           String    @default("1029384756")
+  status           String    @default("Connected and Active")
+  qualityRating    String    @default("High")
+  webhookUrl       String    @default("https://app.leadpilotai.com/api/whatsapp/webhook/1029384756")
+  verifyToken      String    @default("leadpilot_verify_secret_102938")
+  webhookStatus    String    @default("Active")
+  lastReceivedAt   DateTime? @default(now())
+  aiAgentId        String?   @db.Uuid
+  aiAgent          AIAgent?  @relation(fields: [aiAgentId], references: [id], onDelete: Cascade)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @default(now()) @updatedAt
+}
+
+model WhatsAppTemplate {
+  id              String    @id @default(uuid()) @db.Uuid
+  name            String
+  category        String    @default("Marketing")
+  language        String    @default("English")
+  bodyText        String?   @db.Text
+  header          String?
+  footer          String?
+  status          String    @default("Approved")
+  qualityRating   String    @default("High")
+  lastApprovedAt  DateTime? @default(now())
+  aiAgentId       String?   @db.Uuid
+  aiAgent         AIAgent?  @relation(fields: [aiAgentId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt
+}
+
+model WhatsAppFollowupSequence {
+  id               String    @id @default(uuid()) @db.Uuid
+  title            String    @default("Real Estate Follow-up Flow")
+  totalSteps       Int       @default(6)
+  durationDays     Int       @default(3)
+  activeLeadsCount Int       @default(1248)
+  stepsJson        String?   @db.Text
+  aiAgentId        String?   @db.Uuid
+  aiAgent          AIAgent?  @relation(fields: [aiAgentId], references: [id], onDelete: Cascade)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @default(now()) @updatedAt
+}
+
+model WhatsAppAutomationRule {
+  id               String    @id @default(uuid()) @db.Uuid
+  ruleName         String?   @default("Auto Rule")
+  triggerCondition String?   @default("No Reply 10 min")
+  action           String?   @default("Send Reminder")
+  channel          String?   @default("WhatsApp")
+  status           String    @default("Active")
+  aiAgentId        String?   @db.Uuid
+  aiAgent          AIAgent?  @relation(fields: [aiAgentId], references: [id], onDelete: Cascade)
+  createdAt        DateTime  @default(now())
+}
+
+model WhatsAppLog {
+  id              String    @id @default(uuid()) @db.Uuid
+  direction       String    @default("Incoming")
+  senderNumber    String    @default("+91 98765 43210")
+  messageContent  String?   @db.Text
+  deliveryStatus  String    @default("Delivered")
+  readStatus      String    @default("Read")
+  wabaId          String?   @default("1029384756")
+  aiAgentId       String?   @db.Uuid
+  aiAgent         AIAgent?  @relation(fields: [aiAgentId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+}

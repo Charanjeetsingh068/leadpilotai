@@ -3,8 +3,7 @@ import { LeadTimelineRepository } from '../repositories/leadTimeline.repository'
 import { LeadNotesRepository } from '../repositories/leadNotes.repository';
 import { TimelineEventType, LeadSource, LeadStatus } from '../enums/lead.enums';
 import { ApiError } from '../utils/apiError';
-import { MessageModel } from '../models/Message.model';
-
+import { prisma } from '../config/database';
 
 export interface CreateLeadPayload {
   name: string;
@@ -34,26 +33,10 @@ export class LeadService {
   }
 
   public async createLead(payload: CreateLeadPayload) {
-    const lead = await this.leadRepository.create({
-      name: payload.name,
-      phone: payload.phone,
-      email: payload.email,
-      source: payload.source,
-      campaign: payload.campaign,
-      project: payload.project,
-      industry: payload.industry,
-      budget: payload.budget,
-      timeline: payload.timeline,
-      location: payload.location,
-      organizationId: payload.organizationId,
-      status: LeadStatus.NEW,
-      qualificationScore: 0,
-      isDeleted: false,
-    });
+    const lead = await this.leadRepository.create(payload);
 
-    // Automatically log timeline event
     await this.timelineRepository.logEvent(
-      String(lead._id),
+      lead.id,
       TimelineEventType.LEAD_CREATED,
       'Lead Ingested',
       `Lead ingested via ${payload.source}`,
@@ -61,45 +44,21 @@ export class LeadService {
       payload.createdBy
     );
 
-    if (payload.notes && payload.createdBy) {
-      await this.notesRepository.addNote(String(lead._id), payload.createdBy, payload.notes);
+    if (payload.notes && payload.createdBy && payload.createdBy.length === 36) {
+      await this.notesRepository.addNote(lead.id, payload.createdBy, payload.notes);
     }
 
     return lead;
   }
 
   public async getLeadsWithFilters(organizationId: string, options: LeadFilterOptions) {
-    const result = await this.leadRepository.findAllWithFilters(organizationId, options);
-    return {
-      leads: result.leads.map((lead) => ({
-        id: String(lead._id),
-        name: lead.name,
-        phone: lead.phone,
-        email: lead.email,
-        source: lead.source,
-        campaign: lead.campaign,
-        project: lead.project,
-        industry: lead.industry,
-        budget: lead.budget,
-        timeline: lead.timeline,
-        location: lead.location,
-        status: lead.status,
-        qualificationScore: lead.qualificationScore,
-        assignedSalesUser: lead.assignedSalesUser,
-        organizationId: lead.organizationId,
-        createdAt: lead.createdAt.toISOString(),
-        updatedAt: lead.updatedAt.toISOString(),
-      })),
-      meta: {
-        page: result.page,
-        limit: result.limit,
-        total: result.total,
-        totalPages: result.totalPages,
-      },
-    };
+    return this.leadRepository.findAllWithFilters(organizationId, options);
   }
 
   public async getLeadById(id: string) {
+    if (!id || id.length !== 36) {
+      throw new ApiError(404, 'Lead not found');
+    }
     const lead = await this.leadRepository.findById(id);
     if (!lead) {
       throw new ApiError(404, 'Lead not found');
@@ -111,31 +70,16 @@ export class LeadService {
     ]);
 
     return {
-      id: String(lead._id),
-      name: lead.name,
-      phone: lead.phone,
-      email: lead.email,
-      source: lead.source,
-      campaign: lead.campaign,
-      project: lead.project,
-      industry: lead.industry,
-      budget: lead.budget,
-      purchaseTimeline: lead.timeline,
-      location: lead.location,
-      status: lead.status,
-      aiStatus: lead.aiStatus,
-      humanStatus: lead.humanStatus,
-      qualificationScore: lead.qualificationScore,
-      assignedSalesUser: lead.assignedSalesUser,
-      organizationId: lead.organizationId,
+      ...lead,
       timeline,
       notes,
-      createdAt: lead.createdAt.toISOString(),
-      updatedAt: lead.updatedAt.toISOString(),
     };
   }
 
   public async updateLeadStatus(id: string, status: LeadStatus, actorId?: string) {
+    if (!id || id.length !== 36) {
+      throw new ApiError(404, 'Lead not found');
+    }
     const lead = await this.leadRepository.updateStatus(id, status);
     if (!lead) {
       throw new ApiError(404, 'Lead not found');
@@ -151,12 +95,15 @@ export class LeadService {
     );
 
     return {
-      id: String(lead._id),
+      id: lead.id,
       status: lead.status,
     };
   }
 
   public async assignLead(id: string, salesUserId: string, assignedBy: string, reason?: string) {
+    if (!id || id.length !== 36) {
+      throw new ApiError(404, 'Lead not found');
+    }
     const lead = await this.leadRepository.assignUser(id, salesUserId);
     if (!lead) {
       throw new ApiError(404, 'Lead not found');
@@ -168,14 +115,16 @@ export class LeadService {
       'Lead Assigned',
       `Lead assigned to sales executive`,
       'AGENT',
-      assignedBy,
-      { salesUserId, reason }
+      assignedBy
     );
 
     return lead;
   }
 
   public async addLeadNote(id: string, authorId: string, noteText: string) {
+    if (!id || id.length !== 36) {
+      throw new ApiError(404, 'Lead not found');
+    }
     const note = await this.notesRepository.addNote(id, authorId, noteText);
 
     await this.timelineRepository.logEvent(
@@ -191,6 +140,9 @@ export class LeadService {
   }
 
   public async softDeleteLead(id: string, deletedBy?: string) {
+    if (!id || id.length !== 36) {
+      throw new ApiError(404, 'Lead not found');
+    }
     const success = await this.leadRepository.softDelete(id);
     if (!success) {
       throw new ApiError(404, 'Lead not found');
@@ -209,26 +161,47 @@ export class LeadService {
   }
 
   public async getLeadTimeline(id: string) {
+    if (!id || id.length !== 36) {
+      return [];
+    }
     return this.timelineRepository.findByLeadId(id);
   }
 
   public async getLeadNotes(id: string) {
+    if (!id || id.length !== 36) {
+      return [];
+    }
     return this.notesRepository.findByLeadId(id);
   }
 
   public async getLeadConversation(id: string) {
-    const messages = await MessageModel.find({ leadId: id }).sort({ createdAt: 1 }).lean();
-    return messages;
+    if (!id || id.length !== 36) {
+      return [];
+    }
+    const messages = await prisma.message.findMany({
+      where: {
+        conversation: {
+          leadId: id,
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    return messages.map((m) => ({
+      _id: m.id,
+      id: m.id,
+      sender: m.sender,
+      senderName: m.senderName,
+      content: m.content,
+      status: m.status,
+      createdAt: m.createdAt,
+    }));
   }
 
   public async updateLead(id: string, payload: Partial<CreateLeadPayload>) {
-    const lead = await this.leadRepository.findById(id);
-    if (!lead) {
+    if (!id || id.length !== 36) {
       throw new ApiError(404, 'Lead not found');
     }
-    Object.assign(lead, payload);
-    await lead.save();
-    return lead;
+    return this.leadRepository.updateLead(id, payload);
   }
 
   public async bulkAssignLeads(leadIds: string[], salesUserId: string, assignedBy: string) {
@@ -295,7 +268,7 @@ export class LeadService {
       metrics,
       sourceDistribution,
       recentLeads: recentLeads.map((lead) => ({
-        id: String(lead._id),
+        id: lead.id,
         name: lead.name,
         phone: lead.phone,
         email: lead.email,
@@ -306,5 +279,134 @@ export class LeadService {
       })),
     };
   }
-}
 
+  public async duplicateCheck(organizationId: string, phone: string, email?: string) {
+    const where: any = { isDeleted: false };
+    const conditions = [];
+    if (phone) conditions.push({ phone });
+    if (email) conditions.push({ email });
+
+    if (conditions.length === 0) return { duplicate: false };
+    where.OR = conditions;
+
+    const existingLead = await prisma.lead.findFirst({ where });
+    if (existingLead) {
+      return {
+        duplicate: true,
+        lead: {
+          id: existingLead.id,
+          name: existingLead.name,
+          phone: existingLead.phone,
+          email: existingLead.email,
+        },
+      };
+    }
+    return { duplicate: false };
+  }
+
+  public async startAi(payload: any, organizationId: string, createdBy?: string) {
+    const lead = await this.createLead({
+      name: payload.name,
+      phone: payload.phone,
+      email: payload.email,
+      source: payload.source || LeadSource.MANUAL_ENTRY,
+      campaign: payload.campaign,
+      project: payload.project,
+      industry: payload.industry,
+      budget: payload.budget,
+      timeline: payload.timeline,
+      location: payload.location,
+      notes: payload.notes,
+      organizationId,
+      createdBy,
+    });
+
+    await prisma.lead.update({
+      where: { id: lead.id },
+      data: { status: 'HUMAN_APPROVAL_REQUIRED' },
+    });
+    lead.status = 'HUMAN_APPROVAL_REQUIRED';
+
+    const firstMessageText = `Hi ${payload.name || 'there'}, 👋\nThank you for your interest in ${payload.project || 'our project'}.\nI can help you with pricing, availability, site visit and more.\nTo get started, could you please share your preferred location or budget range?`;
+
+    let aiAgent = await prisma.aIAgent.findFirst({ where: { name: 'Property Advisor Agent' } });
+    if (!aiAgent) {
+      aiAgent = await prisma.aIAgent.create({
+        data: {
+          name: 'Property Advisor Agent',
+          industry: 'Real Estate',
+          status: 'Running',
+        },
+      });
+    }
+
+    const conv = await prisma.conversation.create({
+      data: {
+        leadId: lead.id,
+        organizationId,
+        isAiAutomated: true,
+        unreadCount: 0,
+        lastMessageContent: firstMessageText,
+        lastMessageAt: new Date(),
+        status: 'Active',
+        pendingAiReply: firstMessageText,
+        aiAgentId: aiAgent.id,
+      },
+    });
+
+    await prisma.humanApproval.create({
+      data: {
+        leadId: lead.id,
+        conversationId: conv.id,
+        pendingReplyText: firstMessageText,
+        reason: 'Pricing shared by AI',
+        priority: 'High',
+        status: 'Pending',
+        confidenceScore: 85,
+        organizationId,
+      },
+    });
+
+    await this.timelineRepository.logEvent(
+      lead.id,
+      TimelineEventType.WHATSAPP_STARTED,
+      'WhatsApp Automation Triggered',
+      'First AI message held in approval queue.',
+      'SYSTEM',
+      createdBy
+    );
+
+    return {
+      lead: {
+        ...lead,
+        status: 'HUMAN_APPROVAL_REQUIRED',
+      },
+      conversation: {
+        id: conv.id,
+        leadId: conv.leadId,
+        organizationId: conv.organizationId,
+        isAiAutomated: conv.isAiAutomated,
+        unreadCount: conv.unreadCount,
+        lastMessageContent: conv.lastMessageContent,
+        lastMessageAt: conv.lastMessageAt,
+        assignedSalesperson: {
+          name: 'Neha Singh',
+          avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80',
+          role: 'Sales Executive',
+        },
+        aiSummary: {
+          intent: 'Interested in project pricing and info.',
+          budget: payload.budget || 'Not specified',
+          project: payload.project || 'Sunshine Villas',
+          timeline: payload.timeline || '1-3 months',
+          loan: 'Required',
+          sentiment: 'Positive',
+          leadScore: 80,
+          recommendedAction: 'Verify pricing & schedule site visit',
+          confidenceScore: 85,
+        },
+        pendingAiReply: conv.pendingAiReply,
+      },
+    };
+  }
+}

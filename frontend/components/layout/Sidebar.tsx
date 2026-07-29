@@ -39,7 +39,7 @@ const NAV_ITEMS: NavConfig[] = [
   { href: '/overview', label: 'Overview', icon: <Home size={18} /> },
   { href: '/lead-inbox', label: 'Leads', icon: <Users size={18} /> },
   { href: '/conversation', label: 'Conversations', icon: <MessageSquare size={18} />, badge: 23 },
-  { href: '/qualification', label: 'AI Qualification', icon: <Sparkles size={18} /> },
+  { href: '/ai-qualification', label: 'AI Qualification', icon: <Sparkles size={18} /> },
   { href: '/ai-agents', label: 'AI Agents', icon: <Bot size={18} /> },
   { href: '/whatsapp', label: 'WhatsApp', icon: <MessageSquare size={18} /> },
   { href: '/campaigns', label: 'Campaigns', icon: <Megaphone size={18} /> },
@@ -84,7 +84,10 @@ export const Sidebar: React.FC = () => {
       {/* Main Scrollable Menu Links */}
       <nav className="sidebar-nav-scroll">
         {NAV_ITEMS.map((item) => {
-          const isActive = pathname === item.href || (item.href === '/overview' && (pathname === '/' || pathname === '/dashboard'));
+          const isActive =
+            pathname === item.href ||
+            (item.href === '/overview' && (pathname === '/' || pathname === '/dashboard')) ||
+            (item.href === '/ai-qualification' && (pathname.startsWith('/ai-qualification') || pathname.includes('/qualification-flow')));
           return (
             <SidebarItem
               key={item.href}

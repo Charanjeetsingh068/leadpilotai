@@ -1,3 +1,4 @@
+import { Types } from 'mongoose';
 import { ConversationModel } from '../models/Conversation.model';
 import { MessageModel, MessageSender } from '../models/Message.model';
 import { ApiError } from '../utils/apiError';
@@ -71,6 +72,9 @@ export class ConversationService {
   }
 
   public async getConversationById(conversationId: string) {
+    if (!Types.ObjectId.isValid(conversationId)) {
+      throw new ApiError(404, 'Conversation not found');
+    }
     const conv = await ConversationModel.findById(conversationId).populate('leadId', 'name phone source status qualificationScore project');
     if (!conv) {
       throw new ApiError(404, 'Conversation not found');
@@ -113,6 +117,9 @@ export class ConversationService {
   }
 
   public async getMessages(conversationId: string) {
+    if (!Types.ObjectId.isValid(conversationId)) {
+      return [];
+    }
     const messages = await MessageModel.find({ conversationId }).sort({ createdAt: 1 });
     return messages.map((msg) => ({
       id: String(msg._id),
@@ -138,6 +145,9 @@ export class ConversationService {
     mediaUrl?: string,
     attachmentType?: any
   ) {
+    if (!Types.ObjectId.isValid(conversationId)) {
+      throw new ApiError(404, 'Conversation not found');
+    }
     const conversation = await ConversationModel.findById(conversationId);
     if (!conversation) {
       throw new ApiError(404, 'Conversation not found');
@@ -177,6 +187,9 @@ export class ConversationService {
   }
 
   public async takeover(conversationId: string, agentName: string) {
+    if (!Types.ObjectId.isValid(conversationId)) {
+      throw new ApiError(404, 'Conversation not found');
+    }
     const conversation = await ConversationModel.findByIdAndUpdate(
       conversationId,
       {
@@ -213,6 +226,9 @@ export class ConversationService {
   }
 
   public async pauseAi(conversationId: string) {
+    if (!Types.ObjectId.isValid(conversationId)) {
+      throw new ApiError(404, 'Conversation not found');
+    }
     const conversation = await ConversationModel.findByIdAndUpdate(
       conversationId,
       {
@@ -240,6 +256,9 @@ export class ConversationService {
   }
 
   public async resumeAi(conversationId: string) {
+    if (!Types.ObjectId.isValid(conversationId)) {
+      throw new ApiError(404, 'Conversation not found');
+    }
     const conversation = await ConversationModel.findByIdAndUpdate(
       conversationId,
       {
@@ -271,6 +290,9 @@ export class ConversationService {
   }
 
   public async bookSiteVisit(conversationId: string, date: string, time: string, notes?: string) {
+    if (!Types.ObjectId.isValid(conversationId)) {
+      throw new ApiError(404, 'Conversation not found');
+    }
     const conversation = await ConversationModel.findById(conversationId);
     if (!conversation) {
       throw new ApiError(404, 'Conversation not found');

@@ -18,6 +18,7 @@ export const useLeadEngine = () => {
     setActiveNotes,
     appendNote,
     setFilters,
+    setPagination,
     setLoading,
   } = useLeadStore();
 
@@ -27,8 +28,16 @@ export const useLeadEngine = () => {
       const combinedParams = { ...filters, ...params };
       try {
         const res = await LeadService.getLeads(combinedParams);
-        if (res.success && res.data) {
+        if (res.success && Array.isArray(res.data)) {
           setLeads(res.data);
+          if (res.meta) {
+            setPagination({
+              total: res.meta.total,
+              page: res.meta.page,
+              limit: res.meta.limit,
+              totalPages: res.meta.totalPages,
+            });
+          }
           return res.data;
         }
       } catch {
@@ -37,7 +46,7 @@ export const useLeadEngine = () => {
         setLoading(false);
       }
     },
-    [filters, setLeads, setLoading]
+    [filters, setLeads, setPagination, setLoading]
   );
 
   const fetchLeadDetails = useCallback(

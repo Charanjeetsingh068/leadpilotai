@@ -78,5 +78,17 @@ export const LeadService = {
     const res = await apiClient.get<ApiResponse<Lead[]>>('/leads/export', { params });
     return res.data;
   },
+
+  duplicateCheck: async (phone: string, email?: string): Promise<ApiResponse<{ duplicate: boolean; lead?: any }>> => {
+    const res = await apiClient.get<ApiResponse<{ duplicate: boolean; lead?: any }>>('/leads/duplicate-check', {
+      params: { phone, email },
+    });
+    return res.data;
+  },
+
+  startAi: async (payload: any): Promise<ApiResponse<{ lead: Lead; conversation: any }>> => {
+    const res = await apiClient.post<ApiResponse<{ lead: Lead; conversation: any }>>('/leads/start-ai', payload);
+    return res.data;
+  },
 };
 

@@ -43,7 +43,13 @@ export class LeadController {
         limit: limit ? Number(limit) : 20,
       });
 
-      sendResponse(res, 200, 'Leads fetched successfully', result.leads, result.meta);
+      const meta = {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
+      };
+      sendResponse(res, 200, 'Leads fetched successfully', result.leads, meta);
     } catch (error) {
       next(error);
     }
@@ -210,6 +216,38 @@ export class LeadController {
         search: search as string | undefined,
       });
       sendResponse(res, 200, 'Leads exported successfully', leads);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public duplicateCheck = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const organizationId = req.user?.organizationId || 'org_demo_default';
+      const phone = req.query.phone as string;
+      const email = req.query.email as string;
+
+      const result = await this.leadService.duplicateCheck(organizationId, phone, email);
+      res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public startAi = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const organizationId = req.user?.organizationId || 'org_demo_default';
+      const createdBy = req.user?.id;
+
+      const result = await this.leadService.startAi(req.body, organizationId, createdBy);
+      res.status(201).json({
+        success: true,
+        message: 'Lead created and AI agent started successfully',
+        data: result,
+      });
     } catch (error) {
       next(error);
     }

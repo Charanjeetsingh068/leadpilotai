@@ -1,6 +1,11 @@
 import React from 'react';
+import { ApprovalProvider } from '@/context/ApprovalContext';
 import { ApprovalsView } from '@/components/approvals/ApprovalsView';
 
 export default function ApprovalsPage() {
-  return <ApprovalsView />;
+  return (
+    <ApprovalProvider>
+      <ApprovalsView />
+    </ApprovalProvider>
+  );
 }

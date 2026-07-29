@@ -32,17 +32,19 @@ export const ConversationTopHeader: React.FC<ConversationTopHeaderProps> = ({
   return (
     <div className="conv-top-header">
       <div className="conv-header-left">
-        {onMobileBack ? (
-          <button type="button" onClick={onMobileBack} className="conv-back-link-btn" title="Back to List">
-            <ArrowLeft size={16} />
-            <span>Back to Conversations</span>
-          </button>
-        ) : (
-          <Link href="/conversations" className="conv-back-link">
-            <ArrowLeft size={16} />
-            <span>Back to Conversations</span>
-          </Link>
-        )}
+        <div className="conv-header-back-wrap">
+          {onMobileBack ? (
+            <button type="button" onClick={onMobileBack} className="conv-back-link-btn" title="Back to List">
+              <ArrowLeft size={16} />
+              <span>Back to Conversations</span>
+            </button>
+          ) : (
+            <Link href="/conversations" className="conv-back-link">
+              <ArrowLeft size={16} />
+              <span>Back to Conversations</span>
+            </Link>
+          )}
+        </div>
 
         <div className="conv-lead-main-meta">
           <div className="conv-lead-avatar-circle">
