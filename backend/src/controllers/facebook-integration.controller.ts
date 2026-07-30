@@ -161,4 +161,15 @@ export class FacebookIntegrationController {
       next(err);
     }
   };
+
+  toggleFormActive = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const scope = this.getScope(req);
+      const { formId, isActive } = req.body;
+      const updated = await this.service.toggleFormActive(scope, formId, isActive);
+      res.json({ success: true, data: updated });
+    } catch (err) {
+      next(err);
+    }
+  };
 }

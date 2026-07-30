@@ -66,7 +66,7 @@ export const facebookIntegrationService = {
   },
 
   async toggleFormActive(formId: string, isActive: boolean) {
-    const res = await axios.put(`${API_BASE}/facebook/forms/assign-ai`, { formId, isActive }, { withCredentials: true });
+    const res = await axios.put(`${API_BASE}/facebook/forms/toggle-active`, { formId, isActive }, { withCredentials: true });
     return res.data.data;
   },
 

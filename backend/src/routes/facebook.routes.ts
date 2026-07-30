@@ -30,6 +30,7 @@ router.post('/facebook/pages/sync', integrationController.syncPages);
 // Forms Routes
 router.get('/facebook/forms', integrationController.getForms);
 router.put('/facebook/forms/assign-ai', integrationController.assignAiAgent);
+router.put('/facebook/forms/toggle-active', integrationController.toggleFormActive);
 router.post('/facebook/forms/sync', integrationController.syncForms);
 
 // Permissions Routes

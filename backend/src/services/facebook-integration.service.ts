@@ -1,6 +1,7 @@
 import { FacebookRepository, MultiTenantScope } from '../repositories/facebook.repository';
 import { TokenManagementService } from './token-management.service';
 import { MetaGraphApiService } from './meta-graph-api.service';
+import { prisma } from '../config/database';
 
 export class FacebookIntegrationService {
   private repo: FacebookRepository;
@@ -281,5 +282,13 @@ export class FacebookIntegrationService {
     });
 
     return { success: true, message: `Account ${account.accountName} disconnected.` };
+  }
+
+  async toggleFormActive(scope: MultiTenantScope, formId: string, isActive: boolean) {
+    const updated = await prisma.facebookForm.update({
+      where: { id: formId },
+      data: { isActive },
+    });
+    return updated;
   }
 }
