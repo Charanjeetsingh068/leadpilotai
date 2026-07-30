@@ -58,6 +58,13 @@ export function useFacebookIntegration() {
 
       if (!popup || popup.closed || typeof popup.closed === 'undefined') {
         window.location.href = oauthUrl;
+      } else {
+        const timer = setInterval(() => {
+          if (popup.closed) {
+            clearInterval(timer);
+            setIsConnecting(false);
+          }
+        }, 1000);
       }
     } catch (err: any) {
       console.error('Failed to start OAuth flow:', err);
