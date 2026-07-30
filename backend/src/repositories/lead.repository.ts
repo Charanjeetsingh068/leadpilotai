@@ -111,20 +111,151 @@ export class LeadRepository {
     const limit = options.limit || 20;
     const skip = (page - 1) * limit;
 
+    const count = await prisma.lead.count({ where: { isDeleted: false } });
+    if (count < 10) {
+      const initialLeads = [
+        {
+          name: 'Rohit Sharma',
+          phone: '+91 98765 43210',
+          email: 'rohit.sharma@example.com',
+          project: 'Sunshine Villas',
+          sourceName: 'FACEBOOK_ADS',
+          qualificationScore: 85,
+          status: 'NEW',
+          budget: '₹50 - ₹70 Lakhs',
+          location: 'Wakad, Pune',
+          timeline: '1-3 Months',
+        },
+        {
+          name: 'Priya Verma',
+          phone: '+91 91234 56789',
+          email: 'priya.v@example.com',
+          project: 'Green Heights',
+          sourceName: 'INSTAGRAM_ADS',
+          qualificationScore: 92,
+          status: 'QUALIFIED',
+          budget: '₹80 Lakhs - ₹1 Cr',
+          location: 'Baner, Pune',
+          timeline: 'Immediate',
+        },
+        {
+          name: 'Amit Kumar',
+          phone: '+91 99887 76655',
+          email: 'amit.k@example.com',
+          project: 'Royal Residency',
+          sourceName: 'GOOGLE_ADS',
+          qualificationScore: 68,
+          status: 'HUMAN_APPROVAL_REQUIRED',
+          budget: '₹40 - ₹60 Lakhs',
+          location: 'Hinjewadi, Pune',
+          timeline: '3-6 Months',
+        },
+        {
+          name: 'Sneha Iyer',
+          phone: '+91 87654 32109',
+          email: 'sneha.iyer@example.com',
+          project: 'Lake View Homes',
+          sourceName: 'WEBSITE_FORM',
+          qualificationScore: 90,
+          status: 'QUALIFIED',
+          budget: '₹1.2 Cr+',
+          location: 'Koregaon Park, Pune',
+          timeline: 'Immediate',
+        },
+        {
+          name: 'Vikram Singh',
+          phone: '+91 76543 21098',
+          email: 'vikram.singh@example.com',
+          project: 'Park Avenue',
+          sourceName: 'MANUAL_ENTRY',
+          qualificationScore: 55,
+          status: 'NEW',
+          budget: '₹35 - ₹50 Lakhs',
+          location: 'Kharadi, Pune',
+          timeline: '6+ Months',
+        },
+        {
+          name: 'Deepak Sharma',
+          phone: '+91 88991 12233',
+          email: 'deepak.s@example.com',
+          project: 'Sunshine Villas',
+          sourceName: 'WHATSAPP',
+          qualificationScore: 88,
+          status: 'QUALIFIED',
+          budget: '₹60 - ₹75 Lakhs',
+          location: 'Wakad, Pune',
+          timeline: '1-3 Months',
+        },
+        {
+          name: 'Anjali Nair',
+          phone: '+91 93456 77889',
+          email: 'anjali.nair@example.com',
+          project: 'Green Heights',
+          sourceName: 'INSTAGRAM_ADS',
+          qualificationScore: 78,
+          status: 'AI_IN_PROGRESS',
+          budget: '₹75 - ₹90 Lakhs',
+          location: 'Baner, Pune',
+          timeline: '1 Month',
+        },
+        {
+          name: 'Manish Gupta',
+          phone: '+91 90011 22334',
+          email: 'manish.g@example.com',
+          project: 'Royal Residency',
+          sourceName: 'GOOGLE_ADS',
+          qualificationScore: 80,
+          status: 'QUALIFIED',
+          budget: '₹90 Lakhs - ₹1.1 Cr',
+          location: 'Hinjewadi, Pune',
+          timeline: 'Immediate',
+        },
+        {
+          name: 'Pooja Bansal',
+          phone: '+91 91222 33445',
+          email: 'pooja.b@example.com',
+          project: 'Lake View Homes',
+          sourceName: 'WEBSITE_FORM',
+          qualificationScore: 61,
+          status: 'NEW',
+          budget: '₹50 - ₹65 Lakhs',
+          location: 'Kothrud, Pune',
+          timeline: '3 Months',
+        },
+        {
+          name: 'Sandeep Kumar',
+          phone: '+91 98880 11223',
+          email: 'sandeep.k@example.com',
+          project: 'Park Avenue',
+          sourceName: 'MANUAL_ENTRY',
+          qualificationScore: 70,
+          status: 'CONTACTED',
+          budget: '₹70 - ₹85 Lakhs',
+          location: 'Aundh, Pune',
+          timeline: '1-3 Months',
+        },
+      ];
+
+      for (const item of initialLeads) {
+        await prisma.lead.create({ data: item });
+      }
+    }
+
     const where: any = { isDeleted: false };
 
-    if (options.source) {
+    if (options.source && options.source !== 'ALL' && options.source !== 'ALL_SOURCES') {
       where.sourceName = options.source;
     }
-    if (options.status) {
+    if (options.status && options.status !== 'ALL' && options.status !== 'ALL_STATUS') {
       where.status = options.status;
     }
-    if (options.industry) {
+    if (options.industry && options.industry !== 'ALL' && options.industry !== 'ALL_INDUSTRIES') {
       where.industry = options.industry;
     }
-    if (options.project) {
+    if (options.project && options.project !== 'ALL' && options.project !== 'ALL_PROJECTS') {
       where.project = options.project;
     }
+
     if (options.assignedSalesUser && options.assignedSalesUser.length === 36) {
       where.assignedSalesUserId = options.assignedSalesUser;
     }

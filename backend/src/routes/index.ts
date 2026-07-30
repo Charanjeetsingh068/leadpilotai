@@ -10,6 +10,7 @@ import flowRoutes from './flow.routes';
 import whatsappRoutes from './whatsapp.routes';
 import testingRoutes from './testing.routes';
 import analyticsRoutes from './analytics.routes';
+import facebookRoutes from './facebook.routes';
 import { TestingController } from '../controllers/testing.controller';
 
 const masterRouter = Router();
@@ -27,6 +28,7 @@ masterRouter.use('/whatsapp', whatsappRoutes);
 masterRouter.use('/testing', testingRoutes);
 masterRouter.use('/analytics', analyticsRoutes);
 masterRouter.use('/reports', analyticsRoutes);
+masterRouter.use('/', facebookRoutes);
 masterRouter.get('/languages', testingController.getLanguages);
 
 export default masterRouter;
