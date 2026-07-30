@@ -31,6 +31,16 @@ export class FacebookIntegrationController {
     }
   };
 
+  getDiagnostics = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const scope = this.getScope(req);
+      const data = await this.service.getDiagnostics(scope);
+      res.json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  };
+
   getAccounts = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const scope = this.getScope(req);
@@ -73,17 +83,6 @@ export class FacebookIntegrationController {
     }
   };
 
-  syncPages = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const scope = this.getScope(req);
-      const { accountId } = req.body;
-      const result = await this.service.syncPages(scope, accountId || 'acc_1');
-      res.json({ success: true, data: result });
-    } catch (err) {
-      next(err);
-    }
-  };
-
   getForms = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const scope = this.getScope(req);
@@ -95,38 +94,6 @@ export class FacebookIntegrationController {
         limit: limit ? parseInt(limit as string) : 10,
       });
       res.json({ success: true, data: result });
-    } catch (err) {
-      next(err);
-    }
-  };
-
-  assignAiAgent = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const scope = this.getScope(req);
-      const { formId, aiAgentId } = req.body;
-      const updated = await this.service.assignAiAgentToForm(scope, formId, aiAgentId);
-      res.json({ success: true, data: updated });
-    } catch (err) {
-      next(err);
-    }
-  };
-
-  syncForms = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const scope = this.getScope(req);
-      const { pageId } = req.body;
-      const result = await this.service.syncForms(scope, pageId || 'page_1');
-      res.json({ success: true, data: result });
-    } catch (err) {
-      next(err);
-    }
-  };
-
-  getPermissions = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const scope = this.getScope(req);
-      const permissions = await this.service.getPermissions(scope);
-      res.json({ success: true, data: permissions });
     } catch (err) {
       next(err);
     }
@@ -157,17 +124,6 @@ export class FacebookIntegrationController {
       const scope = this.getScope(req);
       const dashboard = await this.service.getDashboard(scope);
       res.json({ success: true, message: 'Sync completed successfully', data: dashboard });
-    } catch (err) {
-      next(err);
-    }
-  };
-
-  toggleFormActive = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const scope = this.getScope(req);
-      const { formId, isActive } = req.body;
-      const updated = await this.service.toggleFormActive(scope, formId, isActive);
-      res.json({ success: true, data: updated });
     } catch (err) {
       next(err);
     }

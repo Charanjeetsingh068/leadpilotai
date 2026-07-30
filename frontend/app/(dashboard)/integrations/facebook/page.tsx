@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { BookOpen, RefreshCw } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 import { useFacebookIntegration } from '@/hooks/useFacebookIntegration';
-import { FacebookConnectionCard } from '@/components/facebook/FacebookConnectionCard';
+import { FacebookConnectionWizard } from '@/components/facebook/FacebookConnectionWizard';
 import { ConnectedAccountsTable } from '@/components/facebook/ConnectedAccountsTable';
 import { BusinessManagerCard } from '@/components/facebook/BusinessManagerCard';
 import { ConnectedPagesTable } from '@/components/facebook/ConnectedPagesTable';
@@ -15,12 +15,10 @@ import { SyncOverviewChart } from '@/components/facebook/SyncOverviewChart';
 import { BottomAnalyticsCards } from '@/components/facebook/BottomAnalyticsCards';
 import { AddAccountModal } from '@/components/facebook/AddAccountModal';
 import { FormPreviewModal } from '@/components/facebook/FormPreviewModal';
-import { facebookIntegrationService } from '@/services/facebook-integration.service';
 
 export default function FacebookIntegrationPage() {
   const {
     data,
-    isLoading,
     selectedBusinessId,
     handleBusinessChange,
     accountsSearch,
@@ -30,8 +28,6 @@ export default function FacebookIntegrationPage() {
     previewForm,
     setPreviewForm,
     isConnecting,
-    connectionSuccessMsg,
-    connectionErrorMsg,
     handleConnectFacebook,
     disconnectAccount,
     syncPages,
@@ -42,8 +38,6 @@ export default function FacebookIntegrationPage() {
     assignAiAgent,
     retryWebhooks,
     isRetryingWebhooks,
-    manualSync,
-    isManualSyncing,
   } = useFacebookIntegration();
 
   return (
@@ -54,9 +48,9 @@ export default function FacebookIntegrationPage() {
           <div className="fb-breadcrumb font-sans text-xs text-muted">
             Integrations &gt; <span className="text-main font-medium">Facebook Integration</span>
           </div>
-          <h1 className="fb-page-title text-2xl font-bold">Facebook Integration</h1>
+          <h1 className="fb-page-title text-2xl font-bold">Facebook Integration &amp; Meta Developer Setup</h1>
           <p className="fb-page-subtitle text-sm text-subtle">
-            Connect and manage your Facebook accounts, pages and lead forms.
+            Connect and manage your Meta App (ID: <code>1712255293083461</code>), Facebook Business Manager, Pages, and Lead Forms.
           </p>
         </div>
 
@@ -68,30 +62,12 @@ export default function FacebookIntegrationPage() {
         </div>
       </div>
 
-      {/* Success Banner */}
-      {connectionSuccessMsg && (
-        <div className="fb-business-access-status">
-          <div className="fb-access-message">
-            <span>✔ {connectionSuccessMsg}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Error Banner */}
-      {connectionErrorMsg && (
-        <div className="fb-status-badge expired">
-          <span>⚠️ {connectionErrorMsg}</span>
-        </div>
-      )}
+      {/* Interactive 6-Step Connection Wizard & Missing Permission Banner */}
+      <FacebookConnectionWizard />
 
       {/* Main Grid Section Row 1 */}
       <div className="fb-grid-row-top">
         <div className="fb-col-left">
-          <FacebookConnectionCard
-            connection={data?.connection}
-            onReconnect={handleConnectFacebook}
-            isConnecting={isConnecting}
-          />
           <ConnectedAccountsTable
             accounts={data?.accounts || []}
             onAddAccount={() => setIsAddAccountOpen(true)}
