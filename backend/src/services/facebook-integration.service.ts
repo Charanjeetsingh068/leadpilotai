@@ -197,10 +197,19 @@ export class FacebookIntegrationService {
     return this.repo.findPermissions(scope);
   }
 
-  async startOAuth(scope: MultiTenantScope) {
+  async startOAuth(scope: MultiTenantScope, clientOrigin?: string) {
     const appId = process.env.FACEBOOK_APP_ID || '1712255293083461';
-    const redirectUri = encodeURIComponent(`${process.env.APP_URL || 'http://localhost:3000'}/integrations/facebook/callback`);
-    const scopes = encodeURIComponent('public_profile,email,pages_show_list,pages_read_engagement,leads_retrieval,business_management');
+    let baseUrl = process.env.APP_URL || 'http://localhost:3000';
+    if (clientOrigin) {
+      try {
+        const parsed = new URL(clientOrigin);
+        baseUrl = `${parsed.protocol}//${parsed.host}`;
+      } catch (e) {
+        // fallback
+      }
+    }
+    const redirectUri = encodeURIComponent(`${baseUrl}/integrations/facebook/callback`);
+    const scopes = encodeURIComponent('public_profile,email,pages_show_list,pages_read_engagement,leads_retrieval');
     
     const oauthUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=code`;
 

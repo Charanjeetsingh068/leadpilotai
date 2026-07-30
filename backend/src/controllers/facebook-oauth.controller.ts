@@ -16,7 +16,8 @@ export class FacebookOAuthController {
         userId: (req as any).user?.id || 'user-uuid-001',
         userRole: (req as any).user?.role || 'Super Admin',
       };
-      const result = await this.service.startOAuth(scope);
+      const clientOrigin = req.body?.redirectUri || (req.headers.origin as string) || (req.headers.referer as string);
+      const result = await this.service.startOAuth(scope, clientOrigin);
       res.json({ success: true, data: result });
     } catch (err) {
       next(err);
