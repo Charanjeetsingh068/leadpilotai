@@ -1137,5 +1137,23 @@ model FacebookToken {
   @@map("facebook_tokens")
 }
 
+model DataDeletionRequest {
+  id               String    @id @default(uuid()) @db.Uuid
+  companyId        String?   @db.Uuid
+  workspaceId      String?   @db.Uuid
+  userId           String?   @db.Uuid
+  email            String
+  companyName      String?
+  facebookAccount  String?
+  reason           String?   @db.Text
+  status           String    @default("PENDING")
+  confirmationCode String    @unique
+  requestedAt      DateTime  @default(now())
+  completedAt      DateTime?
+
+  @@map("data_deletion_requests")
+}
+
+
 
 
