@@ -25,7 +25,7 @@ export const facebookIntegrationService = {
     const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || '1712255293083461';
     const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
     const redirectUri = encodeURIComponent(`${origin}/integrations/facebook/callback`);
-    const scopes = encodeURIComponent('pages_show_list,pages_read_engagement,leads_retrieval,business_management');
+    const scopes = encodeURIComponent('public_profile,email,pages_show_list,pages_read_engagement,leads_retrieval,business_management');
     const oauthUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=code`;
 
     return { oauthUrl };
