@@ -209,7 +209,7 @@ export class FacebookIntegrationService {
       }
     }
     const redirectUri = encodeURIComponent(`${baseUrl}/integrations/facebook/callback`);
-    const scopes = encodeURIComponent('public_profile,email,pages_show_list');
+    const scopes = encodeURIComponent('public_profile,email,pages_show_list,pages_read_engagement,leads_retrieval,business_management');
     
     const oauthUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=code`;
 
