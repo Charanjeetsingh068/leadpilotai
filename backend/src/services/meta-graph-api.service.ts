@@ -197,8 +197,103 @@ export class MetaGraphApiService {
     return data;
   }
 
+  async getInstagramBusinessAccount(pageId: string, pageAccessToken: string) {
+    try {
+      const url = `/${pageId}?fields=instagram_business_account{id,username,name,profile_picture_url,followers_count}&access_token=${encodeURIComponent(pageAccessToken)}`;
+      const data = await this.requestGraphApi(url);
+      if (data.instagram_business_account) {
+        logMetaEvent('Instagram Business Account Found', {
+          pageId,
+          instagram: data.instagram_business_account,
+        });
+        return data.instagram_business_account;
+      }
+    } catch (e: any) {
+      logMetaEvent('Instagram Business Query Info', { pageId, message: e.message });
+    }
+    return null;
+  }
+
+  async getWhatsAppBusinessAccounts(accessToken: string) {
+    try {
+      const url = `/me/businesses?fields=id,name,client_whatsapp_business_accounts{id,name,currency,timezone_id}&access_token=${encodeURIComponent(accessToken)}`;
+      const data = await this.requestGraphApi(url);
+      const businesses = data.data || [];
+      const whatsapps: any[] = [];
+      for (const b of businesses) {
+        if (b.client_whatsapp_business_accounts?.data) {
+          for (const waba of b.client_whatsapp_business_accounts.data) {
+            whatsapps.push({
+              ...waba,
+              businessId: b.id,
+              businessName: b.name,
+            });
+          }
+        }
+      }
+      logMetaEvent('WhatsApp Business Accounts Found', { count: whatsapps.length });
+      return whatsapps;
+    } catch (e: any) {
+      logMetaEvent('WhatsApp Business Query Info', { message: e.message });
+      return [];
+    }
+  }
+
+  async getOwnedPages(businessId: string, accessToken: string) {
+    try {
+      const url = `/${businessId}/owned_pages?fields=id,name,category,access_token,fan_count,picture,tasks&access_token=${encodeURIComponent(accessToken)}`;
+      const data = await this.requestGraphApi(url);
+      return data.data || [];
+    } catch (e: any) {
+      logMetaEvent('Owned Pages Query Info', { businessId, message: e.message });
+      return [];
+    }
+  }
+
+  async getClientPages(businessId: string, accessToken: string) {
+    try {
+      const url = `/${businessId}/client_pages?fields=id,name,category,access_token,fan_count,picture,tasks&access_token=${encodeURIComponent(accessToken)}`;
+      const data = await this.requestGraphApi(url);
+      return data.data || [];
+    } catch (e: any) {
+      logMetaEvent('Client Pages Query Info', { businessId, message: e.message });
+      return [];
+    }
+  }
+
+  async getOwnedWhatsAppAccounts(businessId: string, accessToken: string) {
+    try {
+      const url = `/${businessId}/owned_whatsapp_business_accounts?fields=id,name,currency,timezone_id,phone_numbers{id,display_phone_number,verified_name,quality_rating}&access_token=${encodeURIComponent(accessToken)}`;
+      const data = await this.requestGraphApi(url);
+      return data.data || [];
+    } catch (e: any) {
+      logMetaEvent('Owned WhatsApp Accounts Query Info', { businessId, message: e.message });
+      return [];
+    }
+  }
+
+  async sendWhatsAppCloudMessage(phoneNumberId: string, accessToken: string, payload: any) {
+    const url = `/${phoneNumberId}/messages?access_token=${encodeURIComponent(accessToken)}`;
+    const data = await this.requestGraphApi(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    logMetaEvent('WhatsApp Cloud API Message Sent', {
+      phoneNumberId,
+      recipient: payload.to,
+      type: payload.type,
+      messageId: data.messages?.[0]?.id,
+    });
+
+    return data;
+  }
+
   async subscribePageWebhook(pageId: string, pageAccessToken: string) {
-    const url = `/${pageId}/subscribed_apps?subscribed_fields=leadgen,messages&access_token=${encodeURIComponent(pageAccessToken)}`;
+    const url = `/${pageId}/subscribed_apps?subscribed_fields=leadgen,messages,feed&access_token=${encodeURIComponent(pageAccessToken)}`;
     const data = await this.requestGraphApi(url, { method: 'POST' });
 
     logMetaEvent('Webhook Subscribed', {

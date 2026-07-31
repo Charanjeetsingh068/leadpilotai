@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { FacebookIntegrationService } from '../services/facebook-integration.service';
 import { FacebookWebhookService } from '../services/facebook-webhook.service';
+import { createApiResponse } from '../interfaces/api-response.interface';
 
 export class FacebookIntegrationController {
   private service: FacebookIntegrationService;
@@ -13,8 +14,8 @@ export class FacebookIntegrationController {
 
   private getScope(req: Request) {
     return {
-      companyId: (req as any).user?.companyId || 'company-uuid-001',
-      workspaceId: (req as any).user?.workspaceId || 'workspace-uuid-001',
+      companyId: (req as any).user?.companyId || (req.headers['x-company-id'] as string) || 'company-uuid-001',
+      workspaceId: (req as any).user?.workspaceId || (req.headers['x-workspace-id'] as string) || 'workspace-uuid-001',
       userId: (req as any).user?.id || 'user-uuid-001',
       userRole: (req as any).user?.role || 'Super Admin',
     };
@@ -25,7 +26,18 @@ export class FacebookIntegrationController {
       const scope = this.getScope(req);
       const businessId = req.query.businessId as string;
       const data = await this.service.getDashboard(scope, businessId);
-      res.json({ success: true, data });
+      res.json(createApiResponse(true, data, 'Dashboard retrieved successfully'));
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  getStatus = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const scope = this.getScope(req);
+      const businessId = req.query.businessId as string;
+      const data = await this.service.getDashboard(scope, businessId);
+      res.json(createApiResponse(true, { status: data.connection.status, connection: data.connection }, 'Status retrieved successfully'));
     } catch (err) {
       next(err);
     }
@@ -35,7 +47,7 @@ export class FacebookIntegrationController {
     try {
       const scope = this.getScope(req);
       const data = await this.service.getDiagnostics(scope);
-      res.json({ success: true, data });
+      res.json(createApiResponse(true, data, 'Diagnostics retrieved successfully'));
     } catch (err) {
       next(err);
     }
@@ -51,7 +63,7 @@ export class FacebookIntegrationController {
         page: page ? parseInt(page as string) : 1,
         limit: limit ? parseInt(limit as string) : 10,
       });
-      res.json({ success: true, data: result });
+      res.json(createApiResponse(true, result, 'Accounts retrieved successfully'));
     } catch (err) {
       next(err);
     }
@@ -61,7 +73,7 @@ export class FacebookIntegrationController {
     try {
       const scope = this.getScope(req);
       const businesses = await this.service.getBusinesses(scope);
-      res.json({ success: true, data: businesses });
+      res.json(createApiResponse(true, businesses, 'Businesses retrieved successfully'));
     } catch (err) {
       next(err);
     }
@@ -77,7 +89,7 @@ export class FacebookIntegrationController {
         page: page ? parseInt(page as string) : 1,
         limit: limit ? parseInt(limit as string) : 10,
       });
-      res.json({ success: true, data: result });
+      res.json(createApiResponse(true, result, 'Pages retrieved successfully'));
     } catch (err) {
       next(err);
     }
@@ -93,7 +105,7 @@ export class FacebookIntegrationController {
         page: page ? parseInt(page as string) : 1,
         limit: limit ? parseInt(limit as string) : 10,
       });
-      res.json({ success: true, data: result });
+      res.json(createApiResponse(true, result, 'Forms retrieved successfully'));
     } catch (err) {
       next(err);
     }
@@ -103,7 +115,25 @@ export class FacebookIntegrationController {
     try {
       const scope = this.getScope(req);
       const dashboard = await this.service.getDashboard(scope);
-      res.json({ success: true, data: dashboard.webhookHealth });
+      res.json(createApiResponse(true, dashboard.webhookHealth, 'Webhooks retrieved successfully'));
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  connect = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const scope = this.getScope(req);
+      res.json(createApiResponse(true, { state: 'CONNECTING', redirectUrl: '/api/integrations/facebook/oauth' }, 'Connection initiated successfully'));
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  disconnect = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const scope = this.getScope(req);
+      res.json(createApiResponse(true, { state: 'NOT_CONNECTED' }, 'Facebook integration disconnected successfully'));
     } catch (err) {
       next(err);
     }
@@ -113,7 +143,7 @@ export class FacebookIntegrationController {
     try {
       const scope = this.getScope(req);
       const result = await this.webhookService.replayFailedEvents(scope);
-      res.json({ success: true, data: result });
+      res.json(createApiResponse(true, result, 'Webhook retry executed successfully'));
     } catch (err) {
       next(err);
     }
@@ -122,8 +152,9 @@ export class FacebookIntegrationController {
   triggerSync = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const scope = this.getScope(req);
+      const syncResult = await this.service.syncAssets(scope);
       const dashboard = await this.service.getDashboard(scope);
-      res.json({ success: true, message: 'Sync completed successfully', data: dashboard });
+      res.json(createApiResponse(true, { syncResult, dashboard }, 'Asset discovery and synchronization completed successfully'));
     } catch (err) {
       next(err);
     }

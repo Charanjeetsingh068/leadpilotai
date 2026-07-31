@@ -1,19 +1,23 @@
 import { Request, Response, NextFunction } from 'express';
-import { ApiError } from '../utils/apiError';
+import { AppError } from '../utils/app-error.util';
+import { createApiResponse } from '../interfaces/api-response.interface';
 
-export const errorMiddleware = (
-  err: Error | ApiError,
-  req: Request,
-  res: Response,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  next: NextFunction
-): void => {
-  const statusCode = err instanceof ApiError ? err.statusCode : 500;
-  const message = err.message || 'Internal Server Error';
+export function errorHandler(err: any, req: Request, res: Response, next: NextFunction) {
+  const statusCode = err instanceof AppError ? err.statusCode : 500;
+  const errorCode = err instanceof AppError ? err.errorCode : 'INTERNAL_SERVER_ERROR';
+  const message = err.message || 'An unexpected error occurred';
 
-  res.status(statusCode).json({
-    success: false,
-    message,
-    errors: err instanceof ApiError ? err.errors : undefined,
-  });
-};
+  res.status(statusCode).json(
+    createApiResponse(
+      false,
+      undefined,
+      message,
+      {
+        code: errorCode,
+        details: err.details || null,
+      }
+    )
+  );
+}
+
+export const errorMiddleware = errorHandler;

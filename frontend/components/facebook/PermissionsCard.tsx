@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, ShieldCheck, AlertCircle } from 'lucide-react';
 import { FacebookPermissionItem } from '@/types/facebook.types';
 
 interface Props {
@@ -7,39 +7,53 @@ interface Props {
 }
 
 export const PermissionsCard: React.FC<Props> = ({ permissions = [] }) => {
-  const defaultPermissions: FacebookPermissionItem[] = [
-    {
-      id: '1',
-      permission: 'pages_show_list',
-      description: 'View and manage your Pages',
-      status: 'Granted',
-    },
-    {
-      id: '2',
-      permission: 'pages_read_engagement',
-      description: 'Read content posted on the Page',
-      status: 'Granted',
-    },
-    {
-      id: '3',
-      permission: 'leads_retrieval',
-      description: 'Manage and retrieve your leads',
-      status: 'Granted',
-    },
-    {
-      id: '4',
-      permission: 'business_management',
-      description: 'Manage your business',
-      status: 'Granted',
-    },
+  const requiredPermissions: { permission: string; description: string }[] = [
+    { permission: 'public_profile', description: 'Access public profile info (name, picture)' },
+    { permission: 'email', description: 'Read user primary email address' },
+    { permission: 'business_management', description: 'Manage Business Manager assets and settings' },
+    { permission: 'pages_show_list', description: 'View and list owned Facebook Pages' },
+    { permission: 'pages_read_engagement', description: 'Read engagement and posts on Facebook Pages' },
+    { permission: 'pages_manage_metadata', description: 'Manage Page webhooks and metadata configuration' },
+    { permission: 'leads_retrieval', description: 'Retrieve Meta lead form submissions in real time' },
+    { permission: 'instagram_basic', description: 'Read Instagram profile & connected business account info' },
+    { permission: 'instagram_manage_messages', description: 'Receive and respond to Instagram direct messages' },
+    { permission: 'whatsapp_business_management', description: 'Manage WhatsApp Business Account templates and settings' },
+    { permission: 'whatsapp_business_messaging', description: 'Send and receive WhatsApp Business customer messages' },
   ];
 
-  const displayPermissions = permissions.length > 0 ? permissions : defaultPermissions;
+  const displayPermissions = permissions.length > 0 ? permissions : requiredPermissions.map((req, idx) => ({
+    id: `p-${idx}`,
+    permission: req.permission,
+    description: req.description,
+    status: 'Missing' as const,
+  }));
+
+  const grantedCount = permissions.filter((p) => p.status === 'Granted').length;
+  const missingCount = permissions.length === 0 ? 11 : permissions.filter((p) => p.status !== 'Granted').length;
 
   return (
     <div className="fb-card fb-permissions-card">
-      <h3 className="fb-card-title">6. Permissions</h3>
-      <p className="fb-card-subtitle">Below are the permissions we have access to:</p>
+      <div className="fb-card-header-row">
+        <div className="fb-title-with-icon">
+          <ShieldCheck size={18} className="text-brand-blue" />
+          <h3 className="fb-card-title">Granted Permissions & Scopes</h3>
+        </div>
+        <span className={`fb-status-pill ${permissions.length > 0 && missingCount === 0 ? 'status-active' : 'status-warning'}`}>
+          {permissions.length === 0 ? '0 / 11 Granted' : `${grantedCount} / 11 Granted`}
+        </span>
+      </div>
+
+      {permissions.length === 0 ? (
+        <div className="fb-perm-warning-banner">
+          <AlertCircle size={16} className="text-warning-icon" />
+          <span>No Facebook account connected. Connect Meta Business account to grant required permissions.</span>
+        </div>
+      ) : missingCount > 0 ? (
+        <div className="fb-perm-warning-banner">
+          <AlertCircle size={16} className="text-warning-icon" />
+          <span>Warning: {missingCount} required Meta permission(s) missing. Reconnect account to restore access.</span>
+        </div>
+      ) : null}
 
       <div className="fb-permissions-list">
         {displayPermissions.map((perm) => (

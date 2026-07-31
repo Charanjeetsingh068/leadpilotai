@@ -37,6 +37,7 @@ model Workspace {
   facebookForms      FacebookForm[]
   facebookSyncLogs   FacebookSyncLog[]
   facebookEvents     FacebookEvent[]
+  integrations       Integration[]
 }
 
 model Role {
@@ -581,11 +582,21 @@ model Setting {
 }
 
 model Integration {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String   @unique
-  config    String   
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id           String    @id @default(uuid()) @db.Uuid
+  workspaceId  String?   @db.Uuid
+  workspace    Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  provider     String    @default("FACEBOOK")
+  state        String    @default("NOT_CONNECTED")
+  name         String?
+  config       String?   @db.Text
+  isActive     Boolean   @default(true)
+  connectedAt  DateTime?
+  lastSyncAt   DateTime?
+  errorMessage String?   @db.Text
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  @@map("integrations")
 }
 
 model WhatsAppConnection {
@@ -953,27 +964,30 @@ model AnalyticsCache {
 }
 
 model FacebookAccount {
-  id              String               @id @default(uuid()) @db.Uuid
-  companyId       String               @db.Uuid
-  company         Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  workspaceId     String               @db.Uuid
-  workspace       Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  userId          String               @db.Uuid
-  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String                    @id @default(uuid()) @db.Uuid
+  companyId       String                    @db.Uuid
+  company         Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  workspaceId     String                    @db.Uuid
+  workspace       Workspace                 @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId          String                    @db.Uuid
+  user            User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   accountName     String
   fbUserId        String
   fbUserEmail     String?
   avatarUrl       String?
-  accessToken     String               @db.Text
+  accessToken     String                    @db.Text
+  refreshToken    String?                   @db.Text
   tokenExpiresAt  DateTime
-  tokenStatus     String               @default("Active")
-  scopes          String[]             @default(["pages_show_list", "pages_read_engagement", "leads_retrieval", "business_management"])
-  lastSyncAt      DateTime             @default(now())
-  lastRefreshAt   DateTime             @default(now())
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @default(now()) @updatedAt
+  tokenStatus     String                    @default("Active")
+  scopes          String[]                  @default(["public_profile", "email", "business_management", "pages_show_list", "pages_read_engagement", "pages_manage_metadata", "leads_retrieval", "instagram_basic", "instagram_manage_messages", "whatsapp_business_management", "whatsapp_business_messaging"])
+  lastSyncAt      DateTime                  @default(now())
+  lastRefreshAt   DateTime                  @default(now())
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @default(now()) @updatedAt
   businesses      FacebookBusiness[]
   pages           FacebookPage[]
+  instagrams      InstagramAccount[]
+  whatsapps       WhatsAppBusinessAccount[]
   permissions     FacebookPermission[]
   tokens          FacebookToken[]
   syncLogs        FacebookSyncLog[]
@@ -982,21 +996,23 @@ model FacebookAccount {
 }
 
 model FacebookBusiness {
-  id                 String          @id @default(uuid()) @db.Uuid
-  companyId          String          @db.Uuid
-  company            Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  workspaceId        String          @db.Uuid
-  workspace          Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  facebookAccountId  String          @db.Uuid
-  facebookAccount    FacebookAccount @relation(fields: [facebookAccountId], references: [id], onDelete: Cascade)
+  id                 String                    @id @default(uuid()) @db.Uuid
+  companyId          String                    @db.Uuid
+  company            Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  workspaceId        String                    @db.Uuid
+  workspace          Workspace                 @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  facebookAccountId  String                    @db.Uuid
+  facebookAccount    FacebookAccount           @relation(fields: [facebookAccountId], references: [id], onDelete: Cascade)
   businessId         String
   name               String
-  verificationStatus String?         @default("VERIFIED")
+  verificationStatus String?                   @default("VERIFIED")
   primaryPageId      String?
-  accessLevel        String          @default("FULL_ACCESS")
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @default(now()) @updatedAt
+  accessLevel        String                    @default("FULL_ACCESS")
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @default(now()) @updatedAt
   pages              FacebookPage[]
+  instagrams         InstagramAccount[]
+  whatsapps          WhatsAppBusinessAccount[]
 
   @@map("facebook_businesses")
 }
@@ -1018,6 +1034,7 @@ model FacebookPage {
   followersCount     Int               @default(0)
   accessToken        String            @db.Text
   status             String            @default("Active")
+  syncStatus         String            @default("Synced")
   webhookStatus      String            @default("Active")
   assignedAiAgentId  String?           @db.Uuid
   assignedAiAgent    AIAgent?          @relation(fields: [assignedAiAgentId], references: [id], onDelete: SetNull)
@@ -1026,8 +1043,57 @@ model FacebookPage {
   updatedAt          DateTime          @default(now()) @updatedAt
   forms              FacebookForm[]
   leads              Lead[]
+  instagrams         InstagramAccount[]
 
   @@map("facebook_pages")
+}
+
+model InstagramAccount {
+  id                 String            @id @default(uuid()) @db.Uuid
+  companyId          String            @db.Uuid
+  workspaceId        String            @db.Uuid
+  facebookAccountId  String            @db.Uuid
+  facebookAccount    FacebookAccount   @relation(fields: [facebookAccountId], references: [id], onDelete: Cascade)
+  facebookBusinessId String?           @db.Uuid
+  facebookBusiness   FacebookBusiness? @relation(fields: [facebookBusinessId], references: [id], onDelete: SetNull)
+  facebookPageId     String?           @db.Uuid
+  facebookPage       FacebookPage?     @relation(fields: [facebookPageId], references: [id], onDelete: SetNull)
+  instagramId        String
+  username           String
+  name               String?
+  profilePictureUrl  String?
+  followersCount     Int               @default(0)
+  businessConnected  Boolean           @default(true)
+  messagingEnabled   Boolean           @default(true)
+  webhookEnabled     Boolean           @default(true)
+  status             String            @default("Active")
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @default(now()) @updatedAt
+
+  @@map("instagram_accounts")
+}
+
+model WhatsAppBusinessAccount {
+  id                 String            @id @default(uuid()) @db.Uuid
+  companyId          String            @db.Uuid
+  workspaceId        String            @db.Uuid
+  facebookAccountId  String            @db.Uuid
+  facebookAccount    FacebookAccount   @relation(fields: [facebookAccountId], references: [id], onDelete: Cascade)
+  facebookBusinessId String?           @db.Uuid
+  facebookBusiness   FacebookBusiness? @relation(fields: [facebookBusinessId], references: [id], onDelete: SetNull)
+  wabaId             String
+  name               String
+  phoneNumber        String
+  phoneNumberId      String?
+  qualityRating      String            @default("GREEN")
+  webhookActive      Boolean           @default(true)
+  templatesCount     Int               @default(12)
+  messagingStatus    String            @default("Active")
+  status             String            @default("Connected")
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @default(now()) @updatedAt
+
+  @@map("whatsapp_business_accounts")
 }
 
 model FacebookForm {
@@ -1042,8 +1108,11 @@ model FacebookForm {
   name              String
   campaign          String?      @default("Performance Ads 2025")
   leadCount         Int          @default(0)
+  leadsToday        Int          @default(0)
+  leadsTotal        Int          @default(0)
   status            String       @default("Active")
   isActive          Boolean      @default(true)
+  webhookActive     Boolean      @default(true)
   lastSyncAt        DateTime?    @default(now())
   assignedAiAgentId String?      @db.Uuid
   assignedAiAgent   AIAgent?     @relation(fields: [assignedAiAgentId], references: [id], onDelete: SetNull)
@@ -1063,9 +1132,15 @@ model FacebookWebhook {
   verifyToken      String    @default("leadpilot_fb_secret_token_98765")
   appSecretProof   String?
   status           String    @default("Active")
+  leadgenStatus    String    @default("Active")
+  messagesStatus   String    @default("Active")
+  instagramStatus  String    @default("Active")
+  commentsStatus   String    @default("Active")
+  whatsappStatus   String    @default("Active")
+  verificationStatus String  @default("Verified")
   successRate7d    Float     @default(99.2)
-  failedEvents7d   Int       @default(12)
-  retryQueueCount  Int       @default(3)
+  failedEvents7d   Int       @default(0)
+  retryQueueCount  Int       @default(0)
   deadLetterCount  Int       @default(0)
   lastEventAt      DateTime? @default(now())
   createdAt        DateTime  @default(now())
@@ -1126,6 +1201,7 @@ model FacebookToken {
   facebookAccountId String          @db.Uuid
   facebookAccount   FacebookAccount @relation(fields: [facebookAccountId], references: [id], onDelete: Cascade)
   accessToken       String          @db.Text
+  refreshToken      String?         @db.Text
   tokenType         String          @default("USER")
   expiresAt         DateTime
   scopes            String[]
@@ -1153,6 +1229,7 @@ model DataDeletionRequest {
 
   @@map("data_deletion_requests")
 }
+
 
 
 

@@ -253,6 +253,134 @@ export class FacebookRepository {
     return prisma.facebookPage.update({ where: { id }, data });
   }
 
+  // --- INSTAGRAM ACCOUNTS ---
+  async findInstagramAccounts(scope: MultiTenantScope, options: { businessId?: string; search?: string }) {
+    const where: any = {};
+    if (scope.userRole !== 'SUPER_ADMIN' && scope.userRole !== 'Super Admin') {
+      if (scope.companyId) where.companyId = scope.companyId;
+      if (scope.workspaceId) where.workspaceId = scope.workspaceId;
+    }
+    if (options.businessId && options.businessId !== 'ALL') {
+      where.facebookBusinessId = options.businessId;
+    }
+    if (options.search) {
+      where.OR = [
+        { username: { contains: options.search, mode: 'insensitive' } },
+        { name: { contains: options.search, mode: 'insensitive' } },
+      ];
+    }
+    return prisma.instagramAccount.findMany({
+      where,
+      include: {
+        facebookAccount: { select: { accountName: true, fbUserId: true } },
+        facebookPage: { select: { name: true, pageId: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async upsertInstagramAccount(data: {
+    companyId: string;
+    workspaceId: string;
+    facebookAccountId: string;
+    facebookBusinessId?: string;
+    facebookPageId?: string;
+    instagramId: string;
+    username: string;
+    name?: string;
+    profilePictureUrl?: string;
+    followersCount?: number;
+    businessConnected?: boolean;
+    messagingEnabled?: boolean;
+    webhookEnabled?: boolean;
+    status?: string;
+  }) {
+    const existing = await prisma.instagramAccount.findFirst({
+      where: { instagramId: data.instagramId, companyId: data.companyId },
+    });
+
+    if (existing) {
+      return prisma.instagramAccount.update({
+        where: { id: existing.id },
+        data: {
+          username: data.username,
+          name: data.name || existing.name,
+          profilePictureUrl: data.profilePictureUrl || existing.profilePictureUrl,
+          followersCount: data.followersCount || existing.followersCount,
+          businessConnected: data.businessConnected !== undefined ? data.businessConnected : existing.businessConnected,
+          messagingEnabled: data.messagingEnabled !== undefined ? data.messagingEnabled : existing.messagingEnabled,
+          webhookEnabled: data.webhookEnabled !== undefined ? data.webhookEnabled : existing.webhookEnabled,
+          status: data.status || existing.status,
+        },
+      });
+    }
+
+    return prisma.instagramAccount.create({ data });
+  }
+
+  // --- WHATSAPP BUSINESS ACCOUNTS ---
+  async findWhatsAppAccounts(scope: MultiTenantScope, options: { businessId?: string; search?: string }) {
+    const where: any = {};
+    if (scope.userRole !== 'SUPER_ADMIN' && scope.userRole !== 'Super Admin') {
+      if (scope.companyId) where.companyId = scope.companyId;
+      if (scope.workspaceId) where.workspaceId = scope.workspaceId;
+    }
+    if (options.businessId && options.businessId !== 'ALL') {
+      where.facebookBusinessId = options.businessId;
+    }
+    if (options.search) {
+      where.OR = [
+        { name: { contains: options.search, mode: 'insensitive' } },
+        { phoneNumber: { contains: options.search, mode: 'insensitive' } },
+        { wabaId: { contains: options.search, mode: 'insensitive' } },
+      ];
+    }
+    return prisma.whatsAppBusinessAccount.findMany({
+      where,
+      include: {
+        facebookAccount: { select: { accountName: true, fbUserId: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async upsertWhatsAppAccount(data: {
+    companyId: string;
+    workspaceId: string;
+    facebookAccountId: string;
+    facebookBusinessId?: string;
+    wabaId: string;
+    name: string;
+    phoneNumber: string;
+    phoneNumberId?: string;
+    qualityRating?: string;
+    webhookActive?: boolean;
+    templatesCount?: number;
+    messagingStatus?: string;
+    status?: string;
+  }) {
+    const existing = await prisma.whatsAppBusinessAccount.findFirst({
+      where: { wabaId: data.wabaId, companyId: data.companyId },
+    });
+
+    if (existing) {
+      return prisma.whatsAppBusinessAccount.update({
+        where: { id: existing.id },
+        data: {
+          name: data.name,
+          phoneNumber: data.phoneNumber,
+          qualityRating: data.qualityRating || existing.qualityRating,
+          webhookActive: data.webhookActive !== undefined ? data.webhookActive : existing.webhookActive,
+          templatesCount: data.templatesCount !== undefined ? data.templatesCount : existing.templatesCount,
+          messagingStatus: data.messagingStatus || existing.messagingStatus,
+          status: data.status || existing.status,
+        },
+      });
+    }
+
+    return prisma.whatsAppBusinessAccount.create({ data });
+  }
+
   // --- LEAD FORMS ---
   async findForms(scope: MultiTenantScope, options: { search?: string; pageId?: string; businessId?: string; page?: number; limit?: number }) {
     const page = options.page || 1;
@@ -422,6 +550,35 @@ export class FacebookRepository {
       where,
       orderBy: { createdAt: 'desc' },
       take: limit,
+    });
+  }
+
+  async createEvent(scope: MultiTenantScope, data: { eventType: string; title: string; description?: string; payload?: string; status?: string; leadId?: string }) {
+    return prisma.facebookEvent.create({
+      data: {
+        companyId: scope.companyId || null,
+        workspaceId: scope.workspaceId || null,
+        eventType: data.eventType,
+        title: data.title,
+        description: data.description || null,
+        payload: data.payload || null,
+        status: data.status || 'SUCCESS',
+        leadId: data.leadId || null,
+      },
+    });
+  }
+
+  async createSyncLog(scope: MultiTenantScope, data: { syncType: string; status: string; recordsSynced?: number; errorMessage?: string }) {
+    if (!scope.companyId || !scope.workspaceId) return null;
+    return prisma.facebookSyncLog.create({
+      data: {
+        companyId: scope.companyId,
+        workspaceId: scope.workspaceId,
+        syncType: data.syncType,
+        status: data.status,
+        recordsSynced: data.recordsSynced || 0,
+        errorMessage: data.errorMessage || null,
+      },
     });
   }
 

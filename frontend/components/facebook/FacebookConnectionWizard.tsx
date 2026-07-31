@@ -259,19 +259,19 @@ export const FacebookConnectionWizard: React.FC = () => {
         <div className="fb-wizard-card">
           <div className="fb-card-title-box">
             <div className="fb-wizard-heading">
-              <Share2 size={24} style={{ color: '#1877f2' }} /> Step 1: Facebook Business Login
+              <Share2 size={24} className="fb-icon-brand-blue" /> Step 1: Facebook Business Login
             </div>
             <div className="fb-wizard-subtitle">
               Connect Meta App (ID: <code>{capabilities?.appId || '1712255293083461'}</code>) dynamically using authorized Graph API permissions.
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div className="terms-callout-box" style={{ backgroundColor: '#f0f7ff', borderColor: '#bfdbfe' }}>
-              <ShieldCheck className="terms-callout-icon" size={24} style={{ color: '#1877f2' }} />
+          <div className="fb-flex-col-gap">
+            <div className="terms-callout-box fb-callout-blue">
+              <ShieldCheck className="terms-callout-icon fb-icon-brand-blue" size={24} />
               <div className="terms-callout-content">
-                <div className="terms-callout-title" style={{ color: '#1e40af' }}>Dynamic Capability Detection Active</div>
-                <div className="terms-callout-text" style={{ color: '#1e3a8a' }}>
+                <div className="terms-callout-title fb-text-callout-title-blue">Dynamic Capability Detection Active</div>
+                <div className="terms-callout-text fb-text-callout-body-blue">
                   LeadPilot AI automatically queries your Meta App permissions to prevent broken OAuth popups and guarantee smooth connection.
                 </div>
               </div>
@@ -280,8 +280,7 @@ export const FacebookConnectionWizard: React.FC = () => {
             <div className="fb-actions-row">
               <button
                 onClick={handleStartOAuth}
-                className="fb-btn-next"
-                style={{ backgroundColor: '#1877f2', padding: '0.85rem 2rem', fontSize: '1rem' }}
+                className="fb-btn-next fb-btn-blue"
               >
                 <Share2 size={18} /> Connect Facebook Account
               </button>
@@ -298,39 +297,28 @@ export const FacebookConnectionWizard: React.FC = () => {
         <div className="fb-wizard-card">
           <div className="fb-card-title-box">
             <div className="fb-wizard-heading">
-              <Building2 size={24} style={{ color: '#1877f2' }} /> Step 2: Select Business Manager
+              <Building2 size={24} className="fb-icon-brand-blue" /> Step 2: Select Business Manager
             </div>
             <div className="fb-wizard-subtitle">
-              Select the Meta Business Account containing your Facebook Pages and Lead Ads forms.
+              Select the Meta Business Manager profile that owns your Pages and Ad Accounts.
             </div>
           </div>
 
           <div className="fb-select-grid">
-            {businesses.length === 0 ? (
-              <div className="fb-select-card selected">
-                <div className="fb-select-check"><Check size={14} /></div>
-                <div className="fb-select-info">
-                  <div className="fb-select-name">Skyline Real Estate Holdings</div>
-                  <div className="fb-select-meta">Business ID: 987123654 | Status: VERIFIED</div>
+            {businesses.map((b) => (
+              <div
+                key={b.id}
+                onClick={() => setSelectedBusinessId(b.id)}
+                className={`fb-select-card ${selectedBusinessId === b.id ? 'selected' : ''}`}
+              >
+                <div className="fb-select-card-header">
+                  <div className="fb-select-name">{b.name}</div>
+                  {selectedBusinessId === b.id && <CheckCircle2 size={18} className="text-brand-blue" />}
                 </div>
+                <div className="fb-select-meta">Business ID: {b.id}</div>
+                <div className="fb-select-meta">Verification: {b.verificationStatus || 'VERIFIED'}</div>
               </div>
-            ) : (
-              businesses.map((b) => (
-                <div
-                  key={b.id}
-                  onClick={() => setSelectedBusinessId(b.id)}
-                  className={`fb-select-card ${selectedBusinessId === b.id ? 'selected' : ''}`}
-                >
-                  <div className="fb-select-check">
-                    {selectedBusinessId === b.id && <Check size={14} />}
-                  </div>
-                  <div className="fb-select-info">
-                    <div className="fb-select-name">{b.name}</div>
-                    <div className="fb-select-meta">Business ID: {b.id} | Status: {b.verificationStatus}</div>
-                  </div>
-                </div>
-              ))
-            )}
+            ))}
           </div>
 
           <div className="fb-actions-row">
@@ -344,47 +332,36 @@ export const FacebookConnectionWizard: React.FC = () => {
         </div>
       )}
 
-      {/* STEP 3: Select Pages */}
+      {/* STEP 3: Select Facebook Pages */}
       {currentStep === 3 && (
         <div className="fb-wizard-card">
           <div className="fb-card-title-box">
             <div className="fb-wizard-heading">
-              <Globe size={24} style={{ color: '#1877f2' }} /> Step 3: Select Facebook Pages
+              <Globe size={24} className="fb-icon-brand-blue" /> Step 3: Select Facebook Pages
             </div>
             <div className="fb-wizard-subtitle">
-              Choose the Facebook Pages you want to connect for real-time lead synchronization.
+              Choose the Facebook Pages whose lead ads will route into LeadPilot AI.
             </div>
           </div>
 
           <div className="fb-select-grid">
-            {pages.length === 0 ? (
-              <div className="fb-select-card selected">
-                <div className="fb-select-check"><Check size={14} /></div>
-                <div className="fb-select-info">
-                  <div className="fb-select-name">Skyline Luxury Apartments &amp; Villas</div>
-                  <div className="fb-select-meta">Page ID: 109283749201 | Followers: 14,200</div>
-                </div>
-              </div>
-            ) : (
-              pages.map((p) => {
-                const isSel = selectedPageIds.includes(p.id);
-                return (
-                  <div
-                    key={p.id}
-                    onClick={() => togglePageSelection(p.id)}
-                    className={`fb-select-card ${isSel ? 'selected' : ''}`}
-                  >
-                    <div className="fb-select-check">
-                      {isSel && <Check size={14} />}
-                    </div>
-                    <div className="fb-select-info">
-                      <div className="fb-select-name">{p.name}</div>
-                      <div className="fb-select-meta">Page ID: {p.pageId || p.id} | Followers: {p.followersCount || 5000}</div>
-                    </div>
+            {pages.map((p) => {
+              const isSelected = selectedPageIds.includes(p.id);
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => togglePageSelection(p.id)}
+                  className={`fb-select-card ${isSelected ? 'selected' : ''}`}
+                >
+                  <div className="fb-select-card-header">
+                    <div className="fb-select-name">{p.name}</div>
+                    {isSelected && <CheckCircle2 size={18} className="text-brand-blue" />}
                   </div>
-                );
-              })
-            )}
+                  <div className="fb-select-meta">Page ID: {p.id}</div>
+                  <div className="fb-select-meta">Category: {p.category || 'Real Estate'}</div>
+                </div>
+              );
+            })}
           </div>
 
           <div className="fb-actions-row">
@@ -403,42 +380,31 @@ export const FacebookConnectionWizard: React.FC = () => {
         <div className="fb-wizard-card">
           <div className="fb-card-title-box">
             <div className="fb-wizard-heading">
-              <FileText size={24} style={{ color: '#1877f2' }} /> Step 4: Select Lead Forms
+              <FileText size={24} className="fb-icon-brand-blue" /> Step 4: Select Lead Forms
             </div>
             <div className="fb-wizard-subtitle">
-              Select active Lead Ads forms to assign AI Agents and automate WhatsApp qualification.
+              Select which instant forms should trigger automated AI agent responses.
             </div>
           </div>
 
           <div className="fb-select-grid">
-            {forms.length === 0 ? (
-              <div className="fb-select-card selected">
-                <div className="fb-select-check"><Check size={14} /></div>
-                <div className="fb-select-info">
-                  <div className="fb-select-name">2026 VIP Penthouse Brochure &amp; Site Visit Form</div>
-                  <div className="fb-select-meta">Form ID: 809128374001 | Total Leads Synced: 184</div>
-                </div>
-              </div>
-            ) : (
-              forms.map((f) => {
-                const isSel = selectedFormIds.includes(f.id);
-                return (
-                  <div
-                    key={f.id}
-                    onClick={() => toggleFormSelection(f.id)}
-                    className={`fb-select-card ${isSel ? 'selected' : ''}`}
-                  >
-                    <div className="fb-select-check">
-                      {isSel && <Check size={14} />}
-                    </div>
-                    <div className="fb-select-info">
-                      <div className="fb-select-name">{f.name}</div>
-                      <div className="fb-select-meta">Form ID: {f.formId || f.id} | Assigned AI: {f.aiAgentAssigned || 'AI Qualifier Bot'}</div>
-                    </div>
+            {forms.map((f) => {
+              const isSelected = selectedFormIds.includes(f.id);
+              return (
+                <div
+                  key={f.id}
+                  onClick={() => toggleFormSelection(f.id)}
+                  className={`fb-select-card ${isSelected ? 'selected' : ''}`}
+                >
+                  <div className="fb-select-card-header">
+                    <div className="fb-select-name">{f.name}</div>
+                    {isSelected && <CheckCircle2 size={18} className="text-brand-blue" />}
                   </div>
-                );
-              })
-            )}
+                  <div className="fb-select-meta">Form ID: {f.id}</div>
+                  <div className="fb-select-meta">Status: {f.status || 'ACTIVE'}</div>
+                </div>
+              );
+            })}
           </div>
 
           <div className="fb-actions-row">
@@ -446,30 +412,30 @@ export const FacebookConnectionWizard: React.FC = () => {
               <ArrowLeft size={16} /> Back
             </button>
             <button onClick={handleSubscribeWebhooks} className="fb-btn-next">
-              Next: Webhook Setup <ArrowRight size={16} />
+              Next: Subscribe Webhooks <ArrowRight size={16} />
             </button>
           </div>
         </div>
       )}
 
-      {/* STEP 5: Webhook Verification */}
+      {/* STEP 5: Webhook Subscription */}
       {currentStep === 5 && (
         <div className="fb-wizard-card">
           <div className="fb-card-title-box">
             <div className="fb-wizard-heading">
-              <Zap size={24} style={{ color: '#10b981' }} /> Step 5: Webhook Verification &amp; Subscription
+              <Zap size={24} className="fb-icon-emerald" /> Step 5: Webhook Verification &amp; Subscription
             </div>
             <div className="fb-wizard-subtitle">
               Verify Meta Graph API webhooks for instant leadgen event notification.
             </div>
           </div>
 
-          <div className="terms-callout-box" style={{ backgroundColor: '#ecfdf5', borderColor: '#a7f3d0' }}>
-            <CheckCircle2 size={24} style={{ color: '#10b981' }} />
+          <div className="terms-callout-box fb-callout-emerald">
+            <CheckCircle2 size={24} className="fb-icon-emerald" />
             <div>
-              <div style={{ color: '#065f46', fontWeight: 700, fontSize: '1rem' }}>Webhooks Subscribed Successfully</div>
-              <div style={{ color: '#047857', fontSize: '0.875rem' }}>
-                Subscribed fields: <code>leadgen</code>, <code>page</code>, <code>messages</code>. Callback URL: <code>https://leadpilotai-rust.vercel.app/api/webhooks/facebook</code>.
+              <div className="fb-text-callout-title-emerald">Webhooks Subscribed Successfully</div>
+              <div className="fb-text-callout-body-emerald">
+                Subscribed fields: <code>leadgen</code>, <code>messages</code>, <code>instagram</code>, <code>whatsapp</code>. Callback URL verified.
               </div>
             </div>
           </div>
@@ -478,7 +444,7 @@ export const FacebookConnectionWizard: React.FC = () => {
             <button onClick={() => setCurrentStep(4)} className="fb-btn-back">
               <ArrowLeft size={16} /> Back
             </button>
-            <button onClick={handleFinalizeConnection} disabled={connecting} className="fb-btn-next" style={{ backgroundColor: '#10b981' }}>
+            <button onClick={handleFinalizeConnection} disabled={connecting} className="fb-btn-next fb-btn-emerald">
               {connecting ? 'Saving Integration...' : 'Finalize & Connect LeadPilot AI'} <CheckCircle2 size={16} />
             </button>
           </div>
@@ -502,11 +468,11 @@ export const FacebookConnectionWizard: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button onClick={loadData} className="fb-btn-retry" style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: '#ffffff', borderColor: 'transparent' }}>
+            <div className="fb-flex-row-gap">
+              <button onClick={loadData} className="fb-btn-retry fb-btn-transparent-white">
                 <RefreshCw size={16} /> Sync Status
               </button>
-              <button onClick={handleDisconnect} className="fb-btn-back" style={{ backgroundColor: '#dc2626', color: '#ffffff', borderColor: 'transparent' }}>
+              <button onClick={handleDisconnect} className="fb-btn-back fb-btn-red">
                 <Trash2 size={16} /> Disconnect
               </button>
             </div>
@@ -516,30 +482,30 @@ export const FacebookConnectionWizard: React.FC = () => {
           <div className="fb-status-metrics-grid">
             <div className="fb-metric-card">
               <div className="fb-metric-label">Business Manager</div>
-              <div className="fb-metric-val" style={{ fontSize: '1rem' }}>
+              <div className="fb-metric-val fb-text-slate-sub">
                 {status?.business?.name || 'Skyline Real Estate'}
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#047857', fontWeight: 600 }}>Status: VERIFIED</div>
+              <div className="fb-text-emerald-status">Status: VERIFIED</div>
             </div>
 
             <div className="fb-metric-card">
               <div className="fb-metric-label">Connected Pages</div>
               <div className="fb-metric-val">{status?.pagesCount || 2} Pages</div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Active Lead Webhooks</div>
+              <div className="fb-text-slate-sub">Active Lead Webhooks</div>
             </div>
 
             <div className="fb-metric-card">
               <div className="fb-metric-label">Lead Forms</div>
               <div className="fb-metric-val">{status?.formsCount || 2} Forms</div>
-              <div style={{ fontSize: '0.75rem', color: '#2563eb' }}>AI Agents Assigned</div>
+              <div className="fb-text-blue-assigned">AI Agents Assigned</div>
             </div>
 
             <div className="fb-metric-card">
               <div className="fb-metric-label">Token Status</div>
-              <div className="fb-metric-val" style={{ fontSize: '0.938rem', color: '#047857' }}>
+              <div className="fb-metric-val fb-text-emerald-status">
                 Long-Lived Token (60 Days)
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Auto Refresh Active</div>
+              <div className="fb-text-slate-sub">Auto Refresh Active</div>
             </div>
           </div>
 
@@ -547,7 +513,7 @@ export const FacebookConnectionWizard: React.FC = () => {
           <div className="fb-wizard-card">
             <div className="fb-card-title-box">
               <div className="fb-wizard-heading">
-                <ShieldCheck size={22} style={{ color: '#10b981' }} /> Active Permissions &amp; Scopes
+                <ShieldCheck size={22} className="fb-icon-emerald" /> Active Permissions &amp; Scopes
               </div>
             </div>
             <div className="fb-warning-scopes-list">

@@ -2,21 +2,24 @@ import crypto from 'crypto';
 import { FacebookRepository } from '../repositories/facebook.repository';
 import { MetaGraphApiService } from './meta-graph-api.service';
 import { TokenManagementService } from './token-management.service';
+import { AIQualificationService } from './ai-qualification.service';
 import { prisma } from '../config/database';
 
 export class FacebookWebhookService {
   private repo: FacebookRepository;
   private metaGraphService: MetaGraphApiService;
   private tokenService: TokenManagementService;
+  private aiQualificationService: AIQualificationService;
 
   constructor() {
     this.repo = new FacebookRepository();
     this.metaGraphService = new MetaGraphApiService();
     this.tokenService = new TokenManagementService();
+    this.aiQualificationService = new AIQualificationService();
   }
 
   verifyWebhook(mode: string, token: string, challenge: string): string | null {
-    const expectedToken = process.env.FACEBOOK_VERIFY_TOKEN || 'leadpilot_fb_secret_token_98765';
+    const expectedToken = process.env.FACEBOOK_WEBHOOK_VERIFY_TOKEN || process.env.FACEBOOK_VERIFY_TOKEN || 'leadpilot_fb_secret_token_98765';
     if (mode === 'subscribe' && token === expectedToken) {
       return challenge;
     }
@@ -24,21 +27,41 @@ export class FacebookWebhookService {
   }
 
   validateSignature(payload: string, signature: string): boolean {
-    const appSecret = process.env.FACEBOOK_APP_SECRET || 'secret_key_123456';
-    if (!signature || !appSecret) return true; // Proceed in sandbox/dev mode if unconfigured
+    const appSecret = process.env.FACEBOOK_APP_SECRET || 'fadc1ae30941d9573ec85c9fe27dc784';
+    if (!signature || !appSecret) return true; // Fallback for dev mode
 
-    const expectedSignature = 'sha256=' + crypto.createHmac('sha256', appSecret).update(payload).digest('hex');
-    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
+    try {
+      const sigHash = signature.includes('=') ? signature.split('=')[1] : signature;
+      const expectedHash = crypto.createHmac('sha256', appSecret).update(payload).digest('hex');
+      return crypto.timingSafeEqual(Buffer.from(sigHash), Buffer.from(expectedHash));
+    } catch (e) {
+      console.error('Signature validation error:', e);
+      return false;
+    }
   }
 
   async processWebhookEvent(rawBody: string, signature?: string) {
     if (signature && !this.validateSignature(rawBody, signature)) {
+      await prisma.facebookEvent.create({
+        data: {
+          eventType: 'WEBHOOK_SIGNATURE_FAILED',
+          title: 'Webhook Signature Mismatch',
+          description: 'Received webhook with invalid X-Hub-Signature-256 header.',
+          payload: rawBody,
+          status: 'FAILED',
+        },
+      });
       throw new Error('Invalid HMAC SHA-256 Webhook Signature');
     }
 
-    const payload = JSON.parse(rawBody);
+    let payload: any = {};
+    try {
+      payload = typeof rawBody === 'string' ? JSON.parse(rawBody) : rawBody;
+    } catch (e) {
+      throw new Error('Malformed JSON payload');
+    }
     
-    // Check entry objects in Meta Leadgen payload
+    // Process entry objects in Meta Leadgen payload
     if (payload.object === 'page' && Array.isArray(payload.entry)) {
       for (const entry of payload.entry) {
         if (Array.isArray(entry.changes)) {
@@ -48,6 +71,31 @@ export class FacebookWebhookService {
               const pageId = change.value.page_id;
               const formId = change.value.form_id;
 
+              // Check for duplicate webhook event delivery
+              const isDuplicate = await prisma.facebookEvent.findFirst({
+                where: {
+                  eventType: 'LEADGEN_WEBHOOK',
+                  payload: { contains: leadgenId },
+                },
+              });
+
+              if (isDuplicate) {
+                console.log(`[WEBHOOK_DEDUPLICATED] Leadgen ID ${leadgenId} already processed. Skipping.`);
+                continue;
+              }
+
+              // Store raw event in PostgreSQL
+              await prisma.facebookEvent.create({
+                data: {
+                  eventType: 'LEADGEN_WEBHOOK',
+                  title: 'Real-time Lead Webhook Received',
+                  description: `Meta Leadgen ID: ${leadgenId} on Page ${pageId}`,
+                  payload: JSON.stringify(change.value),
+                  status: 'SUCCESS',
+                },
+              });
+
+              // Process lead details and save into Lead database
               await this.ingestLeadFromFacebook({
                 leadgenId,
                 pageId,
@@ -60,7 +108,33 @@ export class FacebookWebhookService {
       }
     }
 
-    return { status: 'processed' };
+    // Process WhatsApp Cloud API incoming messages
+    if (payload.object === 'whatsapp_business_account' && Array.isArray(payload.entry)) {
+      for (const entry of payload.entry) {
+        if (Array.isArray(entry.changes)) {
+          for (const change of entry.changes) {
+            if (change.field === 'messages' && change.value?.messages) {
+              const wabaPhoneNumberId = change.value.metadata?.phone_number_id;
+              for (const msg of change.value.messages) {
+                const fromPhone = msg.from;
+                const messageText = msg.text?.body || msg.button?.text || msg.interactive?.button_reply?.title || 'User sent media/interactive response';
+
+                const { WhatsAppConversationEngineService } = require('./whatsapp-conversation-engine.service');
+                const waEngine = new WhatsAppConversationEngineService();
+                await waEngine.processIncomingMessage({
+                  fromPhone,
+                  messageText,
+                  wabaPhoneNumberId,
+                  messageType: msg.type,
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return { status: 'processed', timestamp: new Date().toISOString() };
   }
 
   async ingestLeadFromFacebook(data: { leadgenId: string; pageId: string; formId: string; createdTime?: number }) {
@@ -198,6 +272,13 @@ export class FacebookWebhookService {
           content: `Facebook Form Submission (${new Date().toLocaleString()}):\n` + Object.entries(rawAnswers).map(([k, v]) => `• ${k}: ${v}`).join('\n'),
         },
       });
+    }
+
+    // Trigger Automatic Enterprise AI Qualification Engine
+    try {
+      await this.aiQualificationService.qualifyLead(targetLeadId);
+    } catch (e: any) {
+      console.error('AI Lead Qualification Warning:', e.message);
     }
 
     // Log Activity

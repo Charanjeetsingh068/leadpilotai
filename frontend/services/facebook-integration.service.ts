@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { apiClient } from './api.client';
 import { DashboardData } from '@/types/facebook.types';
 
 export interface MetaCapabilities {
@@ -37,8 +37,8 @@ export interface MetaConnectionStatus {
 export const facebookIntegrationService = {
   async getCapabilities(): Promise<MetaCapabilities> {
     try {
-      const res = await axios.get('/api/meta/oauth/url');
-      return res.data;
+      const res = await apiClient.post('/integrations/facebook/oauth');
+      return res.data.data;
     } catch (e) {
       const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || '1712255293083461';
       const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
@@ -68,7 +68,7 @@ export const facebookIntegrationService = {
 
   async getStatus(): Promise<MetaConnectionStatus> {
     try {
-      const res = await axios.get('/api/meta/status');
+      const res = await apiClient.get('/facebook/status');
       return res.data.data;
     } catch (e) {
       return {
@@ -83,18 +83,18 @@ export const facebookIntegrationService = {
   },
 
   async getBusinesses() {
-    const res = await axios.get('/api/meta/businesses');
-    return res.data.businesses || [];
+    const res = await apiClient.get('/facebook/businesses');
+    return res.data.data || [];
   },
 
   async getPages() {
-    const res = await axios.get('/api/meta/pages');
-    return res.data.pages || [];
+    const res = await apiClient.get('/facebook/pages');
+    return res.data.data?.pages || [];
   },
 
   async getForms(pageId?: string) {
-    const res = await axios.get('/api/meta/forms', { params: { pageId } });
-    return res.data.forms || [];
+    const res = await apiClient.get('/facebook/forms', { params: { pageId } });
+    return res.data.data?.forms || [];
   },
 
   async saveConnect(data: {
@@ -102,37 +102,36 @@ export const facebookIntegrationService = {
     pageIds?: string[];
     formIds?: string[];
   }) {
-    const res = await axios.post('/api/meta/connect', data);
-    return res.data;
+    const res = await apiClient.post('/facebook/connect', data);
+    return res.data.data;
   },
 
   async subscribeWebhooks(pageIds?: string[]) {
-    const res = await axios.post('/api/meta/webhooks/subscribe', { pageIds });
-    return res.data;
+    const res = await apiClient.get('/facebook/webhooks');
+    return res.data.data;
   },
 
   async disconnectAccount(accountId?: string): Promise<void> {
-    await axios.post('/api/meta/disconnect', { accountId });
+    await apiClient.post('/facebook/disconnect', { accountId });
   },
 
   async getDashboard(businessId?: string): Promise<DashboardData> {
     try {
-      const res = await axios.get('/api/meta/status', { params: { businessId } });
+      const res = await apiClient.get('/facebook/dashboard', { params: { businessId } });
       return res.data.data;
     } catch (e) {
       return {} as DashboardData;
     }
   },
 
-  // Methods expected by useFacebookIntegration hook
   async syncPages(accountId?: string) {
-    const res = await axios.get('/api/meta/pages');
-    return res.data.pages || [];
+    const res = await apiClient.get('/facebook/pages');
+    return res.data.data?.pages || [];
   },
 
   async syncForms(pageId?: string) {
-    const res = await axios.get('/api/meta/forms', { params: { pageId } });
-    return res.data.forms || [];
+    const res = await apiClient.get('/facebook/forms', { params: { pageId } });
+    return res.data.data?.forms || [];
   },
 
   async toggleFormActive(formId: string, isActive: boolean) {
@@ -144,12 +143,12 @@ export const facebookIntegrationService = {
   },
 
   async retryWebhooks() {
-    const res = await axios.post('/api/meta/webhooks/subscribe', {});
-    return res.data;
+    const res = await apiClient.post('/facebook/webhooks/retry', {});
+    return res.data.data;
   },
 
   async triggerManualSync() {
-    const res = await axios.get('/api/meta/status');
-    return res.data;
+    const res = await apiClient.post('/facebook/sync', {});
+    return res.data.data;
   },
 };

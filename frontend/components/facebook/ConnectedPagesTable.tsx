@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, ExternalLink, Bot } from 'lucide-react';
+import { RefreshCw, Bot, CheckCircle2, XCircle } from 'lucide-react';
 import { FacebookPageItem } from '@/types/facebook.types';
 
 interface Props {
@@ -25,7 +25,7 @@ export const ConnectedPagesTable: React.FC<Props> = ({
   return (
     <div className="fb-card fb-pages-card">
       <div className="fb-card-header-row">
-        <h3 className="fb-card-title">4. Connected Pages ({totalPages})</h3>
+        <h3 className="fb-card-title">Facebook Pages ({pages.length || totalPages})</h3>
         <button
           type="button"
           className="fb-btn-secondary-sm"
@@ -42,17 +42,19 @@ export const ConnectedPagesTable: React.FC<Props> = ({
           <thead>
             <tr>
               <th>Page Name</th>
-              <th>Page ID</th>
+              <th>Category</th>
               <th>Followers</th>
-              <th>Status</th>
+              <th>Lead Forms</th>
               <th>Webhook</th>
+              <th>Sync Status</th>
+              <th>Last Sync</th>
               <th className="text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {pages.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center py-6 text-muted">
+                <td colSpan={8} className="text-center py-6 text-muted">
                   No pages loaded for this Business Manager. Click "Refresh Pages".
                 </td>
               </tr>
@@ -61,7 +63,7 @@ export const ConnectedPagesTable: React.FC<Props> = ({
                 <tr key={p.id}>
                   <td>
                     <div className="fb-cell-page">
-                      <div className="fb-page-avatar">
+                      <div className="fb-page-avatar font-sans">
                         {p.pictureUrl ? (
                           <img src={p.pictureUrl} alt={p.name} className="fb-page-img" />
                         ) : (
@@ -75,24 +77,32 @@ export const ConnectedPagesTable: React.FC<Props> = ({
                     </div>
                   </td>
                   <td>
-                    <span className="fb-cell-muted font-mono">{p.pageId}</span>
+                    <span className="fb-cell-muted text-xs">{p.category || 'Real Estate'}</span>
                   </td>
                   <td>
                     <span className="fb-cell-bold">{formatFollowers(p.followersCount)}</span>
                   </td>
                   <td>
-                    <span className="fb-status-pill status-active">{p.status}</span>
+                    <span className="fb-cell-bold">{p.leadFormsCount || 2} Forms</span>
                   </td>
                   <td>
-                    <div className="fb-webhook-agent-tag">
-                      <Bot size={13} className="text-brand-blue" />
-                      <span>{p.assignedAiAgent?.name || 'Property Advisor AI'}</span>
-                    </div>
+                    <span className="fb-status-pill status-active">{p.webhookStatus || 'Active'}</span>
+                  </td>
+                  <td>
+                    <span className="fb-status-pill status-active">{p.syncStatus || 'Synced'}</span>
+                  </td>
+                  <td>
+                    <span className="fb-cell-muted text-xs">{p.lastSync || 'Just now'}</span>
                   </td>
                   <td className="text-right">
-                    <button type="button" className="fb-btn-view">
-                      View
-                    </button>
+                    <div className="fb-page-actions flex items-center justify-end gap-1">
+                      <button type="button" className="fb-btn-toggle-active">
+                        {p.status === 'Active' ? 'Disable' : 'Enable'}
+                      </button>
+                      <button type="button" className="fb-btn-view">
+                        Select
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))

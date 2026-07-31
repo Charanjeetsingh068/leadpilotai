@@ -252,5 +252,17 @@ export class LeadController {
       next(error);
     }
   };
+
+  public qualifyLead = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = String(req.params.id);
+      const { AIQualificationService } = require('../services/ai-qualification.service');
+      const qualificationService = new AIQualificationService();
+      const result = await qualificationService.qualifyLead(id);
+      sendResponse(res, 200, 'Lead AI qualification completed successfully', result);
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 

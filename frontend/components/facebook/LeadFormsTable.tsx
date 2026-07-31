@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, CheckCircle2 } from 'lucide-react';
 import { FacebookFormItem } from '@/types/facebook.types';
 
 interface Props {
@@ -19,12 +19,13 @@ export const LeadFormsTable: React.FC<Props> = ({
   onPreviewForm,
   isSyncing = false,
 }) => {
-  const totalLeads = forms.reduce((sum, f) => sum + (f.leadCount || 0), 0);
+  const totalLeadsToday = forms.reduce((sum, f) => sum + (f.leadsToday || 0), 0);
+  const totalLeadsTotal = forms.reduce((sum, f) => sum + (f.leadsTotal || f.leadCount || 0), 0);
 
   return (
     <div className="fb-card fb-forms-card">
       <div className="fb-card-header-row">
-        <h3 className="fb-card-title">5. Lead Forms</h3>
+        <h3 className="fb-card-title">Lead Forms</h3>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -43,17 +44,18 @@ export const LeadFormsTable: React.FC<Props> = ({
           <thead>
             <tr>
               <th>Form Name</th>
-              <th>Page</th>
-              <th>Active</th>
-              <th>Leads ({totalLeads})</th>
-              <th>Last Sync</th>
+              <th>Associated Page</th>
+              <th>Status</th>
               <th>Assigned AI Agent</th>
+              <th>Leads Today ({totalLeadsToday})</th>
+              <th>Leads Total ({totalLeadsTotal})</th>
+              <th>Webhook Active</th>
             </tr>
           </thead>
           <tbody>
             {forms.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center py-6 text-muted">
+                <td colSpan={7} className="text-center py-6 text-muted">
                   No lead forms synced yet. Click "Sync Forms" to load forms from connected pages.
                 </td>
               </tr>
@@ -61,12 +63,14 @@ export const LeadFormsTable: React.FC<Props> = ({
               forms.map((f) => (
                 <tr key={f.id}>
                   <td>
-                    <div className="fb-cell-title-form" onClick={() => onPreviewForm(f)}>
+                    <div className="fb-cell-title-form cursor-pointer" onClick={() => onPreviewForm(f)}>
                       {f.name}
                     </div>
                   </td>
                   <td>
-                    <span className="fb-cell-muted">{f.pageName || f.facebookPage?.name || 'Luxury Villas'}</span>
+                    <span className="fb-cell-muted text-xs">
+                      {f.associatedPage || f.pageName || f.facebookPage?.name || 'Luxury Real Estate'}
+                    </span>
                   </td>
                   <td>
                     <label className="fb-toggle-switch">
@@ -79,23 +83,31 @@ export const LeadFormsTable: React.FC<Props> = ({
                     </label>
                   </td>
                   <td>
-                    <span className="fb-leads-count-badge">{(f.leadCount || 0).toLocaleString()}</span>
-                  </td>
-                  <td>
-                    <span className="fb-cell-muted">{f.lastSync || '2 min ago'}</span>
-                  </td>
-                  <td>
                     <select
                       className="fb-ai-agent-select"
                       value={f.assignedAiAgent?.id || 'PROP_ADVISOR_01'}
                       onChange={(e) => onAssignAiAgent(f.id, e.target.value)}
                     >
-                      <option value="PROP_ADVISOR_01">Villas Specialist AI</option>
-                      <option value="PROP_ADVISOR_02">Property Advisor AI</option>
+                      <option value="PROP_ADVISOR_01">Property Advisor AI</option>
+                      <option value="VILLAS_AI">Villas Specialist AI</option>
                       <option value="COMMERCIAL_AI">Commercial AI</option>
                       <option value="INVESTMENT_AI">Investment AI</option>
                       <option value="none">No AI Agent (Manual)</option>
                     </select>
+                  </td>
+                  <td>
+                    <span className="fb-leads-count-badge font-bold">{(f.leadsToday || 0).toLocaleString()}</span>
+                  </td>
+                  <td>
+                    <span className="fb-cell-bold font-mono">{(f.leadsTotal || f.leadCount || 0).toLocaleString()}</span>
+                  </td>
+                  <td>
+                    <div className="fb-status-with-icon">
+                      <CheckCircle2 size={14} className="text-success-icon" />
+                      <span className="text-xs text-emerald-600 font-medium">
+                        {f.webhookActive !== false ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
                   </td>
                 </tr>
               ))

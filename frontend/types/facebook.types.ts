@@ -1,9 +1,10 @@
 export interface FacebookConnectionStatus {
-  status: 'Connected' | 'Warning' | 'Disconnected';
-  connectedBy: string;
-  connectedTime: string;
-  tokenExpiry: string;
-  lastRefresh: string;
+  status: 'NOT_CONNECTED' | 'CONNECTING' | 'CONNECTED' | 'TOKEN_EXPIRED' | 'RECONNECT_REQUIRED' | 'Connected' | 'Warning' | 'Disconnected' | 'Active';
+  connectedBy: string | null;
+  email?: string | null;
+  connectedTime?: string | null;
+  tokenExpiry?: string | null;
+  lastRefresh?: string | null;
   isExpired: boolean;
 }
 
@@ -33,8 +34,12 @@ export interface FacebookBusinessItem {
   businessId: string;
   name: string;
   verificationStatus?: string;
+  verification?: string;
   accessLevel?: string;
-  hasFullAccess: boolean;
+  hasFullAccess?: boolean;
+  ownedPagesCount?: number;
+  ownedInstagramCount?: number;
+  ownedWhatsAppCount?: number;
 }
 
 export interface FacebookPageItem {
@@ -44,7 +49,9 @@ export interface FacebookPageItem {
   category?: string;
   pictureUrl?: string;
   followersCount: number;
+  leadFormsCount?: number;
   status: 'Active' | 'Inactive' | 'Disconnected';
+  syncStatus?: 'Synced' | 'Syncing' | 'Pending' | 'Error';
   webhookStatus: 'Active' | 'Inactive' | 'Error';
   assignedAiAgent?: {
     id: string;
@@ -52,14 +59,42 @@ export interface FacebookPageItem {
     agentCode?: string;
   };
   ownerName?: string;
+  lastSync?: string;
+}
+
+export interface InstagramAccountItem {
+  id: string;
+  instagramId: string;
+  username: string;
+  name?: string;
+  profilePictureUrl?: string;
+  followersCount: number;
+  businessConnected: boolean;
+  messagingEnabled: boolean;
+  webhookEnabled: boolean;
+  status: 'Active' | 'Inactive';
+}
+
+export interface WhatsAppAccountItem {
+  id: string;
+  wabaId: string;
+  name: string;
+  phoneNumber: string;
+  phoneNumberId?: string;
+  qualityRating: 'High' | 'Medium' | 'Low' | 'GREEN' | 'YELLOW' | 'RED';
+  webhookActive: boolean;
+  templatesCount: number;
+  messagingStatus: 'Active' | 'Inactive' | 'Connected';
+  status: 'Connected' | 'Disconnected';
 }
 
 export interface FacebookFormItem {
   id: string;
   formId: string;
   name: string;
-  pageName: string;
-  pageId: string;
+  pageName?: string;
+  associatedPage?: string;
+  pageId?: string;
   facebookPage?: {
     id?: string;
     name?: string;
@@ -67,9 +102,12 @@ export interface FacebookFormItem {
   };
   campaign?: string;
   leadCount: number;
+  leadsToday?: number;
+  leadsTotal?: number;
   status: 'Active' | 'Inactive';
   isActive: boolean;
-  lastSync: string;
+  webhookActive?: boolean;
+  lastSync?: string;
   assignedAiAgent?: {
     id: string;
     name: string;
@@ -80,7 +118,7 @@ export interface FacebookPermissionItem {
   id: string;
   permission: string;
   description: string;
-  status: 'Granted' | 'Missing' | 'Expired' | 'Needs Review';
+  status: 'Granted' | 'Missing' | 'Warning' | 'Expired' | 'Needs Review';
 }
 
 export interface WebhookHealthData {
@@ -88,9 +126,17 @@ export interface WebhookHealthData {
   webhookUrl: string;
   verifyToken: string;
   status: 'Active' | 'Inactive' | 'Degraded';
+  leadgenStatus?: 'Active' | 'Inactive';
+  messagesStatus?: 'Active' | 'Inactive';
+  instagramStatus?: 'Active' | 'Inactive';
+  commentsStatus?: 'Active' | 'Inactive';
+  whatsappStatus?: 'Active' | 'Inactive';
+  verificationStatus?: 'Verified' | 'Pending' | 'Failed';
   lastEventTime: string;
+  lastEvent?: string;
   successRate7d: number;
   failedEvents7d: number;
+  failures?: number;
   retryQueueCount: number;
 }
 
@@ -100,7 +146,7 @@ export interface LiveActivityItem {
   description: string;
   timeAgo: string;
   timestamp: string;
-  type: 'lead' | 'form' | 'page' | 'account' | 'webhook' | 'token';
+  type: 'lead' | 'form' | 'page' | 'account' | 'webhook' | 'token' | 'instagram' | 'whatsapp' | 'ai' | 'crm';
 }
 
 export interface DashboardMetrics {
@@ -131,6 +177,8 @@ export interface DashboardData {
   selectedBusinessId: string;
   pages: FacebookPageItem[];
   totalPages: number;
+  instagramAccounts?: InstagramAccountItem[];
+  whatsAppAccounts?: WhatsAppAccountItem[];
   forms: FacebookFormItem[];
   totalForms: number;
   permissions: FacebookPermissionItem[];

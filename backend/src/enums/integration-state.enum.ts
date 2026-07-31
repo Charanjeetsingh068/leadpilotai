@@ -1,0 +1,15 @@
+export enum IntegrationStateEnum {
+  NOT_CONNECTED = 'NOT_CONNECTED',
+  CONNECTING = 'CONNECTING',
+  CONNECTED = 'CONNECTED',
+  TOKEN_EXPIRED = 'TOKEN_EXPIRED',
+  SYNCING = 'SYNCING',
+  ERROR = 'ERROR',
+}
+
+export enum IntegrationProviderEnum {
+  FACEBOOK = 'FACEBOOK',
+  INSTAGRAM = 'INSTAGRAM',
+  GOOGLE_ADS = 'GOOGLE_ADS',
+  WHATSAPP = 'WHATSAPP',
+}

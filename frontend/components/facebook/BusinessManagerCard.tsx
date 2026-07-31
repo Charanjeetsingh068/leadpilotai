@@ -1,5 +1,6 @@
 import React from 'react';
-import { Building, CheckCircle2, ExternalLink, ChevronDown } from 'lucide-react';
+import { Building, CheckCircle2, ExternalLink, ChevronDown, Layers, MessageSquare } from 'lucide-react';
+import { InstagramIcon } from './InstagramIcon';
 import { FacebookBusinessItem } from '@/types/facebook.types';
 
 interface Props {
@@ -15,18 +16,20 @@ export const BusinessManagerCard: React.FC<Props> = ({
 }) => {
   const currentBusiness =
     businesses.find((b) => b.businessId === selectedBusinessId) ||
-    businesses[0] || {
-      id: 'b1',
-      businessId: '987654321098765',
-      name: 'LeadPilot Marketing',
-      hasFullAccess: true,
-    };
+    businesses[0] || null;
 
   return (
     <div className="fb-card fb-business-card">
-      <h3 className="fb-card-title">3. Business Manager</h3>
+      <div className="fb-card-header-row">
+        <h3 className="fb-card-title">Business Portfolio</h3>
+        {currentBusiness && (
+          <span className="fb-status-pill status-active">
+            {currentBusiness.verificationStatus || currentBusiness.verification || 'VERIFIED'}
+          </span>
+        )}
+      </div>
       <p className="fb-card-subtitle">
-        Select the Business Manager whose assets you want to manage.
+        Select the Meta Business Portfolio whose assets you want to manage.
       </p>
 
       <div className="fb-business-select-wrapper">
@@ -39,8 +42,8 @@ export const BusinessManagerCard: React.FC<Props> = ({
           onChange={(e) => onBusinessChange(e.target.value)}
         >
           {businesses.length === 0 ? (
-            <option value="987654321098765">
-              LeadPilot Marketing (ID: 987654321098765)
+            <option value="">
+              No Business Manager connected
             </option>
           ) : (
             businesses.map((b) => (
@@ -55,10 +58,34 @@ export const BusinessManagerCard: React.FC<Props> = ({
         </div>
       </div>
 
+      {currentBusiness ? (
+        <div className="fb-business-assets-grid">
+          <div className="fb-b-asset-item">
+            <Layers size={14} className="text-brand-blue" />
+            <span className="fb-b-asset-label">Owned Pages:</span>
+            <span className="fb-b-asset-val">{currentBusiness.ownedPagesCount || 0}</span>
+          </div>
+          <div className="fb-b-asset-item">
+            <InstagramIcon size={14} className="fb-ig-icon" />
+            <span className="fb-b-asset-label">Owned Instagram:</span>
+            <span className="fb-b-asset-val">{currentBusiness.ownedInstagramCount || 0}</span>
+          </div>
+          <div className="fb-b-asset-item">
+            <MessageSquare size={14} className="fb-wa-icon" />
+            <span className="fb-b-asset-label">Owned WhatsApp:</span>
+            <span className="fb-b-asset-val">{currentBusiness.ownedWhatsAppCount || 0}</span>
+          </div>
+        </div>
+      ) : (
+        <div className="py-4 text-center text-xs text-muted">
+          No Meta Business Manager portfolios connected yet.
+        </div>
+      )}
+
       <div className="fb-business-access-status">
         <div className="fb-access-message">
           <CheckCircle2 size={16} className="text-success-icon" />
-          <span>You have full access to this business.</span>
+          <span>Full Access Verified</span>
         </div>
         <a
           href={`https://business.facebook.com/settings?business_id=${currentBusiness.businessId}`}

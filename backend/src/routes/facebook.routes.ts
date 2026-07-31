@@ -9,10 +9,11 @@ const oauthController = new FacebookOAuthController();
 const integrationController = new FacebookIntegrationController();
 const webhookController = new FacebookWebhookController();
 
-// OAuth Routes
+// OAuth & Connect Routes
 router.post('/integrations/facebook/oauth', oauthController.startOAuth);
 router.get('/integrations/facebook/callback', oauthController.handleCallback);
 router.post('/integrations/facebook/disconnect', oauthController.disconnect);
+router.post('/facebook/connect', integrationController.connect);
 router.post('/facebook/disconnect', oauthController.disconnect);
 
 // Diagnostics Routes
@@ -38,6 +39,10 @@ router.get('/webhooks/facebook', webhookController.verify);
 router.post('/webhooks/facebook', webhookController.receive);
 router.get('/facebook/webhooks', integrationController.getWebhooks);
 router.post('/facebook/webhooks/retry', integrationController.retryWebhooks);
+
+// Status Routes
+router.get('/integration/status', integrationController.getStatus);
+router.get('/facebook/status', integrationController.getStatus);
 
 // Dashboard Analytics & Sync Routes
 router.get('/facebook/dashboard', integrationController.getDashboard);

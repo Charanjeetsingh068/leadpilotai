@@ -21,17 +21,32 @@ export function useFacebookIntegration() {
     refetchInterval: 15000,
   });
 
-  // Listen for popup OAuth success message
+  // Listen for popup OAuth success / error message
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
+    const handleMessage = async (event: MessageEvent) => {
       if (event.data && event.data.type === 'FB_OAUTH_SUCCESS') {
         setIsConnecting(false);
         setIsAddAccountOpen(false);
-        setConnectionSuccessMsg('Facebook account connected & encrypted token saved successfully!');
+        setConnectionErrorMsg(null);
+        setConnectionSuccessMsg('Facebook account connected & discovering Meta Business assets...');
+        
+        // Trigger automatic asset discovery & sync
+        try {
+          await facebookIntegrationService.triggerManualSync();
+          setConnectionSuccessMsg('Meta Business assets synchronized successfully!');
+        } catch (e) {
+          console.error('Asset sync warning:', e);
+        }
+
+        // Invalidate React Query keys as required by acceptance criteria
         queryClient.invalidateQueries({ queryKey: ['facebook-dashboard'] });
-        setTimeout(() => {
-          window.location.reload();
-        }, 1200);
+        queryClient.invalidateQueries({ queryKey: ['facebook-status'] });
+        queryClient.invalidateQueries({ queryKey: ['connected-accounts'] });
+        queryClient.invalidateQueries({ queryKey: ['leads'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      } else if (event.data && event.data.type === 'FB_OAUTH_ERROR') {
+        setIsConnecting(false);
+        setConnectionErrorMsg(event.data.error || 'Meta OAuth authorization was denied or failed.');
       }
     };
 
@@ -141,8 +156,23 @@ export function useFacebookIntegration() {
     },
   });
 
+  const connectionStatus = dashboardQuery.data?.connection?.status || 'NOT_CONNECTED';
+  const hasAccounts = (dashboardQuery.data?.accounts || []).length > 0;
+  
+  let integrationStatus: 'NOT_CONNECTED' | 'CONNECTING' | 'CONNECTED' | 'TOKEN_EXPIRED' | 'ERROR' = 'NOT_CONNECTED';
+  if (isConnecting) {
+    integrationStatus = 'CONNECTING';
+  } else if (connectionStatus === 'TOKEN_EXPIRED' || dashboardQuery.data?.connection?.isExpired) {
+    integrationStatus = 'TOKEN_EXPIRED';
+  } else if (connectionStatus === 'CONNECTED' || (hasAccounts && connectionStatus !== 'NOT_CONNECTED')) {
+    integrationStatus = 'CONNECTED';
+  } else {
+    integrationStatus = 'NOT_CONNECTED';
+  }
+
   return {
     data: dashboardQuery.data,
+    integrationStatus,
     isLoading: dashboardQuery.isLoading,
     isError: dashboardQuery.isError,
     error: dashboardQuery.error,

@@ -17,6 +17,7 @@ router.get('/export', authMiddleware, leadController.exportLeads);
 router.get('/duplicate-check', authMiddleware, leadController.duplicateCheck);
 router.get('/', authMiddleware, leadController.getLeads);
 router.post('/start-ai', authMiddleware, leadController.startAi);
+router.post('/:id/qualify', authMiddleware, leadController.qualifyLead);
 router.get('/:id', authMiddleware, leadController.getLeadById);
 router.get('/:id/conversation', authMiddleware, leadController.getLeadConversation);
 router.get('/:id/timeline', authMiddleware, leadController.getLeadTimeline);

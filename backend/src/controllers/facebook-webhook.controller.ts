@@ -26,14 +26,14 @@ export class FacebookWebhookController {
 
   receive = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const signature = req.headers['x-hub-signature-256'] as string;
-      const rawBody = JSON.stringify(req.body);
+      const signature = (req.headers['x-hub-signature-256'] as string) || (req.headers['x-hub-signature'] as string);
+      const rawBody = (req as any).rawBody || JSON.stringify(req.body);
 
       const result = await this.service.processWebhookEvent(rawBody, signature);
       return res.status(200).json(result);
     } catch (err: any) {
       console.error('Webhook processing error:', err.message);
-      return res.status(500).json({ error: err.message });
+      return res.status(400).json({ error: err.message });
     }
   };
 }
