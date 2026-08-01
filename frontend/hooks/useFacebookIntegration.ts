@@ -148,9 +148,11 @@ export function useFacebookIntegration() {
     },
   });
 
-  const connectionStatus = dashboardQuery.data?.connection?.status || 'NOT_CONNECTED';
-  const isBackendConnected = dashboardQuery.data?.connection?.isConnected === true && connectionStatus === 'CONNECTED';
-  
+  const hasConnectedAccount = Boolean(dashboardQuery.data?.accounts && dashboardQuery.data.accounts.length > 0);
+  const rawStatus = dashboardQuery.data?.connection?.status;
+  const connectionStatus = (rawStatus && rawStatus !== 'NOT_CONNECTED') ? rawStatus : (hasConnectedAccount ? 'CONNECTED' : 'NOT_CONNECTED');
+  const isBackendConnected = hasConnectedAccount || (dashboardQuery.data?.connection?.isConnected === true) || connectionStatus === 'CONNECTED';
+
   let integrationStatus: 'NOT_CONNECTED' | 'CONNECTING' | 'CONNECTED' | 'TOKEN_EXPIRED' | 'ERROR' = 'NOT_CONNECTED';
   if (isConnecting) {
     integrationStatus = 'CONNECTING';
