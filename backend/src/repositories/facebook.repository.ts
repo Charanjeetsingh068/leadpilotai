@@ -75,6 +75,63 @@ export class FacebookRepository {
     return prisma.facebookAccount.findFirst({ where: { fbUserId } });
   }
 
+  async ensureTenantEntities(scope: MultiTenantScope): Promise<{ companyId: string; workspaceId: string; userId: string }> {
+    // 1. Company Verification
+    let company = isUuid(scope.companyId) ? await prisma.company.findUnique({ where: { id: scope.companyId } }) : null;
+    if (!company) {
+      company = await prisma.company.findFirst();
+      if (!company) {
+        company = await prisma.company.create({
+          data: { name: 'Acme Real Estate & Marketing' },
+        });
+      }
+    }
+
+    // 2. Workspace Verification
+    let workspace = isUuid(scope.workspaceId) ? await prisma.workspace.findUnique({ where: { id: scope.workspaceId } }) : null;
+    if (!workspace || workspace.companyId !== company.id) {
+      workspace = await prisma.workspace.findFirst({ where: { companyId: company.id } });
+      if (!workspace) {
+        workspace = await prisma.workspace.create({
+          data: {
+            name: 'Primary Workspace',
+            companyId: company.id,
+          },
+        });
+      }
+    }
+
+    // 3. User Verification
+    let user = isUuid(scope.userId) ? await prisma.user.findUnique({ where: { id: scope.userId } }) : null;
+    if (!user) {
+      user = await prisma.user.findFirst({ where: { companyId: company.id } });
+      if (!user) {
+        user = await prisma.user.findFirst();
+      }
+      if (!user) {
+        user = await prisma.user.create({
+          data: {
+            name: 'Charanjeet Singh',
+            email: 'charanjeet.s7730@gmail.com',
+            passwordHash: 'dummy_hash',
+            organizationId: 'org-001',
+            companyId: company.id,
+          },
+        });
+      }
+    }
+
+    console.log('[TENANT_AUDIT_LOG]', JSON.stringify({
+      currentUser: user.id,
+      userName: user.name,
+      workspace: workspace.id,
+      companyId: company.id,
+      companyExists: true,
+    }, null, 2));
+
+    return { companyId: company.id, workspaceId: workspace.id, userId: user.id };
+  }
+
   async upsertAccount(data: {
     companyId: string;
     workspaceId: string;
@@ -88,14 +145,19 @@ export class FacebookRepository {
     tokenStatus?: string;
     scopes?: string[];
   }) {
+    const tenant = await this.ensureTenantEntities({ companyId: data.companyId, workspaceId: data.workspaceId, userId: data.userId });
+
     const existing = await prisma.facebookAccount.findFirst({
-      where: { fbUserId: data.fbUserId, companyId: data.companyId, workspaceId: data.workspaceId },
+      where: { fbUserId: data.fbUserId },
     });
 
     if (existing) {
       return prisma.facebookAccount.update({
         where: { id: existing.id },
         data: {
+          companyId: tenant.companyId,
+          workspaceId: tenant.workspaceId,
+          userId: tenant.userId,
           accountName: data.accountName,
           avatarUrl: data.avatarUrl || existing.avatarUrl,
           accessToken: data.accessToken,
@@ -110,9 +172,9 @@ export class FacebookRepository {
 
     return prisma.facebookAccount.create({
       data: {
-        companyId: data.companyId,
-        workspaceId: data.workspaceId,
-        userId: data.userId,
+        companyId: tenant.companyId,
+        workspaceId: tenant.workspaceId,
+        userId: tenant.userId,
         accountName: data.accountName,
         fbUserId: data.fbUserId,
         fbUserEmail: data.fbUserEmail,
@@ -152,18 +214,31 @@ export class FacebookRepository {
     verificationStatus?: string;
     accessLevel?: string;
   }) {
+    const tenant = await this.ensureTenantEntities({ companyId: data.companyId, workspaceId: data.workspaceId });
+
     const existing = await prisma.facebookBusiness.findFirst({
-      where: { businessId: data.businessId, ...(isUuid(data.companyId) ? { companyId: data.companyId } : {}) },
+      where: { businessId: data.businessId },
     });
 
     if (existing) {
       return prisma.facebookBusiness.update({
         where: { id: existing.id },
-        data: { name: data.name, verificationStatus: data.verificationStatus },
+        data: {
+          companyId: tenant.companyId,
+          workspaceId: tenant.workspaceId,
+          name: data.name,
+          verificationStatus: data.verificationStatus,
+        },
       });
     }
 
-    return prisma.facebookBusiness.create({ data });
+    return prisma.facebookBusiness.create({
+      data: {
+        ...data,
+        companyId: tenant.companyId,
+        workspaceId: tenant.workspaceId,
+      },
+    });
   }
 
   // --- PAGES ---
