@@ -1,5 +1,7 @@
 import { prisma } from '../config/database';
 
+export const isUuid = (str?: string) => Boolean(str && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str));
+
 export interface MultiTenantScope {
   companyId?: string;
   workspaceId?: string;
@@ -20,11 +22,11 @@ export class FacebookRepository {
     if (scope.userRole === 'SUPER_ADMIN' || scope.userRole === 'Super Admin') {
       // Super admin sees all accounts
     } else if (scope.userRole === 'COMPANY_ADMIN' || scope.userRole === 'Company Admin' || scope.userRole === 'Admin') {
-      if (scope.companyId) where.companyId = scope.companyId;
+      if (isUuid(scope.companyId)) where.companyId = scope.companyId;
     } else {
-      if (scope.userId) where.userId = scope.userId;
-      if (scope.companyId) where.companyId = scope.companyId;
-      if (scope.workspaceId) where.workspaceId = scope.workspaceId;
+      if (isUuid(scope.userId)) where.userId = scope.userId;
+      if (isUuid(scope.companyId)) where.companyId = scope.companyId;
+      if (isUuid(scope.workspaceId)) where.workspaceId = scope.workspaceId;
     }
 
     if (options.status && options.status !== 'ALL') {
@@ -131,8 +133,8 @@ export class FacebookRepository {
   async findBusinesses(scope: MultiTenantScope) {
     const where: any = {};
     if (scope.userRole !== 'SUPER_ADMIN' && scope.userRole !== 'Super Admin') {
-      if (scope.companyId) where.companyId = scope.companyId;
-      if (scope.workspaceId) where.workspaceId = scope.workspaceId;
+      if (isUuid(scope.companyId)) where.companyId = scope.companyId;
+      if (isUuid(scope.workspaceId)) where.workspaceId = scope.workspaceId;
     }
     return prisma.facebookBusiness.findMany({
       where,
@@ -151,7 +153,7 @@ export class FacebookRepository {
     accessLevel?: string;
   }) {
     const existing = await prisma.facebookBusiness.findFirst({
-      where: { businessId: data.businessId, companyId: data.companyId },
+      where: { businessId: data.businessId, ...(isUuid(data.companyId) ? { companyId: data.companyId } : {}) },
     });
 
     if (existing) {
@@ -173,8 +175,8 @@ export class FacebookRepository {
     const where: any = {};
 
     if (scope.userRole !== 'SUPER_ADMIN' && scope.userRole !== 'Super Admin') {
-      if (scope.companyId) where.companyId = scope.companyId;
-      if (scope.workspaceId) where.workspaceId = scope.workspaceId;
+      if (isUuid(scope.companyId)) where.companyId = scope.companyId;
+      if (isUuid(scope.workspaceId)) where.workspaceId = scope.workspaceId;
     }
 
     if (options.businessId && options.businessId !== 'ALL') {
@@ -491,15 +493,15 @@ export class FacebookRepository {
   // --- WEBHOOKS & HEALTH ---
   async getWebhookHealth(scope: MultiTenantScope) {
     const where: any = {};
-    if (scope.companyId) where.companyId = scope.companyId;
+    if (isUuid(scope.companyId)) where.companyId = scope.companyId;
     
     let webhook = await prisma.facebookWebhook.findFirst({ where });
 
     if (!webhook) {
       webhook = await prisma.facebookWebhook.create({
         data: {
-          companyId: scope.companyId || null,
-          workspaceId: scope.workspaceId || null,
+          companyId: isUuid(scope.companyId) ? scope.companyId! : null,
+          workspaceId: isUuid(scope.workspaceId) ? scope.workspaceId! : null,
           webhookUrl: 'https://app.leadpilot.ai/webhooks/facebook',
           verifyToken: 'leadpilot_fb_secret_token_98765',
           status: 'Active',
