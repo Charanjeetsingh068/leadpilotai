@@ -119,32 +119,65 @@ export const facebookIntegrationService = {
   async getStatus(): Promise<MetaConnectionStatus> {
     try {
       const res = await apiClient.get('/facebook/status');
-      return res.data.data;
+      if (res.data?.data) return res.data.data;
+      throw new Error('Invalid status response');
     } catch (e) {
-      return {
-        isConnected: false,
-        pagesCount: 0,
-        formsCount: 0,
-        webhookStatus: 'Inactive',
-        tokenStatus: 'Not Connected',
-        permissionsGranted: [],
-      };
+      try {
+        const prodRes = await axios.get('https://leadpilotai-2kar.onrender.com/api/facebook/status');
+        return prodRes.data?.data || { isConnected: false } as MetaConnectionStatus;
+      } catch (prodErr) {
+        return {
+          isConnected: false,
+          pagesCount: 0,
+          formsCount: 0,
+          webhookStatus: 'Inactive',
+          tokenStatus: 'Not Connected',
+          permissionsGranted: [],
+        };
+      }
     }
   },
 
   async getBusinesses() {
-    const res = await apiClient.get('/facebook/businesses');
-    return res.data.data || [];
+    try {
+      const res = await apiClient.get('/facebook/businesses');
+      return res.data.data || [];
+    } catch (e) {
+      try {
+        const prodRes = await axios.get('https://leadpilotai-2kar.onrender.com/api/facebook/businesses');
+        return prodRes.data?.data || [];
+      } catch (err2) {
+        return [];
+      }
+    }
   },
 
   async getPages() {
-    const res = await apiClient.get('/facebook/pages');
-    return res.data.data?.pages || [];
+    try {
+      const res = await apiClient.get('/facebook/pages');
+      return res.data.data?.pages || [];
+    } catch (e) {
+      try {
+        const prodRes = await axios.get('https://leadpilotai-2kar.onrender.com/api/facebook/pages');
+        return prodRes.data?.data?.pages || [];
+      } catch (err2) {
+        return [];
+      }
+    }
   },
 
   async getForms(pageId?: string) {
-    const res = await apiClient.get('/facebook/forms', { params: { pageId } });
-    return res.data.data?.forms || [];
+    try {
+      const res = await apiClient.get('/facebook/forms', { params: { pageId } });
+      return res.data.data?.forms || [];
+    } catch (e) {
+      try {
+        const prodRes = await axios.get('https://leadpilotai-2kar.onrender.com/api/facebook/forms', { params: { pageId } });
+        return prodRes.data?.data?.forms || [];
+      } catch (err2) {
+        return [];
+      }
+    }
   },
 
   async saveConnect(data: {
@@ -168,9 +201,17 @@ export const facebookIntegrationService = {
   async getDashboard(businessId?: string): Promise<DashboardData> {
     try {
       const res = await apiClient.get('/facebook/dashboard', { params: { businessId } });
-      return res.data.data;
+      if (res.data?.data && res.data.data.connection) {
+        return res.data.data;
+      }
+      throw new Error('Invalid dashboard payload');
     } catch (e) {
-      return {} as DashboardData;
+      try {
+        const prodRes = await axios.get('https://leadpilotai-2kar.onrender.com/api/facebook/dashboard', { params: { businessId } });
+        return prodRes.data?.data || {} as DashboardData;
+      } catch (prodErr) {
+        return {} as DashboardData;
+      }
     }
   },
 
