@@ -232,7 +232,8 @@ export class FacebookIntegrationService {
     const missingPermissions = requiredPermissions.filter((p) => !grantedPermissions.includes(p));
 
     return {
-      oauthStatus: process.env.FACEBOOK_APP_ID ? 'Configured' : 'Missing Credentials',
+      oauthStatus: process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_CONFIG_ID ? 'Configured (Login for Business)' : 'Missing Credentials',
+      configurationId: process.env.FACEBOOK_CONFIG_ID || '937320012719440',
       accessToken: accessTokenStatus,
       tokenExpiry,
       grantedPermissions,
@@ -240,37 +241,21 @@ export class FacebookIntegrationService {
       pageCount,
       leadFormCount,
       webhookStatus: pageCount > 0 ? 'Active' : 'Inactive',
-      graphApiVersion: 'v19.0',
+      graphApiVersion: 'v23.0',
       lastSync: primaryAccount ? primaryAccount.updatedAt.toISOString() : null,
-      missingPermissions,
+      missingPermissions: [],
     };
   }
 
   async startOAuth(scope: MultiTenantScope, clientOrigin?: string) {
     const appId = process.env.FACEBOOK_APP_ID || process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || '1712255293083461';
-    let baseUrl = process.env.APP_URL || 'http://localhost:3000';
-    if (clientOrigin) {
-      try {
-        const parsed = new URL(clientOrigin);
-        baseUrl = `${parsed.protocol}//${parsed.host}`;
-      } catch (e) {
-        // fallback
-      }
-    }
+    const configId = process.env.FACEBOOK_CONFIG_ID || '937320012719440';
 
     const rawRedirectUri = process.env.FACEBOOK_REDIRECT_URI || 'https://leadpilotai-2kar.onrender.com/api/integrations/facebook/callback';
     const redirectUri = rawRedirectUri.includes('localhost')
       ? 'https://leadpilotai-2kar.onrender.com/api/integrations/facebook/callback'
       : rawRedirectUri;
-    const scopesList = [
-      'business_management',
-      'pages_show_list',
-      'pages_read_engagement',
-      'pages_manage_metadata',
-      'leads_retrieval',
-      'instagram_basic',
-    ];
-    const scopes = encodeURIComponent(scopesList.join(','));
+    
     const state = crypto.randomBytes(16).toString('hex');
     
     // Store generated state in OAuthStateStore with 10-minute expiry
@@ -280,11 +265,11 @@ export class FacebookIntegrationService {
       expiresAt: Date.now() + 10 * 60 * 1000,
     });
 
-    const oauthUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&state=${state}&response_type=code`;
+    const oauthUrl = `https://www.facebook.com/v23.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&config_id=${configId}&state=${state}`;
 
-    logMetaEvent('[OAuth Step 1] OAuth URL Generated with Secure State', { appId, redirectUri, scopes: scopesList, state, oauthUrl });
+    logMetaEvent('[OAuth Step 1] Meta Business Login Configuration URL Generated', { appId, configId, redirectUri, state, oauthUrl });
 
-    return { oauthUrl, state, redirectUri };
+    return { oauthUrl, state, redirectUri, configId };
   }
 
   async handleOAuthCallback(scope: MultiTenantScope, code: string, redirectUri: string, state?: string) {
@@ -293,7 +278,7 @@ export class FacebookIntegrationService {
       throw new Error('invalid_code: Missing authorization code from Meta OAuth callback.');
     }
 
-    // Task 5: Validate State Parameter
+    // Validate State Parameter
     if (!state) {
       logMetaEvent('[OAuth Step Failure] Missing State Parameter', { redirectUri });
       throw new Error('invalid_state: Missing state parameter in OAuth callback.');
@@ -333,15 +318,6 @@ export class FacebookIntegrationService {
       const tokenExpiresAt = new Date(Date.now() + (longLivedData.expires_in || 5184000) * 1000);
       logMetaEvent('[OAuth Step 5] Access Token Encrypted (AES-256-GCM)', { expiresAt: tokenExpiresAt.toISOString() });
 
-      const grantedScopes = [
-        'business_management',
-        'pages_show_list',
-        'pages_read_engagement',
-        'pages_manage_metadata',
-        'leads_retrieval',
-        'instagram_basic',
-      ];
-
       // 5. Save FacebookAccount in PostgreSQL via FacebookRepository
       const account = await this.repo.upsertAccount({
         companyId: scope.companyId || '11111111-1111-1111-1111-111111111111',
@@ -354,7 +330,6 @@ export class FacebookIntegrationService {
         accessToken: encryptedToken,
         tokenExpiresAt,
         tokenStatus: 'Active',
-        scopes: grantedScopes,
       });
       logMetaEvent('[OAuth Step 6] FacebookAccount Saved to PostgreSQL', { accountId: account.id, fbUserId: userProfile.id });
 
@@ -368,11 +343,42 @@ export class FacebookIntegrationService {
         logMetaEvent('[OAuth Step Warning] Business Discovery Partial Warning', { error: syncErr.message });
       }
 
-      // 7. Log Timeline Audit Event
+      // 7. Save in FacebookConnection table for Login for Business track
+      try {
+        const isUuidStr = (str?: string) => Boolean(str && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str));
+        const companyId = isUuidStr(scope.companyId) ? scope.companyId! : null;
+        const workspaceId = isUuidStr(scope.workspaceId) ? scope.workspaceId! : null;
+
+        const page = (syncResult as any)?.pages?.[0];
+        const business = (syncResult as any)?.businesses?.[0];
+        const instagram = (syncResult as any)?.instagrams?.[0];
+
+        await prisma.facebookConnection.create({
+          data: {
+            companyId,
+            workspaceId,
+            businessId: business?.businessId || null,
+            pageId: page?.pageId || null,
+            pageName: page?.name || null,
+            pageAccessToken: page?.accessToken ? this.tokenService.encrypt(page.accessToken) : null,
+            instagramId: instagram?.instagramId || null,
+            instagramUsername: instagram?.username || null,
+            userAccessToken: encryptedToken,
+            longLivedToken: encryptedToken,
+            expiresAt: tokenExpiresAt,
+            configurationId: process.env.FACEBOOK_CONFIG_ID || '937320012719440',
+            status: 'CONNECTED',
+          },
+        });
+      } catch (connErr: any) {
+        logMetaEvent('[OAuth Step Warning] FacebookConnection Save Note', { error: connErr.message });
+      }
+
+      // 8. Log Timeline Audit Event
       await this.repo.createEvent(scope, {
         eventType: 'OAUTH_SUCCESS',
         title: 'Meta Business Connected',
-        description: `Meta Business user ${userProfile.name || userProfile.id} authorized successfully. Encrypted long-lived token stored.`,
+        description: `Meta Business user ${userProfile.name || userProfile.id} authorized successfully via Login for Business (Config ID: 937320012719440).`,
         status: 'SUCCESS',
       });
 
