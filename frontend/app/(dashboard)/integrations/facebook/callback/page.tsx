@@ -6,7 +6,7 @@ import { RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
 import { facebookIntegrationService } from '@/services/facebook-integration.service';
 import axios from 'axios';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://leadpilotai-2kar.onrender.com/api';
 
 export default function FacebookOAuthCallbackPage() {
   const searchParams = useSearchParams();

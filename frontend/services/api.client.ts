@@ -2,7 +2,7 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/store/useAuthStore';
 
 export const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://leadpilotai-2kar.onrender.com/api/v1',
   headers: {
     'Content-Type': 'application/json',
   },
