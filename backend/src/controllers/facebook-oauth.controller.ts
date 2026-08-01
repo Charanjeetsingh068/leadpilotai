@@ -64,7 +64,12 @@ export class FacebookOAuthController {
       const scope = this.getScope(req);
 
       const result = await this.service.handleOAuthCallback(scope, code as string, redirectUri, state as string);
-      const appUrl = (process.env.APP_URL || 'https://leadpilotai-rust.vercel.app').replace(/\/$/, '');
+      
+      const rawFrontendUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'https://leadpilotai-rust.vercel.app';
+      let appUrl = rawFrontendUrl.replace(/\/$/, '');
+      if (process.env.NODE_ENV === 'production' || appUrl.includes('localhost')) {
+        appUrl = 'https://leadpilotai-rust.vercel.app';
+      }
       const frontendTarget = `${appUrl}/integrations/facebook`;
 
       // Support both window popup postMessage integration and direct REST JSON
@@ -109,7 +114,11 @@ export class FacebookOAuthController {
       res.json({ success: true, data: result });
     } catch (err: any) {
       const errMsg = err.message || 'OAuth callback failed';
-      const appUrl = (process.env.APP_URL || 'https://leadpilotai-rust.vercel.app').replace(/\/$/, '');
+      const rawFrontendUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'https://leadpilotai-rust.vercel.app';
+      let appUrl = rawFrontendUrl.replace(/\/$/, '');
+      if (process.env.NODE_ENV === 'production' || appUrl.includes('localhost')) {
+        appUrl = 'https://leadpilotai-rust.vercel.app';
+      }
       const frontendTarget = `${appUrl}/integrations/facebook?error=${encodeURIComponent(errMsg)}`;
 
       if (req.accepts('html')) {
