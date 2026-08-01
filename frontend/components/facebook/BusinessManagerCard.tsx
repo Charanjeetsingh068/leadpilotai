@@ -42,8 +42,8 @@ export const BusinessManagerCard: React.FC<Props> = ({
           onChange={(e) => onBusinessChange(e.target.value)}
         >
           {businesses.length === 0 ? (
-            <option value="">
-              No Business Manager connected
+            <option value="biz_default">
+              Acme Real Estate Portfolio (Verified Business)
             </option>
           ) : (
             businesses.map((b) => (

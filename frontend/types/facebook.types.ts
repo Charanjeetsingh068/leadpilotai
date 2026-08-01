@@ -17,17 +17,26 @@ export interface FacebookAccountItem {
   avatarUrl?: string;
   businessManagerName?: string;
   businessManagerId?: string;
-  connectedByUser: {
+  businesses?: any[];
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+    role?: { name: string };
+  };
+  connectedByUser?: {
     id: string;
     name: string;
     email: string;
     roleName?: string;
   };
-  tokenStatus: 'Active' | 'Expired' | 'Revoked' | 'Warning';
-  lastSync: string;
-  tokenExpiry: string;
-  pagesCount: number;
-  formsCount: number;
+  tokenStatus: string;
+  lastSync?: string;
+  lastSyncAt?: string;
+  tokenExpiry?: string;
+  tokenExpiresAt?: string;
+  pagesCount?: number;
+  formsCount?: number;
 }
 
 export interface FacebookBusinessItem {

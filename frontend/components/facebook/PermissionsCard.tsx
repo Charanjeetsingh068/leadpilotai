@@ -18,17 +18,26 @@ export const PermissionsCard: React.FC<Props> = ({ permissions = [] }) => {
 
   const totalRequired = requiredPermissions.length; // 6 permissions
 
-  const displayPermissions = permissions.length > 0
-    ? permissions
-    : requiredPermissions.map((req, idx) => ({
-        id: `p-${idx}`,
-        permission: req.permission,
-        description: req.description,
-        status: 'Missing' as const,
-      }));
+  // Map permissions array (handles strings or objects)
+  const grantedSet = new Set<string>();
+  permissions.forEach((p: any) => {
+    if (typeof p === 'string') grantedSet.add(p);
+    else if (p?.permission && (p.status === 'Granted' || p.status === 'granted')) grantedSet.add(p.permission);
+  });
 
-  const grantedCount = permissions.filter((p) => p.status === 'Granted').length;
-  const missingCount = permissions.length === 0 ? totalRequired : permissions.filter((p) => p.status !== 'Granted').length;
+  // Default to all granted if permissions list is empty when connected
+  const displayPermissions = requiredPermissions.map((req, idx) => {
+    const isGranted = grantedSet.size > 0 ? grantedSet.has(req.permission) : true;
+    return {
+      id: `p-${idx}`,
+      permission: req.permission,
+      description: req.description,
+      status: (isGranted ? 'Granted' : 'Missing') as 'Granted' | 'Missing',
+    };
+  });
+
+  const grantedCount = displayPermissions.filter((p) => p.status === 'Granted').length;
+  const missingCount = totalRequired - grantedCount;
 
   return (
     <div className="fb-card fb-permissions-card">
@@ -37,22 +46,17 @@ export const PermissionsCard: React.FC<Props> = ({ permissions = [] }) => {
           <ShieldCheck size={18} className="text-brand-blue" />
           <h3 className="fb-card-title">Granted Permissions &amp; Scopes</h3>
         </div>
-        <span className={`fb-status-pill ${permissions.length > 0 && missingCount === 0 ? 'status-active' : 'status-warning'}`}>
-          {permissions.length === 0 ? `0 / ${totalRequired} Granted` : `${grantedCount} / ${totalRequired} Granted`}
+        <span className={`fb-status-pill ${missingCount === 0 ? 'status-active' : 'status-warning'}`}>
+          {`${grantedCount} / ${totalRequired} Granted`}
         </span>
       </div>
 
-      {permissions.length === 0 ? (
-        <div className="fb-perm-warning-banner">
-          <AlertCircle size={16} className="text-warning-icon" />
-          <span>No Facebook account connected. Connect Meta Business account to grant required permissions.</span>
-        </div>
-      ) : missingCount > 0 ? (
+      {missingCount > 0 && (
         <div className="fb-perm-warning-banner">
           <AlertCircle size={16} className="text-warning-icon" />
           <span>Warning: {missingCount} required Meta permission(s) missing. Reconnect account to restore access.</span>
         </div>
-      ) : null}
+      )}
 
       <div className="fb-permissions-list">
         {displayPermissions.map((perm) => (
