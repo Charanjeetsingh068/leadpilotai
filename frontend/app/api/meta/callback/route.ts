@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import axios from "axios";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 export async function GET(request: Request) {
   try {
@@ -6,6 +9,7 @@ export async function GET(request: Request) {
     const code = searchParams.get("code");
     const error = searchParams.get("error");
     const errorDescription = searchParams.get("error_description");
+    const redirectUri = searchParams.get("redirect_uri");
 
     if (error || errorDescription) {
       return NextResponse.json(
@@ -24,26 +28,21 @@ export async function GET(request: Request) {
       );
     }
 
-    // Process code exchange & token storage
-    const simulatedAccount = {
-      id: "fb-acc-1712255293083461",
-      accountName: "LeadPilot Official Marketing",
-      fbUserId: "1028374659102",
-      fbUserEmail: "arjun@leadpilot.ai",
-      avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
-      status: "Active",
-      connectedAt: new Date().toISOString()
-    };
-
-    return NextResponse.json({
-      success: true,
-      message: "Facebook account connected successfully via OAuth.",
-      account: simulatedAccount
+    // Delegate to Express backend to execute actual token exchange and database storage
+    const backendRes = await axios.get(`${API_BASE}/integrations/facebook/callback`, {
+      params: { code, redirect_uri: redirectUri },
+      headers: {
+        cookie: request.headers.get("cookie") || "",
+      },
+      withCredentials: true,
     });
+
+    return NextResponse.json(backendRes.data);
   } catch (error: any) {
+    const errMsg = error.response?.data?.error || error.message || "Failed to process Meta OAuth callback.";
     return NextResponse.json(
-      { success: false, error: "Failed to process Meta OAuth callback." },
-      { status: 500 }
+      { success: false, error: errMsg },
+      { status: error.response?.status || 500 }
     );
   }
 }

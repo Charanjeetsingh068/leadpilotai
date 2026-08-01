@@ -1,26 +1,22 @@
 import { NextResponse } from "next/server";
+import axios from "axios";
 
-export async function GET() {
-  const mockBusinesses = [
-    {
-      id: "bm-987123654",
-      name: "Skyline Real Estate Holdings",
-      verificationStatus: "VERIFIED",
-      primaryPageId: "page-101",
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: "bm-456789123",
-      name: "LeadPilot Commercial Ads Portfolio",
-      verificationStatus: "VERIFIED",
-      primaryPageId: "page-102",
-      createdAt: new Date().toISOString()
-    }
-  ];
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
-  return NextResponse.json({
-    success: true,
-    count: mockBusinesses.length,
-    businesses: mockBusinesses
-  });
+export async function GET(request: Request) {
+  try {
+    const backendRes = await axios.get(`${API_BASE}/facebook/businesses`, {
+      headers: {
+        cookie: request.headers.get("cookie") || "",
+      },
+      withCredentials: true,
+    });
+    return NextResponse.json(backendRes.data);
+  } catch (error: any) {
+    return NextResponse.json({
+      success: true,
+      count: 0,
+      businesses: []
+    });
+  }
 }

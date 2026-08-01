@@ -1,21 +1,22 @@
 import React from 'react';
-import { RefreshCw, Bot, CheckCircle2, XCircle } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { FacebookPageItem } from '@/types/facebook.types';
 
 interface Props {
   pages: FacebookPageItem[];
-  totalPages: number;
+  totalPages?: number;
   onRefreshPages: () => void;
   isRefreshing: boolean;
 }
 
 export const ConnectedPagesTable: React.FC<Props> = ({
   pages = [],
-  totalPages = 4,
+  totalPages = 0,
   onRefreshPages,
   isRefreshing,
 }) => {
-  const formatFollowers = (count: number) => {
+  const formatFollowers = (count?: number) => {
+    if (!count) return '0';
     if (count >= 1000) {
       return (count / 1000).toFixed(1) + 'K';
     }
@@ -54,8 +55,8 @@ export const ConnectedPagesTable: React.FC<Props> = ({
           <tbody>
             {pages.length === 0 ? (
               <tr>
-                <td colSpan={8} className="text-center py-6 text-muted">
-                  No pages loaded for this Business Manager. Click "Refresh Pages".
+                <td colSpan={8} className="fb-table-empty-cell">
+                  No pages connected for this Business Manager. Click "Refresh Pages".
                 </td>
               </tr>
             ) : (
@@ -67,7 +68,7 @@ export const ConnectedPagesTable: React.FC<Props> = ({
                         {p.pictureUrl ? (
                           <img src={p.pictureUrl} alt={p.name} className="fb-page-img" />
                         ) : (
-                          <div className="fb-page-avatar-fallback">{p.name[0]}</div>
+                          <div className="fb-page-avatar-fallback">{p.name ? p.name[0] : 'P'}</div>
                         )}
                       </div>
                       <div>
@@ -77,13 +78,13 @@ export const ConnectedPagesTable: React.FC<Props> = ({
                     </div>
                   </td>
                   <td>
-                    <span className="fb-cell-muted text-xs">{p.category || 'Real Estate'}</span>
+                    <span className="fb-cell-muted text-xs">{p.category || 'General Page'}</span>
                   </td>
                   <td>
                     <span className="fb-cell-bold">{formatFollowers(p.followersCount)}</span>
                   </td>
                   <td>
-                    <span className="fb-cell-bold">{p.leadFormsCount || 2} Forms</span>
+                    <span className="fb-cell-bold">{p.leadFormsCount || 0} Forms</span>
                   </td>
                   <td>
                     <span className="fb-status-pill status-active">{p.webhookStatus || 'Active'}</span>
@@ -92,15 +93,12 @@ export const ConnectedPagesTable: React.FC<Props> = ({
                     <span className="fb-status-pill status-active">{p.syncStatus || 'Synced'}</span>
                   </td>
                   <td>
-                    <span className="fb-cell-muted text-xs">{p.lastSync || 'Just now'}</span>
+                    <span className="fb-cell-muted text-xs">{p.lastSync || 'N/A'}</span>
                   </td>
                   <td className="text-right">
-                    <div className="fb-page-actions flex items-center justify-end gap-1">
+                    <div className="fb-page-actions">
                       <button type="button" className="fb-btn-toggle-active">
                         {p.status === 'Active' ? 'Disable' : 'Enable'}
-                      </button>
-                      <button type="button" className="fb-btn-view">
-                        Select
                       </button>
                     </div>
                   </td>

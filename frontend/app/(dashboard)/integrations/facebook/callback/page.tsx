@@ -19,14 +19,22 @@ export default function FacebookOAuthCallbackPage() {
     const error = searchParams.get('error_description') || searchParams.get('error');
 
     if (error) {
+      const errMsg = error || 'Meta OAuth authorization was declined by user.';
       setStatus('error');
-      setErrorMessage(error);
+      setErrorMessage(errMsg);
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage({ type: 'FB_OAUTH_ERROR', error: errMsg }, '*');
+      }
       return;
     }
 
     if (!code) {
-      // Dev mode or direct nav fallback
-      processCallback('mock_code_123456');
+      const errMsg = 'Missing authorization code parameter from Meta OAuth.';
+      setStatus('error');
+      setErrorMessage(errMsg);
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage({ type: 'FB_OAUTH_ERROR', error: errMsg }, '*');
+      }
       return;
     }
 
@@ -36,34 +44,42 @@ export default function FacebookOAuthCallbackPage() {
   const processCallback = async (authCode: string) => {
     try {
       const redirectUri = window.location.origin + window.location.pathname;
+      
+      // 1. Exchange authorization code with backend Express API
       const res = await axios.get(`${API_BASE}/integrations/facebook/callback`, {
         params: { code: authCode, redirect_uri: redirectUri },
         withCredentials: true,
       });
 
-      setStatus('success');
+      if (!res.data?.success) {
+        throw new Error(res.data?.error || 'Backend failed to exchange Meta OAuth token.');
+      }
 
-      // Post message to parent if opened in popup
-      if (window.opener && !window.opener.closed) {
-        window.opener.postMessage({ type: 'FB_OAUTH_SUCCESS', data: res.data?.data }, '*');
-        setTimeout(() => window.close(), 1000);
+      // 2. Perform backend status verification call per Phase 5 requirement
+      const statusData = await facebookIntegrationService.getStatus();
+
+      if (statusData && statusData.isConnected) {
+        setStatus('success');
+
+        if (window.opener && !window.opener.closed) {
+          window.opener.postMessage({ type: 'FB_OAUTH_SUCCESS', data: res.data?.data }, '*');
+          setTimeout(() => window.close(), 1000);
+        } else {
+          setTimeout(() => {
+            router.push('/integrations/facebook');
+          }, 1200);
+        }
       } else {
-        setTimeout(() => {
-          router.push('/integrations/facebook?connected=true');
-        }, 1200);
+        throw new Error('Backend status verification failed: Connection is NOT_CONNECTED after OAuth callback.');
       }
     } catch (err: any) {
-      console.warn('OAuth Callback API fallback handling:', err);
-      
-      // Fallback for direct browser testing or offline local dev server
+      const errMsg = err.response?.data?.error || err.message || 'OAuth code exchange failed.';
+      console.error('Meta OAuth Callback Verification Error:', errMsg);
+      setStatus('error');
+      setErrorMessage(errMsg);
+
       if (window.opener && !window.opener.closed) {
-        window.opener.postMessage({ type: 'FB_OAUTH_SUCCESS', data: { status: 'connected' } }, '*');
-        setTimeout(() => window.close(), 800);
-      } else {
-        setStatus('success');
-        setTimeout(() => {
-          router.push('/integrations/facebook');
-        }, 1200);
+        window.opener.postMessage({ type: 'FB_OAUTH_ERROR', error: errMsg }, '*');
       }
     }
   };
@@ -74,9 +90,9 @@ export default function FacebookOAuthCallbackPage() {
         {status === 'loading' && (
           <div className="flex flex-col items-center gap-4">
             <RefreshCw size={36} className="text-brand-blue spin" />
-            <h3 className="text-lg font-bold text-slate-900">Connecting Facebook Account...</h3>
+            <h3 className="text-lg font-bold text-slate-900">Verifying Meta Connection...</h3>
             <p className="text-sm text-slate-500">
-              Exchanging authorization code for long-lived access token and securing token in database.
+              Exchanging authorization code for long-lived access token and verifying backend status.
             </p>
           </div>
         )}
@@ -86,7 +102,7 @@ export default function FacebookOAuthCallbackPage() {
             <CheckCircle2 size={42} className="text-emerald-500" />
             <h3 className="text-lg font-bold text-slate-900">Facebook Account Connected!</h3>
             <p className="text-sm text-slate-500">
-              Account assets and permissions synced successfully. Reloading dashboard...
+              Account assets and permissions verified by backend. Returning to dashboard...
             </p>
           </div>
         )}

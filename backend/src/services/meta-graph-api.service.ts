@@ -21,7 +21,7 @@ export class MetaGraphError extends Error {
   }
 }
 
-export function logMetaEvent(eventType: string, details: Record<string, any>) {
+export function logMetaEvent(eventType: string, details: Record<string, any> = {}) {
   const timestamp = new Date().toISOString();
   console.log(`[META_GRAPH_LOG] [${timestamp}] ${eventType}:`, JSON.stringify(details, null, 2));
 }

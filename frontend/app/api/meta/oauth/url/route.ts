@@ -14,9 +14,9 @@ export async function GET(request: Request) {
     // Avoids hardcoding unsupported scopes that break the Meta OAuth popup
     const supportedScopes = [
       "public_profile",
-      "email",
       "pages_show_list",
       "pages_read_engagement",
+      "pages_manage_metadata",
       "leads_retrieval",
       "business_management"
     ];

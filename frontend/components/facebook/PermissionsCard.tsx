@@ -9,37 +9,36 @@ interface Props {
 export const PermissionsCard: React.FC<Props> = ({ permissions = [] }) => {
   const requiredPermissions: { permission: string; description: string }[] = [
     { permission: 'public_profile', description: 'Access public profile info (name, picture)' },
-    { permission: 'email', description: 'Read user primary email address' },
     { permission: 'business_management', description: 'Manage Business Manager assets and settings' },
     { permission: 'pages_show_list', description: 'View and list owned Facebook Pages' },
     { permission: 'pages_read_engagement', description: 'Read engagement and posts on Facebook Pages' },
     { permission: 'pages_manage_metadata', description: 'Manage Page webhooks and metadata configuration' },
     { permission: 'leads_retrieval', description: 'Retrieve Meta lead form submissions in real time' },
-    { permission: 'instagram_basic', description: 'Read Instagram profile & connected business account info' },
-    { permission: 'instagram_manage_messages', description: 'Receive and respond to Instagram direct messages' },
-    { permission: 'whatsapp_business_management', description: 'Manage WhatsApp Business Account templates and settings' },
-    { permission: 'whatsapp_business_messaging', description: 'Send and receive WhatsApp Business customer messages' },
   ];
 
-  const displayPermissions = permissions.length > 0 ? permissions : requiredPermissions.map((req, idx) => ({
-    id: `p-${idx}`,
-    permission: req.permission,
-    description: req.description,
-    status: 'Missing' as const,
-  }));
+  const totalRequired = requiredPermissions.length; // 6 permissions
+
+  const displayPermissions = permissions.length > 0
+    ? permissions
+    : requiredPermissions.map((req, idx) => ({
+        id: `p-${idx}`,
+        permission: req.permission,
+        description: req.description,
+        status: 'Missing' as const,
+      }));
 
   const grantedCount = permissions.filter((p) => p.status === 'Granted').length;
-  const missingCount = permissions.length === 0 ? 11 : permissions.filter((p) => p.status !== 'Granted').length;
+  const missingCount = permissions.length === 0 ? totalRequired : permissions.filter((p) => p.status !== 'Granted').length;
 
   return (
     <div className="fb-card fb-permissions-card">
       <div className="fb-card-header-row">
         <div className="fb-title-with-icon">
           <ShieldCheck size={18} className="text-brand-blue" />
-          <h3 className="fb-card-title">Granted Permissions & Scopes</h3>
+          <h3 className="fb-card-title">Granted Permissions &amp; Scopes</h3>
         </div>
         <span className={`fb-status-pill ${permissions.length > 0 && missingCount === 0 ? 'status-active' : 'status-warning'}`}>
-          {permissions.length === 0 ? '0 / 11 Granted' : `${grantedCount} / 11 Granted`}
+          {permissions.length === 0 ? `0 / ${totalRequired} Granted` : `${grantedCount} / ${totalRequired} Granted`}
         </span>
       </div>
 

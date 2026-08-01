@@ -60,10 +60,10 @@ export class FacebookOAuthController {
         return res.status(400).json({ success: false, error: 'invalid_code: Missing authorization code parameter.' });
       }
 
-      const redirectUri = (req.query.redirect_uri as string) || `${process.env.APP_URL || 'http://localhost:3000'}/api/integrations/facebook/callback`;
+      const redirectUri = process.env.FACEBOOK_REDIRECT_URI || (req.query.redirect_uri as string) || `${process.env.APP_URL || 'http://localhost:3000'}/api/integrations/facebook/callback`;
       const scope = this.getScope(req);
 
-      const result = await this.service.handleOAuthCallback(scope, code as string, redirectUri);
+      const result = await this.service.handleOAuthCallback(scope, code as string, redirectUri, state as string);
 
       // Support both window popup postMessage integration and direct REST JSON
       if (req.headers.accept?.includes('text/html') || req.accepts('html')) {

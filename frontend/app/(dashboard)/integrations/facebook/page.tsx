@@ -44,7 +44,7 @@ export default function FacebookIntegrationPage() {
     isRetryingWebhooks,
   } = useFacebookIntegration();
 
-  const isConnected = integrationStatus === 'CONNECTED' || (data?.accounts && data.accounts.length > 0);
+  const isConnected = integrationStatus === 'CONNECTED' && data?.connection?.isConnected === true;
 
   return (
     <div className="fb-page-container">

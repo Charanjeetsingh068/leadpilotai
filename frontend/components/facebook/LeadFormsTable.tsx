@@ -26,7 +26,7 @@ export const LeadFormsTable: React.FC<Props> = ({
     <div className="fb-card fb-forms-card">
       <div className="fb-card-header-row">
         <h3 className="fb-card-title">Lead Forms</h3>
-        <div className="flex items-center gap-2">
+        <div className="fb-header-actions-group">
           <button
             type="button"
             className="fb-btn-secondary-sm"
@@ -55,7 +55,7 @@ export const LeadFormsTable: React.FC<Props> = ({
           <tbody>
             {forms.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center py-6 text-muted">
+                <td colSpan={7} className="fb-table-empty-cell">
                   No lead forms synced yet. Click "Sync Forms" to load forms from connected pages.
                 </td>
               </tr>
@@ -63,13 +63,13 @@ export const LeadFormsTable: React.FC<Props> = ({
               forms.map((f) => (
                 <tr key={f.id}>
                   <td>
-                    <div className="fb-cell-title-form cursor-pointer" onClick={() => onPreviewForm(f)}>
+                    <div className="fb-cell-title-form" onClick={() => onPreviewForm(f)}>
                       {f.name}
                     </div>
                   </td>
                   <td>
                     <span className="fb-cell-muted text-xs">
-                      {f.associatedPage || f.pageName || f.facebookPage?.name || 'Luxury Real Estate'}
+                      {f.associatedPage || f.pageName || f.facebookPage?.name || 'Facebook Page'}
                     </span>
                   </td>
                   <td>
@@ -85,9 +85,10 @@ export const LeadFormsTable: React.FC<Props> = ({
                   <td>
                     <select
                       className="fb-ai-agent-select"
-                      value={f.assignedAiAgent?.id || 'PROP_ADVISOR_01'}
+                      value={f.assignedAiAgent?.id || ''}
                       onChange={(e) => onAssignAiAgent(f.id, e.target.value)}
                     >
+                      <option value="">Select AI Agent</option>
                       <option value="PROP_ADVISOR_01">Property Advisor AI</option>
                       <option value="VILLAS_AI">Villas Specialist AI</option>
                       <option value="COMMERCIAL_AI">Commercial AI</option>
@@ -96,15 +97,15 @@ export const LeadFormsTable: React.FC<Props> = ({
                     </select>
                   </td>
                   <td>
-                    <span className="fb-leads-count-badge font-bold">{(f.leadsToday || 0).toLocaleString()}</span>
+                    <span className="fb-leads-count-badge">{(f.leadsToday || 0).toLocaleString()}</span>
                   </td>
                   <td>
-                    <span className="fb-cell-bold font-mono">{(f.leadsTotal || f.leadCount || 0).toLocaleString()}</span>
+                    <span className="fb-cell-bold">{(f.leadsTotal || f.leadCount || 0).toLocaleString()}</span>
                   </td>
                   <td>
                     <div className="fb-status-with-icon">
                       <CheckCircle2 size={14} className="text-success-icon" />
-                      <span className="text-xs text-emerald-600 font-medium">
+                      <span className="fb-status-active-text">
                         {f.webhookActive !== false ? 'Active' : 'Inactive'}
                       </span>
                     </div>

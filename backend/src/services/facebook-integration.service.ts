@@ -9,10 +9,66 @@ export class FacebookIntegrationService {
   private tokenService: TokenManagementService;
   private metaGraphService: MetaGraphApiService;
 
+  // In-Memory OAuth State Store for CSRF Protection with TTL
+  private static stateStore = new Map<string, { companyId?: string; workspaceId?: string; expiresAt: number }>();
+
   constructor() {
     this.repo = new FacebookRepository();
     this.tokenService = new TokenManagementService();
     this.metaGraphService = new MetaGraphApiService();
+  }
+
+  /**
+   * Connection Verification Service (Task 8)
+   * Calls GET /me using stored decrypted token.
+   * Returns CONNECTED if Meta Graph API returns success; NOT_CONNECTED otherwise.
+   */
+  async verifyConnection(scope: MultiTenantScope) {
+    const accountsResult = await this.repo.findAccounts(scope, { page: 1, limit: 1 });
+    const primaryAccount = accountsResult.accounts[0] || null;
+
+    if (!primaryAccount || !primaryAccount.accessToken) {
+      return {
+        isConnected: false,
+        status: 'NOT_CONNECTED',
+        user: null,
+      };
+    }
+
+    try {
+      const decryptedToken = this.tokenService.decrypt(primaryAccount.accessToken);
+      const userProfile = await this.metaGraphService.getUserProfile(decryptedToken);
+
+      if (!userProfile || !userProfile.id) {
+        throw new Error('Meta Graph API GET /me returned invalid profile structure.');
+      }
+
+      return {
+        isConnected: true,
+        status: 'CONNECTED',
+        user: {
+          id: userProfile.id,
+          name: userProfile.name || primaryAccount.accountName,
+          email: userProfile.email || primaryAccount.fbUserEmail || '',
+        },
+        connectedTime: primaryAccount.createdAt ? primaryAccount.createdAt.toISOString() : null,
+        tokenExpiry: primaryAccount.tokenExpiresAt ? primaryAccount.tokenExpiresAt.toISOString() : null,
+      };
+    } catch (err: any) {
+      logMetaEvent('Verification Service Failed (GET /me error)', { error: err.message });
+      if (primaryAccount.id) {
+        await prisma.facebookAccount.update({
+          where: { id: primaryAccount.id },
+          data: { tokenStatus: 'Expired' },
+        }).catch(() => {});
+      }
+
+      return {
+        isConnected: false,
+        status: 'NOT_CONNECTED',
+        error: err.message || 'Stored access token failed Meta Graph API verification.',
+      };
+    }
   }
 
   async getDashboard(scope: MultiTenantScope, businessId?: string) {
@@ -166,17 +222,12 @@ export class FacebookIntegrationService {
     }
 
     const requiredPermissions = [
-      'public_profile',
-      'email',
       'business_management',
       'pages_show_list',
       'pages_read_engagement',
       'pages_manage_metadata',
       'leads_retrieval',
       'instagram_basic',
-      'instagram_manage_messages',
-      'whatsapp_business_management',
-      'whatsapp_business_messaging',
     ];
     const missingPermissions = requiredPermissions.filter((p) => !grantedPermissions.includes(p));
 
@@ -208,113 +259,144 @@ export class FacebookIntegrationService {
     }
 
     const redirectUri = process.env.FACEBOOK_REDIRECT_URI || `${baseUrl}/api/integrations/facebook/callback`;
-    const scopes = encodeURIComponent([
-      'public_profile',
-      'email',
+    const scopesList = [
+      'business_management',
       'pages_show_list',
       'pages_read_engagement',
       'pages_manage_metadata',
-      'pages_manage_posts',
-      'pages_manage_engagement',
-      'business_management',
       'leads_retrieval',
-      'whatsapp_business_management',
-      'whatsapp_business_messaging',
       'instagram_basic',
-      'instagram_manage_messages',
-    ].join(','));
+    ];
+    const scopes = encodeURIComponent(scopesList.join(','));
     const state = crypto.randomBytes(16).toString('hex');
     
+    // Store generated state in OAuthStateStore with 10-minute expiry
+    FacebookIntegrationService.stateStore.set(state, {
+      companyId: scope.companyId,
+      workspaceId: scope.workspaceId,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+    });
+
     const oauthUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&state=${state}&response_type=code`;
 
-    logMetaEvent('OAuth URL Generated', { appId, redirectUri, state, oauthUrl });
+    logMetaEvent('[OAuth Step 1] OAuth URL Generated with Secure State', { appId, redirectUri, scopes: scopesList, state, oauthUrl });
 
     return { oauthUrl, state, redirectUri };
   }
 
-  async handleOAuthCallback(scope: MultiTenantScope, code: string, redirectUri: string) {
+  async handleOAuthCallback(scope: MultiTenantScope, code: string, redirectUri: string, state?: string) {
     if (!code) {
+      logMetaEvent('[OAuth Step Failure] Missing Authorization Code', { redirectUri });
       throw new Error('invalid_code: Missing authorization code from Meta OAuth callback.');
     }
 
-    logMetaEvent('Processing OAuth Callback', { codeSnippet: code.substring(0, 10) + '...', redirectUri });
-
-    // 1. Exchange authorization code for short-lived access token
-    const tokenData = await this.metaGraphService.exchangeCodeForToken(code, redirectUri);
-    if (!tokenData?.access_token) {
-      throw new Error('invalid_code: Meta Graph API failed to exchange authorization code for access token.');
+    // Task 5: Validate State Parameter
+    if (!state) {
+      logMetaEvent('[OAuth Step Failure] Missing State Parameter', { redirectUri });
+      throw new Error('invalid_state: Missing state parameter in OAuth callback.');
     }
-    
-    // 2. Exchange short-lived token for long-lived access token (60-day validity)
-    const longLivedData = await this.metaGraphService.getLongLivedToken(tokenData.access_token);
-    const accessToken = longLivedData?.access_token || tokenData.access_token;
 
-    // 3. Immediately fetch Facebook User Profile (/me?fields=id,name,email,picture)
-    const userProfile = await this.metaGraphService.getUserProfile(accessToken);
+    const storedState = FacebookIntegrationService.stateStore.get(state);
+    if (!storedState || storedState.expiresAt < Date.now()) {
+      logMetaEvent('[OAuth Step Failure] Invalid or Expired State', { state });
+      throw new Error('invalid_state: OAuth state parameter is invalid or expired. Possible CSRF attack detected.');
+    }
 
-    // 4. Encrypt long-lived access token using AES-256-GCM via TokenManagementService
-    const encryptedToken = this.tokenService.encrypt(accessToken);
-    const tokenExpiresAt = new Date(Date.now() + (longLivedData.expires_in || 5184000) * 1000);
+    // Delete state token to enforce single-use state verification
+    FacebookIntegrationService.stateStore.delete(state);
 
-    const grantedScopes = [
-      'public_profile',
-      'email',
-      'pages_show_list',
-      'pages_read_engagement',
-      'pages_manage_metadata',
-      'pages_manage_posts',
-      'pages_manage_engagement',
-      'business_management',
-      'leads_retrieval',
-      'whatsapp_business_management',
-      'whatsapp_business_messaging',
-      'instagram_basic',
-      'instagram_manage_messages',
-    ];
+    logMetaEvent('[OAuth Step 2] State Validated & Processing Callback', { codeSnippet: code.substring(0, 10) + '...', redirectUri, state });
 
-    // 5. Create or Update FacebookAccount in PostgreSQL via FacebookRepository
-    const account = await this.repo.upsertAccount({
-      companyId: scope.companyId || 'company-uuid-001',
-      workspaceId: scope.workspaceId || 'workspace-uuid-001',
-      userId: scope.userId || 'user-uuid-001',
-      accountName: userProfile.name || 'LeadPilot Connected Meta Account',
-      fbUserId: userProfile.id,
-      fbUserEmail: userProfile.email || 'user@meta-business.com',
-      avatarUrl: userProfile.picture?.data?.url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
-      accessToken: encryptedToken,
-      tokenExpiresAt,
-      tokenStatus: 'Active',
-      scopes: grantedScopes,
-    });
+    try {
+      // 1. Exchange authorization code for short-lived access token
+      const tokenData = await this.metaGraphService.exchangeCodeForToken(code, redirectUri);
+      if (!tokenData?.access_token) {
+        logMetaEvent('[OAuth Step Failure] Token Exchange Failed', { codeSnippet: code.substring(0, 10) + '...' });
+        throw new Error('invalid_code: Meta Graph API failed to exchange authorization code for access token.');
+      }
+      logMetaEvent('[OAuth Step 3] Code Exchanged for Short-Lived Token', { tokenType: tokenData.token_type || 'bearer' });
+      
+      // 2. Exchange short-lived token for long-lived access token (60-day validity)
+      const longLivedData = await this.metaGraphService.getLongLivedToken(tokenData.access_token);
+      const accessToken = longLivedData?.access_token || tokenData.access_token;
+      logMetaEvent('[OAuth Step 3.1] Long-Lived Token Generated', { expiresIn: longLivedData?.expires_in || 5184000 });
 
-    // 6. Log Timeline Audit Event
-    await this.repo.createEvent(scope, {
-      eventType: 'OAUTH_SUCCESS',
-      title: 'Meta Business Connected',
-      description: `Meta Business user ${userProfile.name || userProfile.id} authorized successfully. Encrypted long-lived token stored.`,
-      status: 'SUCCESS',
-    });
+      // 3. Fetch Facebook User Profile (/me?fields=id,name,email,picture)
+      const userProfile = await this.metaGraphService.getUserProfile(accessToken);
+      logMetaEvent('[OAuth Step 4] User Profile Fetched', { fbUserId: userProfile.id, name: userProfile.name, email: userProfile.email || 'N/A' });
 
-    logMetaEvent('OAuth Connection Finalized', {
-      accountId: account.id,
-      fbUserId: userProfile.id,
-      name: userProfile.name,
-      tokenExpiresAt: tokenExpiresAt.toISOString(),
-    });
+      // 4. Encrypt long-lived access token using AES-256-GCM via TokenManagementService
+      const encryptedToken = this.tokenService.encrypt(accessToken);
+      const tokenExpiresAt = new Date(Date.now() + (longLivedData.expires_in || 5184000) * 1000);
+      logMetaEvent('[OAuth Step 5] Access Token Encrypted (AES-256-GCM)', { expiresAt: tokenExpiresAt.toISOString() });
 
-    // Return production response as required by acceptance criteria
-    return {
-      connected: true,
-      facebookUser: {
-        id: userProfile.id,
-        name: userProfile.name || 'Connected Meta Business User',
-        email: userProfile.email || '',
+      const grantedScopes = [
+        'business_management',
+        'pages_show_list',
+        'pages_read_engagement',
+        'pages_manage_metadata',
+        'leads_retrieval',
+        'instagram_basic',
+      ];
+
+      // 5. Save FacebookAccount in PostgreSQL via FacebookRepository
+      const account = await this.repo.upsertAccount({
+        companyId: scope.companyId || 'company-uuid-001',
+        workspaceId: scope.workspaceId || 'workspace-uuid-001',
+        userId: scope.userId || 'user-uuid-001',
+        accountName: userProfile.name || 'LeadPilot Connected Meta Account',
+        fbUserId: userProfile.id,
+        fbUserEmail: userProfile.email || '',
         avatarUrl: userProfile.picture?.data?.url || '',
-      },
-      workspaceId: scope.workspaceId || 'workspace-uuid-001',
-      tokenExpiresAt: tokenExpiresAt.toISOString(),
-      account,
-    };
+        accessToken: encryptedToken,
+        tokenExpiresAt,
+        tokenStatus: 'Active',
+        scopes: grantedScopes,
+      });
+      logMetaEvent('[OAuth Step 6] FacebookAccount Saved to PostgreSQL', { accountId: account.id, fbUserId: userProfile.id });
+
+      // 6. Automatically discover & save Business Manager in PostgreSQL
+      let syncResult = null;
+      try {
+        logMetaEvent('[OAuth Step 7] Starting Business Manager Discovery');
+        syncResult = await this.syncAssets(scope);
+        logMetaEvent('[OAuth Step 7.1] Business Discovery Complete', syncResult);
+      } catch (syncErr: any) {
+        logMetaEvent('[OAuth Step Warning] Business Discovery Partial Warning', { error: syncErr.message });
+      }
+
+      // 7. Log Timeline Audit Event
+      await this.repo.createEvent(scope, {
+        eventType: 'OAUTH_SUCCESS',
+        title: 'Meta Business Connected',
+        description: `Meta Business user ${userProfile.name || userProfile.id} authorized successfully. Encrypted long-lived token stored.`,
+        status: 'SUCCESS',
+      });
+
+      logMetaEvent('[OAuth Step 8] Final Status: CONNECTED', {
+        accountId: account.id,
+        fbUserId: userProfile.id,
+        name: userProfile.name,
+        tokenExpiresAt: tokenExpiresAt.toISOString(),
+      });
+
+      return {
+        connected: true,
+        facebookUser: {
+          id: userProfile.id,
+          name: userProfile.name || 'Connected Meta Business User',
+          email: userProfile.email || '',
+          avatarUrl: userProfile.picture?.data?.url || '',
+        },
+        workspaceId: scope.workspaceId || 'workspace-uuid-001',
+        tokenExpiresAt: tokenExpiresAt.toISOString(),
+        account,
+        syncResult,
+      };
+    } catch (err: any) {
+      logMetaEvent('[OAuth Step Failure] Exception during callback processing', { error: err.message, stack: err.stack });
+      throw err;
+    }
   }
 
   async syncAssets(scope: MultiTenantScope) {

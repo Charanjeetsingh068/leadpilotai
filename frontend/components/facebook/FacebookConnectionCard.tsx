@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, RefreshCw, LogOut, Trash2 } from 'lucide-react';
+import { ShieldCheck, RefreshCw, Trash2 } from 'lucide-react';
 import { FacebookIcon } from './FacebookIcon';
 import { FacebookConnectionStatus } from '@/types/facebook.types';
 
@@ -16,20 +16,61 @@ export const FacebookConnectionCard: React.FC<Props> = ({
   onDisconnect,
   isConnecting = false,
 }) => {
-  const isConnected = connection && connection.status !== 'NOT_CONNECTED' && connection.status !== 'Disconnected';
-  const displayStatus = connection?.status || 'NOT_CONNECTED';
+  const isConnected = connection?.isConnected === true && connection?.status === 'CONNECTED';
+  const displayStatus = isConnecting ? 'CONNECTING' : (connection?.status || 'NOT_CONNECTED');
+
+  const getStatusBadgeClass = () => {
+    switch (displayStatus) {
+      case 'CONNECTED':
+        return 'connected';
+      case 'CONNECTING':
+        return 'connecting';
+      case 'TOKEN_EXPIRED':
+        return 'expired';
+      case 'PERMISSION_MISSING':
+      case 'SYNC_FAILED':
+        return 'warning';
+      case 'NOT_CONNECTED':
+      default:
+        return 'disconnected';
+    }
+  };
+
+  const getStatusTextClass = () => {
+    switch (displayStatus) {
+      case 'CONNECTED':
+        return 'text-success';
+      case 'TOKEN_EXPIRED':
+      case 'SYNC_FAILED':
+        return 'text-danger';
+      case 'PERMISSION_MISSING':
+        return 'text-warning';
+      default:
+        return 'text-subtle';
+    }
+  };
+
+  const formattedExpiry = connection?.tokenExpiry
+    ? new Date(connection.tokenExpiry).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+    : (isConnected ? 'Active (60 Days)' : 'None');
 
   return (
     <div className="fb-card fb-connection-card">
       <div className="fb-card-header-row">
         <h3 className="fb-card-title">Meta Connection</h3>
-        <span className={`fb-status-badge ${connection?.isExpired ? 'expired' : (isConnected ? 'connected' : 'disconnected')}`}>
-          {connection?.isExpired ? 'Expired' : displayStatus}
+        <span className={`fb-status-badge ${getStatusBadgeClass()}`}>
+          {displayStatus}
         </span>
       </div>
 
       <p className="fb-card-subtitle">
-        {isConnected ? 'Connected Meta Business User session & token security state.' : 'No Facebook account connected. Click Connect Meta Business to start.'}
+        {isConnected
+          ? 'Verified Meta Business session & token security state from PostgreSQL.'
+          : 'No Facebook account connected. Click Connect Meta Business to start.'}
       </p>
 
       <div className="fb-connection-body">
@@ -41,37 +82,37 @@ export const FacebookConnectionCard: React.FC<Props> = ({
           <div className="fb-info-row">
             <span className="fb-info-label">Connected User</span>
             <span className="fb-info-value font-semibold">
-              {isConnected ? (connection?.connectedBy || 'Connected Meta Account') : 'Not Connected'}
+              {isConnected ? (connection?.connectedBy || 'N/A') : 'Not Connected'}
             </span>
           </div>
 
           <div className="fb-info-row">
             <span className="fb-info-label">Email</span>
             <span className="fb-info-value text-xs font-mono">
-              {isConnected ? (connection?.email || 'N/A') : 'N/A'}
+              {isConnected && connection?.email ? connection.email : 'N/A'}
             </span>
           </div>
 
           <div className="fb-info-row">
             <span className="fb-info-label">Connection Status</span>
-            <span className={`fb-info-value-status ${connection?.isExpired ? 'text-danger' : (isConnected ? 'text-success' : 'text-slate-400')}`}>
-              {connection?.isExpired ? 'Token Expired' : displayStatus}
+            <span className={`fb-info-value-status ${getStatusTextClass()}`}>
+              {displayStatus}
             </span>
           </div>
 
           <div className="fb-info-row">
             <span className="fb-info-label">Token Expiry</span>
-            <span className="fb-info-value text-xs text-brand-blue font-medium">
-              {isConnected ? (connection?.tokenExpiry || '60 Days (Long-Lived Token)') : 'None'}
+            <span className="fb-info-value text-xs font-medium">
+              {formattedExpiry}
             </span>
           </div>
         </div>
       </div>
 
-      <div className="fb-connection-action-area flex items-center gap-2">
+      <div className="fb-connection-action-area">
         <button
           type="button"
-          className="fb-btn-facebook-connect flex-1"
+          className="fb-btn-facebook-connect"
           onClick={onReconnect}
           disabled={isConnecting}
         >
@@ -80,13 +121,13 @@ export const FacebookConnectionCard: React.FC<Props> = ({
           ) : (
             <FacebookIcon size={18} className="fb-btn-icon" />
           )}
-          <span>{isConnecting ? 'Connecting...' : 'Reconnect Meta Business'}</span>
+          <span>{isConnecting ? 'Connecting...' : (isConnected ? 'Reconnect Meta Business' : 'Connect Meta Business')}</span>
         </button>
 
-        {onDisconnect && (
+        {onDisconnect && isConnected && (
           <button
             type="button"
-            className="fb-btn-secondary text-danger-hover"
+            className="fb-btn-secondary"
             onClick={onDisconnect}
             title="Disconnect Meta Connection"
           >
@@ -98,7 +139,7 @@ export const FacebookConnectionCard: React.FC<Props> = ({
 
       <div className="fb-security-note">
         <ShieldCheck size={14} className="fb-security-icon" />
-        <span>AES-256-GCM Token Encryption & Auto-Refresh Active.</span>
+        <span>AES-256-GCM Token Encryption &amp; Auto-Refresh Active.</span>
       </div>
     </div>
   );

@@ -35,9 +35,21 @@ export class FacebookIntegrationController {
   getStatus = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const scope = this.getScope(req);
-      const businessId = req.query.businessId as string;
-      const data = await this.service.getDashboard(scope, businessId);
-      res.json(createApiResponse(true, { status: data.connection.status, connection: data.connection }, 'Status retrieved successfully'));
+      const verification = await this.service.verifyConnection(scope);
+      const dashboard = await this.service.getDashboard(scope);
+
+      const statusPayload = {
+        status: verification.status,
+        isConnected: verification.isConnected,
+        user: verification.user,
+        connection: {
+          ...dashboard.connection,
+          status: verification.status,
+          isConnected: verification.isConnected,
+        },
+      };
+
+      res.json(createApiResponse(true, statusPayload, 'Status retrieved & verified successfully'));
     } catch (err) {
       next(err);
     }

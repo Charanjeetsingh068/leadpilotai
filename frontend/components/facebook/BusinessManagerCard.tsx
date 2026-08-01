@@ -59,44 +59,46 @@ export const BusinessManagerCard: React.FC<Props> = ({
       </div>
 
       {currentBusiness ? (
-        <div className="fb-business-assets-grid">
-          <div className="fb-b-asset-item">
-            <Layers size={14} className="text-brand-blue" />
-            <span className="fb-b-asset-label">Owned Pages:</span>
-            <span className="fb-b-asset-val">{currentBusiness.ownedPagesCount || 0}</span>
+        <>
+          <div className="fb-business-assets-grid">
+            <div className="fb-b-asset-item">
+              <Layers size={14} className="text-brand-blue" />
+              <span className="fb-b-asset-label">Owned Pages:</span>
+              <span className="fb-b-asset-val">{currentBusiness.ownedPagesCount || 0}</span>
+            </div>
+            <div className="fb-b-asset-item">
+              <InstagramIcon size={14} className="fb-ig-icon" />
+              <span className="fb-b-asset-label">Owned Instagram:</span>
+              <span className="fb-b-asset-val">{currentBusiness.ownedInstagramCount || 0}</span>
+            </div>
+            <div className="fb-b-asset-item">
+              <MessageSquare size={14} className="fb-wa-icon" />
+              <span className="fb-b-asset-label">Owned WhatsApp:</span>
+              <span className="fb-b-asset-val">{currentBusiness.ownedWhatsAppCount || 0}</span>
+            </div>
           </div>
-          <div className="fb-b-asset-item">
-            <InstagramIcon size={14} className="fb-ig-icon" />
-            <span className="fb-b-asset-label">Owned Instagram:</span>
-            <span className="fb-b-asset-val">{currentBusiness.ownedInstagramCount || 0}</span>
+
+          <div className="fb-business-access-status">
+            <div className="fb-access-message">
+              <CheckCircle2 size={16} className="text-success-icon" />
+              <span>Full Access Verified</span>
+            </div>
+            <a
+              href={`https://business.facebook.com/settings?business_id=${currentBusiness.businessId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="fb-business-link"
+            >
+              <span>Manage Business Settings</span>
+              <ExternalLink size={14} />
+            </a>
           </div>
-          <div className="fb-b-asset-item">
-            <MessageSquare size={14} className="fb-wa-icon" />
-            <span className="fb-b-asset-label">Owned WhatsApp:</span>
-            <span className="fb-b-asset-val">{currentBusiness.ownedWhatsAppCount || 0}</span>
-          </div>
-        </div>
+        </>
       ) : (
-        <div className="py-4 text-center text-xs text-muted">
+        <div className="fb-table-empty-cell">
           No Meta Business Manager portfolios connected yet.
         </div>
       )}
-
-      <div className="fb-business-access-status">
-        <div className="fb-access-message">
-          <CheckCircle2 size={16} className="text-success-icon" />
-          <span>Full Access Verified</span>
-        </div>
-        <a
-          href={`https://business.facebook.com/settings?business_id=${currentBusiness.businessId}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="fb-business-link"
-        >
-          <span>Manage Business Settings</span>
-          <ExternalLink size={14} />
-        </a>
-      </div>
     </div>
   );
 };

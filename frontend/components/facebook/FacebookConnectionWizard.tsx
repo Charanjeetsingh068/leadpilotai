@@ -284,9 +284,6 @@ export const FacebookConnectionWizard: React.FC = () => {
               >
                 <Share2 size={18} /> Connect Facebook Account
               </button>
-              <button onClick={handleFetchBusinesses} className="fb-btn-back">
-                Skip to Wizard Simulation &rarr;
-              </button>
             </div>
           </div>
         </div>
@@ -456,15 +453,21 @@ export const FacebookConnectionWizard: React.FC = () => {
         <div className="fb-status-dashboard">
           <div className="fb-status-banner">
             <div className="fb-status-user">
-              <img
-                src={status?.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"}
-                alt="Account Avatar"
-                className="fb-status-avatar"
-              />
+              {status?.avatarUrl ? (
+                <img
+                  src={status.avatarUrl}
+                  alt="Account Avatar"
+                  className="fb-status-avatar"
+                />
+              ) : (
+                <div className="fb-status-avatar-fallback">
+                  {status?.accountName ? status.accountName[0] : 'FB'}
+                </div>
+              )}
               <div>
-                <div className="fb-status-name">{status?.accountName || 'LeadPilot Official Marketing'}</div>
+                <div className="fb-status-name">{status?.accountName || 'Connected Meta Account'}</div>
                 <div className="fb-status-sub">
-                  Connected Meta App ID: <strong>{capabilities?.appId || '1712255293083461'}</strong> | Account ID: {status?.accountId || 'fb-acc-1712255293083461'}
+                  Connected Meta App ID: <strong>{capabilities?.appId || '1712255293083461'}</strong>{status?.accountId ? ` | Account ID: ${status.accountId}` : ''}
                 </div>
               </div>
             </div>
@@ -483,29 +486,29 @@ export const FacebookConnectionWizard: React.FC = () => {
             <div className="fb-metric-card">
               <div className="fb-metric-label">Business Manager</div>
               <div className="fb-metric-val fb-text-slate-sub">
-                {status?.business?.name || 'Skyline Real Estate'}
+                {status?.business?.name || 'N/A'}
               </div>
-              <div className="fb-text-emerald-status">Status: VERIFIED</div>
+              <div className="fb-text-emerald-status">Status: {status?.business?.verificationStatus || 'VERIFIED'}</div>
             </div>
 
             <div className="fb-metric-card">
               <div className="fb-metric-label">Connected Pages</div>
-              <div className="fb-metric-val">{status?.pagesCount || 2} Pages</div>
+              <div className="fb-metric-val">{status?.pagesCount || 0} Pages</div>
               <div className="fb-text-slate-sub">Active Lead Webhooks</div>
             </div>
 
             <div className="fb-metric-card">
               <div className="fb-metric-label">Lead Forms</div>
-              <div className="fb-metric-val">{status?.formsCount || 2} Forms</div>
+              <div className="fb-metric-val">{status?.formsCount || 0} Forms</div>
               <div className="fb-text-blue-assigned">AI Agents Assigned</div>
             </div>
 
             <div className="fb-metric-card">
               <div className="fb-metric-label">Token Status</div>
               <div className="fb-metric-val fb-text-emerald-status">
-                Long-Lived Token (60 Days)
+                {status?.tokenStatus || 'Active (60 Days)'}
               </div>
-              <div className="fb-text-slate-sub">Auto Refresh Active</div>
+              <div className="fb-text-slate-sub">AES-256 Encrypted</div>
             </div>
           </div>
 
@@ -517,7 +520,7 @@ export const FacebookConnectionWizard: React.FC = () => {
               </div>
             </div>
             <div className="fb-warning-scopes-list">
-              {(status?.permissionsGranted || ['public_profile', 'email', 'pages_show_list', 'pages_read_engagement', 'leads_retrieval', 'business_management']).map((perm) => (
+              {(status?.permissionsGranted || ['public_profile', 'pages_show_list', 'pages_read_engagement', 'pages_manage_metadata', 'leads_retrieval', 'business_management']).map((perm) => (
                 <span key={perm} className="terms-perm-code">
                   ✔ {perm}
                 </span>

@@ -4,7 +4,7 @@ import { facebookIntegrationService } from '@/services/facebook-integration.serv
 
 export function useFacebookIntegration() {
   const queryClient = useQueryClient();
-  const [selectedBusinessId, setSelectedBusinessId] = useState<string>('987654321098765');
+  const [selectedBusinessId, setSelectedBusinessId] = useState<string>('');
   const [accountsSearch, setAccountsSearch] = useState<string>('');
   const [pagesSearch, setPagesSearch] = useState<string>('');
   const [formsSearch, setFormsSearch] = useState<string>('');
@@ -28,17 +28,9 @@ export function useFacebookIntegration() {
         setIsConnecting(false);
         setIsAddAccountOpen(false);
         setConnectionErrorMsg(null);
-        setConnectionSuccessMsg('Facebook account connected & discovering Meta Business assets...');
+        setConnectionSuccessMsg('Meta Business account authorized successfully!');
         
-        // Trigger automatic asset discovery & sync
-        try {
-          await facebookIntegrationService.triggerManualSync();
-          setConnectionSuccessMsg('Meta Business assets synchronized successfully!');
-        } catch (e) {
-          console.error('Asset sync warning:', e);
-        }
-
-        // Invalidate React Query keys as required by acceptance criteria
+        // Refetch backend data and invalidate query keys
         queryClient.invalidateQueries({ queryKey: ['facebook-dashboard'] });
         queryClient.invalidateQueries({ queryKey: ['facebook-status'] });
         queryClient.invalidateQueries({ queryKey: ['connected-accounts'] });
@@ -157,14 +149,14 @@ export function useFacebookIntegration() {
   });
 
   const connectionStatus = dashboardQuery.data?.connection?.status || 'NOT_CONNECTED';
-  const hasAccounts = (dashboardQuery.data?.accounts || []).length > 0;
+  const isBackendConnected = dashboardQuery.data?.connection?.isConnected === true && connectionStatus === 'CONNECTED';
   
   let integrationStatus: 'NOT_CONNECTED' | 'CONNECTING' | 'CONNECTED' | 'TOKEN_EXPIRED' | 'ERROR' = 'NOT_CONNECTED';
   if (isConnecting) {
     integrationStatus = 'CONNECTING';
   } else if (connectionStatus === 'TOKEN_EXPIRED' || dashboardQuery.data?.connection?.isExpired) {
     integrationStatus = 'TOKEN_EXPIRED';
-  } else if (connectionStatus === 'CONNECTED' || (hasAccounts && connectionStatus !== 'NOT_CONNECTED')) {
+  } else if (isBackendConnected) {
     integrationStatus = 'CONNECTED';
   } else {
     integrationStatus = 'NOT_CONNECTED';

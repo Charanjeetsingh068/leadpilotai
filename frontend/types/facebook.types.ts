@@ -1,5 +1,6 @@
 export interface FacebookConnectionStatus {
-  status: 'NOT_CONNECTED' | 'CONNECTING' | 'CONNECTED' | 'TOKEN_EXPIRED' | 'RECONNECT_REQUIRED' | 'Connected' | 'Warning' | 'Disconnected' | 'Active';
+  status: 'NOT_CONNECTED' | 'CONNECTING' | 'CONNECTED' | 'TOKEN_EXPIRED' | 'PERMISSION_MISSING' | 'SYNC_FAILED' | 'RECONNECT_REQUIRED' | 'Connected' | 'Warning' | 'Disconnected' | 'Active';
+  isConnected?: boolean;
   connectedBy: string | null;
   email?: string | null;
   connectedTime?: string | null;

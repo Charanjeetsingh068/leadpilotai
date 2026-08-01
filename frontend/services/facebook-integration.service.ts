@@ -43,13 +43,21 @@ export const facebookIntegrationService = {
       const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || '1712255293083461';
       const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
       const redirectUri = encodeURIComponent(`${origin}/integrations/facebook/callback`);
-      const safeScopes = encodeURIComponent('public_profile,email');
+      const safeScopesList = [
+        'public_profile',
+        'pages_show_list',
+        'pages_read_engagement',
+        'pages_manage_metadata',
+        'leads_retrieval',
+        'business_management',
+      ];
+      const safeScopes = encodeURIComponent(safeScopesList.join(','));
       const oauthUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${redirectUri}&scope=${safeScopes}&response_type=code`;
 
       return {
         appId,
-        supportedScopes: ['public_profile', 'email'],
-        supportedProducts: ['business_login', 'pages_api'],
+        supportedScopes: safeScopesList,
+        supportedProducts: ['business_login', 'pages_api', 'lead_ads'],
         businessLogin: true,
         marketingApi: true,
         pagesApi: true,
