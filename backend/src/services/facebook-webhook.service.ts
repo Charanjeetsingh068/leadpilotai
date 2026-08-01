@@ -151,8 +151,8 @@ export class FacebookWebhookService {
       where: { formId: data.formId },
     });
 
-    const companyId = page?.companyId || 'company-uuid-001';
-    const workspaceId = page?.workspaceId || 'workspace-uuid-001';
+    const companyId = page?.companyId || '11111111-1111-1111-1111-111111111111';
+    const workspaceId = page?.workspaceId || '22222222-2222-2222-2222-222222222222';
 
     // Get Page access token
     let accessToken = page ? this.tokenService.decrypt(page.accessToken) : 'mock_page_token';

@@ -14,9 +14,9 @@ export class FacebookIntegrationController {
 
   private getScope(req: Request) {
     return {
-      companyId: (req as any).user?.companyId || (req.headers['x-company-id'] as string) || 'company-uuid-001',
-      workspaceId: (req as any).user?.workspaceId || (req.headers['x-workspace-id'] as string) || 'workspace-uuid-001',
-      userId: (req as any).user?.id || 'user-uuid-001',
+      companyId: (req as any).user?.companyId || (req.headers['x-company-id'] as string) || undefined,
+      workspaceId: (req as any).user?.workspaceId || (req.headers['x-workspace-id'] as string) || undefined,
+      userId: (req as any).user?.id || (req.headers['x-user-id'] as string) || undefined,
       userRole: (req as any).user?.role || 'Super Admin',
     };
   }

@@ -344,9 +344,9 @@ export class FacebookIntegrationService {
 
       // 5. Save FacebookAccount in PostgreSQL via FacebookRepository
       const account = await this.repo.upsertAccount({
-        companyId: scope.companyId || 'company-uuid-001',
-        workspaceId: scope.workspaceId || 'workspace-uuid-001',
-        userId: scope.userId || 'user-uuid-001',
+        companyId: scope.companyId || '11111111-1111-1111-1111-111111111111',
+        workspaceId: scope.workspaceId || '22222222-2222-2222-2222-222222222222',
+        userId: scope.userId || '33333333-3333-3333-3333-333333333333',
         accountName: userProfile.name || 'LeadPilot Connected Meta Account',
         fbUserId: userProfile.id,
         fbUserEmail: userProfile.email || '',
@@ -617,8 +617,8 @@ export class FacebookIntegrationService {
   async disconnectAccount(scope: MultiTenantScope, accountId: string) {
     await this.repo.deleteAccount(accountId);
     await this.repo.logEvent({
-      companyId: scope.companyId || 'company-uuid-001',
-      workspaceId: scope.workspaceId || 'workspace-uuid-001',
+      companyId: scope.companyId || '11111111-1111-1111-1111-111111111111',
+      workspaceId: scope.workspaceId || '22222222-2222-2222-2222-222222222222',
       eventType: 'ACCOUNT_DISCONNECTED',
       title: 'Meta Account Disconnected',
       description: `Disconnected Facebook Account ID ${accountId}.`,
