@@ -36,42 +36,32 @@ export interface MetaConnectionStatus {
 
 export const facebookIntegrationService = {
   async getCapabilities(): Promise<MetaCapabilities> {
-    try {
-      const res = await apiClient.post('/integrations/facebook/oauth');
-      return res.data.data;
-    } catch (e) {
-      const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || '1712255293083461';
-      const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
-      const redirectUri = encodeURIComponent(`${origin}/integrations/facebook/callback`);
-      const safeScopesList = [
-        'public_profile',
+    const res = await apiClient.post('/integrations/facebook/oauth');
+    const data = res.data.data || {};
+    return {
+      appId: process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || '1712255293083461',
+      supportedScopes: [
+        'business_management',
         'pages_show_list',
         'pages_read_engagement',
         'pages_manage_metadata',
         'leads_retrieval',
-        'business_management',
-      ];
-      const safeScopes = encodeURIComponent(safeScopesList.join(','));
-      const oauthUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${redirectUri}&scope=${safeScopes}&response_type=code`;
-
-      return {
-        appId,
-        supportedScopes: safeScopesList,
-        supportedProducts: ['business_login', 'pages_api', 'lead_ads'],
-        businessLogin: true,
-        marketingApi: true,
-        pagesApi: true,
-        leadAds: true,
-        isConfigured: true,
-        missingRequiredPermissions: [],
-        oauthUrl,
-      };
-    }
+        'instagram_basic',
+      ],
+      supportedProducts: ['business_login', 'pages_api', 'lead_ads'],
+      businessLogin: true,
+      marketingApi: true,
+      pagesApi: true,
+      leadAds: true,
+      isConfigured: true,
+      missingRequiredPermissions: [],
+      oauthUrl: data.oauthUrl,
+    };
   },
 
-  async startOAuth(): Promise<{ oauthUrl: string }> {
-    const caps = await this.getCapabilities();
-    return { oauthUrl: caps.oauthUrl };
+  async startOAuth(): Promise<{ oauthUrl: string; state: string; redirectUri: string }> {
+    const res = await apiClient.post('/integrations/facebook/oauth');
+    return res.data.data;
   },
 
   async getStatus(): Promise<MetaConnectionStatus> {

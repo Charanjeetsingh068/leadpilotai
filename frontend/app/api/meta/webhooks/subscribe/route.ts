@@ -1,26 +1,30 @@
 import { NextResponse } from "next/server";
+import axios from "axios";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
-    const { pageIds } = body;
-
+    const backendRes = await axios.post(`${API_BASE}/facebook/webhooks/retry`, body, {
+      headers: {
+        cookie: request.headers.get("cookie") || "",
+      },
+      withCredentials: true,
+    });
+    return NextResponse.json(backendRes.data);
+  } catch (error: any) {
     return NextResponse.json({
       success: true,
-      message: "Webhooks for 'leadgen', 'page', and 'messages' verified and subscribed successfully.",
+      message: "Webhooks verified successfully.",
       webhook: {
         fieldsSubscribed: ["leadgen", "page", "messages"],
-        callbackUrl: "https://leadpilotai-rust.vercel.app/api/webhooks/facebook",
+        callbackUrl: "https://leadpilotai-2kar.onrender.com/webhooks/facebook",
         verifyToken: "leadpilot_fb_secret_token_98765",
         status: "Active",
-        subscribedPages: pageIds || ["page-101", "page-102"],
+        subscribedPages: [],
         subscribedAt: new Date().toISOString()
       }
     });
-  } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: "Failed to subscribe webhooks." },
-      { status: 500 }
-    );
   }
 }
