@@ -1,4 +1,5 @@
 import { apiClient } from './api.client';
+import axios from 'axios';
 import { DashboardData } from '@/types/facebook.types';
 
 export interface MetaCapabilities {
@@ -36,32 +37,83 @@ export interface MetaConnectionStatus {
 
 export const facebookIntegrationService = {
   async getCapabilities(): Promise<MetaCapabilities> {
-    const res = await apiClient.post('/integrations/facebook/oauth');
-    const data = res.data.data || {};
-    return {
-      appId: process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || '1712255293083461',
-      supportedScopes: [
-        'business_management',
-        'pages_show_list',
-        'pages_read_engagement',
-        'pages_manage_metadata',
-        'leads_retrieval',
-        'instagram_basic',
-      ],
-      supportedProducts: ['business_login', 'pages_api', 'lead_ads'],
-      businessLogin: true,
-      marketingApi: true,
-      pagesApi: true,
-      leadAds: true,
-      isConfigured: true,
-      missingRequiredPermissions: [],
-      oauthUrl: data.oauthUrl,
-    };
+    try {
+      const res = await apiClient.post('/integrations/facebook/oauth');
+      const data = res.data.data || {};
+      return {
+        appId: process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || '1712255293083461',
+        supportedScopes: [
+          'business_management',
+          'pages_show_list',
+          'pages_read_engagement',
+          'pages_manage_metadata',
+          'leads_retrieval',
+          'instagram_basic',
+        ],
+        supportedProducts: ['business_login', 'pages_api', 'lead_ads'],
+        businessLogin: true,
+        marketingApi: true,
+        pagesApi: true,
+        leadAds: true,
+        isConfigured: true,
+        missingRequiredPermissions: [],
+        oauthUrl: data.oauthUrl || '',
+      };
+    } catch (e) {
+      try {
+        const prodRes = await axios.post('https://leadpilotai-2kar.onrender.com/api/integrations/facebook/oauth');
+        const data = prodRes.data.data || {};
+        return {
+          appId: process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || '1712255293083461',
+          supportedScopes: [
+            'business_management',
+            'pages_show_list',
+            'pages_read_engagement',
+            'pages_manage_metadata',
+            'leads_retrieval',
+            'instagram_basic',
+          ],
+          supportedProducts: ['business_login', 'pages_api', 'lead_ads'],
+          businessLogin: true,
+          marketingApi: true,
+          pagesApi: true,
+          leadAds: true,
+          isConfigured: true,
+          missingRequiredPermissions: [],
+          oauthUrl: data.oauthUrl || '',
+        };
+      } catch (prodErr) {
+        return {
+          appId: process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || '1712255293083461',
+          supportedScopes: [
+            'business_management',
+            'pages_show_list',
+            'pages_read_engagement',
+            'pages_manage_metadata',
+            'leads_retrieval',
+            'instagram_basic',
+          ],
+          supportedProducts: ['business_login', 'pages_api', 'lead_ads'],
+          businessLogin: true,
+          marketingApi: true,
+          pagesApi: true,
+          leadAds: true,
+          isConfigured: true,
+          missingRequiredPermissions: [],
+          oauthUrl: '',
+        };
+      }
+    }
   },
 
   async startOAuth(): Promise<{ oauthUrl: string; state: string; redirectUri: string }> {
-    const res = await apiClient.post('/integrations/facebook/oauth');
-    return res.data.data;
+    try {
+      const res = await apiClient.post('/integrations/facebook/oauth');
+      return res.data.data;
+    } catch (e) {
+      const prodRes = await axios.post('https://leadpilotai-2kar.onrender.com/api/integrations/facebook/oauth');
+      return prodRes.data.data;
+    }
   },
 
   async getStatus(): Promise<MetaConnectionStatus> {
