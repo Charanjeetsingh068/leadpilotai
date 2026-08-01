@@ -258,7 +258,7 @@ export class FacebookIntegrationService {
       }
     }
 
-    const redirectUri = process.env.FACEBOOK_REDIRECT_URI || `${baseUrl}/api/integrations/facebook/callback`;
+    const redirectUri = process.env.FACEBOOK_REDIRECT_URI || 'https://leadpilotai-2kar.onrender.com/api/integrations/facebook/callback';
     const scopesList = [
       'business_management',
       'pages_show_list',
