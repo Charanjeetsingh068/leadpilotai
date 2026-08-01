@@ -143,10 +143,10 @@ export class FacebookIntegrationService {
     };
 
     // Enhance Business Portfolios with counts for owned pages, instagram, whatsapp
-    const enhancedBusinesses = businesses.map((b) => {
-      const ownedPages = pagesResult.pages.filter(p => p.facebookBusinessId === b.id).length;
-      const ownedInstagram = instagrams.filter(i => i.facebookBusinessId === b.id).length;
-      const ownedWhatsApp = whatsapps.filter(w => w.facebookBusinessId === b.id).length;
+    const enhancedBusinesses = businesses.map((b: any) => {
+      const ownedPages = pagesResult.pages.filter((p: any) => p.facebookBusinessId === b.id).length;
+      const ownedInstagram = instagrams.filter((i: any) => i.facebookBusinessId === b.id).length;
+      const ownedWhatsApp = whatsapps.filter((w: any) => w.facebookBusinessId === b.id).length;
       return {
         ...b,
         ownedPagesCount: ownedPages || b.pages?.length || 0,
@@ -169,7 +169,7 @@ export class FacebookIntegrationService {
       totalForms: formsResult.total,
       permissions,
       webhookHealth,
-      recentEvents: recentEvents.map((evt) => ({
+      recentEvents: recentEvents.map((evt: any) => ({
         id: evt.id,
         title: evt.title,
         description: evt.description || '',
