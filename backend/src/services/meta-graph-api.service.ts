@@ -1,4 +1,4 @@
-const GRAPH_BASE_URL = 'https://graph.facebook.com/v19.0';
+const GRAPH_BASE_URL = 'https://graph.facebook.com/v23.0';
 
 export interface MetaGraphErrorDetails {
   httpStatus: number;
