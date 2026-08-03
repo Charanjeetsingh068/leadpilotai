@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { FacebookRepository, MultiTenantScope } from '../repositories/facebook.repository';
+import { FacebookRepository, MultiTenantScope, isUuid } from '../repositories/facebook.repository';
 import { TokenManagementService } from './token-management.service';
 import { MetaGraphApiService, logMetaEvent } from './meta-graph-api.service';
 import { prisma } from '../config/database';
@@ -691,14 +691,28 @@ export class FacebookIntegrationService {
     return this.repo.findForms(scope, options);
   }
 
-  async disconnectAccount(scope: MultiTenantScope, accountId: string) {
-    await this.repo.deleteAccount(accountId);
+  async disconnectAccount(scope: MultiTenantScope, accountId?: string) {
+    let account = null;
+    if (accountId) {
+      account = isUuid(accountId)
+        ? await this.repo.findAccountById(accountId)
+        : await this.repo.findAccountByFbUserId(accountId);
+    }
+
+    if (!account) {
+      const accountsResult = await this.repo.findAccounts(scope, { page: 1, limit: 1 });
+      account = accountsResult.accounts[0] || (await prisma.facebookAccount.findFirst({ orderBy: { createdAt: 'desc' } }));
+    }
+
+    if (!account) return;
+
+    await this.repo.deleteAccount(account.id);
     await this.repo.logEvent({
       companyId: scope.companyId || '11111111-1111-1111-1111-111111111111',
       workspaceId: scope.workspaceId || '22222222-2222-2222-2222-222222222222',
       eventType: 'ACCOUNT_DISCONNECTED',
       title: 'Meta Account Disconnected',
-      description: `Disconnected Facebook Account ID ${accountId}.`,
+      description: `Disconnected Facebook Account ID ${account.id}.`,
     });
   }
 }

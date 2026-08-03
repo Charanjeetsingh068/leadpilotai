@@ -150,7 +150,7 @@ export const FacebookConnectionWizard: React.FC = () => {
     if (!confirm('Are you sure you want to disconnect Meta Facebook Integration? Token and page sync will be removed.')) return;
     setLoading(true);
     try {
-      await facebookIntegrationService.disconnectAccount();
+      await facebookIntegrationService.disconnectAccount(status?.accountId);
       setStatus({
         isConnected: false,
         pagesCount: 0,

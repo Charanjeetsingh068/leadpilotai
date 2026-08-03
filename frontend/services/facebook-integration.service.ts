@@ -221,7 +221,11 @@ export const facebookIntegrationService = {
   },
 
   async disconnectAccount(accountId?: string): Promise<void> {
-    await apiClient.post('/facebook/disconnect', { accountId });
+    try {
+      await apiClient.post('/facebook/disconnect', { accountId });
+    } catch (e) {
+      await axios.post('https://leadpilotai-2kar.onrender.com/api/facebook/disconnect', { accountId });
+    }
   },
 
   async getDashboard(businessId?: string): Promise<DashboardData> {
