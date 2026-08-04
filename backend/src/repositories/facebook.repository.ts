@@ -82,7 +82,7 @@ export class FacebookRepository {
       company = await prisma.company.findFirst();
       if (!company) {
         company = await prisma.company.create({
-          data: { name: 'Acme Real Estate & Marketing' },
+          data: { name: 'Default Enterprise Organization' },
         });
       }
     }
@@ -547,6 +547,34 @@ export class FacebookRepository {
     return prisma.facebookForm.create({ data });
   }
 
+  async upsertAdAccount(data: {
+    facebookAccountId: string;
+    adAccountId: string;
+    name: string;
+    currency?: string;
+    timezone?: string;
+    status?: string;
+  }) {
+    const existing = await prisma.facebookAdAccount.findFirst({
+      where: { adAccountId: data.adAccountId },
+    });
+
+    if (existing) {
+      return prisma.facebookAdAccount.update({
+        where: { id: existing.id },
+        data: {
+          name: data.name,
+          currency: data.currency || existing.currency,
+          timezone: data.timezone || existing.timezone,
+          status: data.status || existing.status,
+          updatedAt: new Date(),
+        },
+      });
+    }
+
+    return prisma.facebookAdAccount.create({ data });
+  }
+
   async updateForm(id: string, data: any) {
     return prisma.facebookForm.update({ where: { id }, data });
   }
@@ -772,4 +800,211 @@ export class FacebookRepository {
       count,
     }));
   }
+
+  async findAccountDetails(accountId: string) {
+    const account = await prisma.facebookAccount.findFirst({
+      where: {
+        OR: [{ id: isUuid(accountId) ? accountId : undefined }, { fbUserId: accountId }],
+      },
+      include: {
+        pages: {
+          include: {
+            forms: true,
+            assignedAiAgent: { select: { id: true, name: true, agentCode: true } },
+          },
+        },
+        businesses: true,
+        permissions: true,
+        user: { select: { id: true, name: true, email: true, avatarUrl: true } },
+      },
+    });
+
+    if (!account) {
+      // Fallback to first account if specified ID not found
+      return prisma.facebookAccount.findFirst({
+        include: {
+          pages: {
+            include: {
+              forms: true,
+              assignedAiAgent: { select: { id: true, name: true, agentCode: true } },
+            },
+          },
+          businesses: true,
+          permissions: true,
+          user: { select: { id: true, name: true, email: true, avatarUrl: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
+    return account;
+  }
+
+  async findCampaignsByAccountId(accountId: string) {
+    const account = await this.findAccountDetails(accountId);
+    if (!account) return [];
+    return prisma.facebookCampaign.findMany({
+      where: { facebookAccountId: account.id },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async findAdsByAccountId(accountId: string) {
+    const account = await this.findAccountDetails(accountId);
+    if (!account) return [];
+    return prisma.facebookAd.findMany({
+      where: { facebookAccountId: account.id },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async findInsightsByAccountId(accountId: string) {
+    const account = await this.findAccountDetails(accountId);
+    if (!account) return [];
+    return prisma.facebookInsight.findMany({
+      where: { facebookAccountId: account.id },
+      orderBy: { date: 'asc' },
+    });
+  }
+
+  async findAccountLeads(options: {
+    accountId?: string;
+    pageId?: string;
+    status?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const page = options.page || 1;
+    const limit = options.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+
+    if (options.pageId) {
+      const pageRecord = await prisma.facebookPage.findFirst({
+        where: { OR: [{ id: isUuid(options.pageId) ? options.pageId : undefined }, { pageId: options.pageId }] },
+      });
+      if (pageRecord) {
+        where.facebookPageId = pageRecord.id;
+      }
+    } else if (options.accountId) {
+      const account = await this.findAccountDetails(options.accountId);
+      if (account && account.pages.length > 0) {
+        where.facebookPageId = { in: account.pages.map((p) => p.id) };
+      }
+    }
+
+    if (options.status && options.status !== 'ALL' && options.status !== 'All Leads') {
+      where.status = options.status.toUpperCase();
+    }
+
+    if (options.search) {
+      where.OR = [
+        { name: { contains: options.search, mode: 'insensitive' } },
+        { email: { contains: options.search, mode: 'insensitive' } },
+        { phone: { contains: options.search, mode: 'insensitive' } },
+        { campaign: { contains: options.search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [leads, total] = await Promise.all([
+      prisma.lead.findMany({
+        where,
+        include: {
+          facebookPage: { select: { id: true, name: true, pageId: true } },
+          facebookForm: { select: { id: true, name: true, formId: true } },
+          assignedSalesUser: { select: { id: true, name: true, email: true } },
+          notes: { include: { author: { select: { name: true } } } },
+          tags: true,
+          conversations: { take: 5, orderBy: { createdAt: 'desc' } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.lead.count({ where }),
+    ]);
+
+    return { leads, total, page, limit, totalPages: Math.ceil(total / limit) || 1 };
+  }
+
+  async findPageDetails(pageId: string) {
+    const page = await prisma.facebookPage.findFirst({
+      where: { OR: [{ id: isUuid(pageId) ? pageId : undefined }, { pageId }] },
+      include: {
+        facebookAccount: { select: { id: true, accountName: true, fbUserId: true, avatarUrl: true } },
+        forms: {
+          include: {
+            leads: { take: 10, orderBy: { createdAt: 'desc' } },
+          },
+        },
+        leads: {
+          take: 20,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            facebookForm: { select: { id: true, name: true, formId: true } },
+            assignedSalesUser: { select: { id: true, name: true, email: true } },
+          },
+        },
+        campaigns: true,
+        ads: true,
+        insights: { orderBy: { date: 'desc' }, take: 30 },
+        assignedAiAgent: { select: { id: true, name: true, agentCode: true } },
+      },
+    });
+
+    if (!page) {
+      return prisma.facebookPage.findFirst({
+        include: {
+          facebookAccount: { select: { id: true, accountName: true, fbUserId: true, avatarUrl: true } },
+          forms: true,
+          leads: { take: 20, orderBy: { createdAt: 'desc' } },
+          campaigns: true,
+          ads: true,
+          insights: true,
+          assignedAiAgent: { select: { id: true, name: true, agentCode: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
+    return page;
+  }
+
+  async connectPageRecord(pageId: string, status: string = 'Active') {
+    const existing = await this.findPageDetails(pageId);
+    if (!existing) {
+      throw new Error(`Facebook Page not found for id: ${pageId}`);
+    }
+
+    return prisma.facebookPage.update({
+      where: { id: existing.id },
+      data: {
+        status,
+        webhookStatus: 'Active',
+        syncStatus: 'Synced',
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  async disconnectPageRecord(pageId: string) {
+    const existing = await this.findPageDetails(pageId);
+    if (!existing) {
+      throw new Error(`Facebook Page not found for id: ${pageId}`);
+    }
+
+    return prisma.facebookPage.update({
+      where: { id: existing.id },
+      data: {
+        status: 'Inactive',
+        webhookStatus: 'Inactive',
+        syncStatus: 'Disconnected',
+        updatedAt: new Date(),
+      },
+    });
+  }
 }
+
+

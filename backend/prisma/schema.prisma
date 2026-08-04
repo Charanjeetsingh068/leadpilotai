@@ -993,6 +993,10 @@ model FacebookAccount {
   permissions     FacebookPermission[]
   tokens          FacebookToken[]
   syncLogs        FacebookSyncLog[]
+  campaigns       FacebookCampaign[]
+  ads             FacebookAd[]
+  insights        FacebookInsight[]
+  adAccounts      FacebookAdAccount[]
 
   @@map("facebook_accounts")
 }
@@ -1046,6 +1050,9 @@ model FacebookPage {
   forms              FacebookForm[]
   leads              Lead[]
   instagrams         InstagramAccount[]
+  campaigns          FacebookCampaign[]
+  ads                FacebookAd[]
+  insights           FacebookInsight[]
 
   @@map("facebook_pages")
 }
@@ -1254,6 +1261,107 @@ model FacebookConnection {
 
   @@map("facebook_connections")
 }
+
+model FacebookCampaign {
+  id                String          @id @default(uuid()) @db.Uuid
+  facebookAccountId String          @db.Uuid
+  facebookAccount   FacebookAccount @relation(fields: [facebookAccountId], references: [id], onDelete: Cascade)
+  facebookPageId    String?         @db.Uuid
+  facebookPage      FacebookPage?   @relation(fields: [facebookPageId], references: [id], onDelete: SetNull)
+  campaignId        String          @unique
+  name              String
+  objective         String          @default("OUTCOME_LEADS")
+  budget            Float           @default(500.0)
+  spend             Float           @default(0.0)
+  reach             Int             @default(0)
+  clicks            Int             @default(0)
+  ctr               Float           @default(0.0)
+  leadsCount        Int             @default(0)
+  cpl               Float           @default(0.0)
+  status            String          @default("ACTIVE")
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @default(now()) @updatedAt
+  ads               FacebookAd[]
+  adSets            FacebookAdSet[]
+
+  @@map("facebook_campaigns")
+}
+
+model FacebookAd {
+  id                String            @id @default(uuid()) @db.Uuid
+  facebookAccountId String            @db.Uuid
+  facebookAccount   FacebookAccount   @relation(fields: [facebookAccountId], references: [id], onDelete: Cascade)
+  facebookPageId    String?           @db.Uuid
+  facebookPage      FacebookPage?     @relation(fields: [facebookPageId], references: [id], onDelete: SetNull)
+  facebookCampaignId String?          @db.Uuid
+  facebookCampaign  FacebookCampaign? @relation(fields: [facebookCampaignId], references: [id], onDelete: SetNull)
+  adId              String            @unique
+  name              String
+  imageUrl          String?
+  videoUrl          String?
+  spend             Float             @default(0.0)
+  clicks            Int               @default(0)
+  conversions       Int               @default(0)
+  roas              Float             @default(0.0)
+  status            String            @default("ACTIVE")
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @default(now()) @updatedAt
+
+  @@map("facebook_ads")
+}
+
+model FacebookInsight {
+  id                String           @id @default(uuid()) @db.Uuid
+  facebookAccountId String           @db.Uuid
+  facebookAccount   FacebookAccount  @relation(fields: [facebookAccountId], references: [id], onDelete: Cascade)
+  facebookPageId    String?          @db.Uuid
+  facebookPage      FacebookPage?    @relation(fields: [facebookPageId], references: [id], onDelete: SetNull)
+  date              DateTime         @default(now())
+  period            String           @default("DAILY") // DAILY, WEEKLY, MONTHLY
+  leadsCount        Int              @default(0)
+  spend             Float            @default(0.0)
+  ctr               Float            @default(0.0)
+  reach             Int              @default(0)
+  impressions       Int              @default(0)
+  frequency         Float            @default(1.0)
+  costPerLead       Float            @default(0.0)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @default(now()) @updatedAt
+
+  @@map("facebook_insights")
+}
+
+model FacebookAdAccount {
+  id                String          @id @default(uuid()) @db.Uuid
+  facebookAccountId String          @db.Uuid
+  facebookAccount   FacebookAccount @relation(fields: [facebookAccountId], references: [id], onDelete: Cascade)
+  adAccountId       String          @unique
+  name              String
+  currency          String          @default("USD")
+  timezone          String          @default("America/Los_Angeles")
+  status            String          @default("ACTIVE")
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @default(now()) @updatedAt
+
+  @@map("facebook_ad_accounts")
+}
+
+model FacebookAdSet {
+  id                 String            @id @default(uuid()) @db.Uuid
+  facebookCampaignId String?           @db.Uuid
+  facebookCampaign   FacebookCampaign? @relation(fields: [facebookCampaignId], references: [id], onDelete: Cascade)
+  adSetId            String            @unique
+  name               String
+  dailyBudget        Float             @default(0.0)
+  lifetimeBudget     Float             @default(0.0)
+  status             String            @default("ACTIVE")
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @default(now()) @updatedAt
+
+  @@map("facebook_ad_sets")
+}
+
+
 
 
 

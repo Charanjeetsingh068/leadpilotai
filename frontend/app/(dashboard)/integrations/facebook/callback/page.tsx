@@ -61,12 +61,14 @@ export default function FacebookOAuthCallbackPage() {
       if (statusData && statusData.isConnected) {
         setStatus('success');
 
+        const accountId = statusData.accountId || res.data?.data?.account?.id || '28149461204738597';
+
         if (window.opener && !window.opener.closed) {
-          window.opener.postMessage({ type: 'FB_OAUTH_SUCCESS', data: res.data?.data }, '*');
+          window.opener.postMessage({ type: 'FB_OAUTH_SUCCESS', data: res.data?.data, accountId }, '*');
           setTimeout(() => window.close(), 1000);
         } else {
           setTimeout(() => {
-            router.push('/integrations/facebook');
+            router.push(`/integrations/facebook/account/${accountId}`);
           }, 1200);
         }
       } else {

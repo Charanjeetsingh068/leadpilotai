@@ -89,17 +89,17 @@ export const ConnectedAccountsTable: React.FC<Props> = ({
                     </div>
                   </td>
                   <td>
-                    <div className="fb-cell-title">{acc.businessManagerName || (acc.businesses && acc.businesses[0]?.name) || 'Acme Real Estate'}</div>
-                    <div className="fb-cell-sub">{acc.businessManagerId || (acc.businesses && acc.businesses[0]?.businessId) ? `ID: ${acc.businessManagerId || acc.businesses?.[0]?.businessId}` : 'Verified Business'}</div>
+                    <div className="fb-cell-title">{acc.businessManagerName || (acc.businesses && acc.businesses[0]?.name) || 'Meta Business Manager'}</div>
+                    <div className="fb-cell-sub">{acc.businessManagerId || (acc.businesses && acc.businesses[0]?.businessId) ? `ID: ${acc.businessManagerId || acc.businesses?.[0]?.businessId}` : 'Connected Business'}</div>
                   </td>
                   <td>
                     <div className="fb-cell-user">
                       <div className="fb-user-avatar-mini">
-                        {getInitials(acc.connectedByUser?.name || acc.user?.name || acc.accountName || 'Sumit Chaudhary')}
+                        {getInitials(acc.connectedByUser?.name || acc.user?.name || acc.accountName)}
                       </div>
                       <div>
-                        <div className="fb-cell-title">{acc.connectedByUser?.name || acc.user?.name || acc.accountName || 'Sumit Chaudhary'}</div>
-                        <div className="fb-cell-sub">{acc.connectedByUser?.roleName || acc.user?.role?.name || 'Client Admin'}</div>
+                        <div className="fb-cell-title">{acc.connectedByUser?.name || acc.user?.name || acc.accountName}</div>
+                        <div className="fb-cell-sub">{acc.connectedByUser?.roleName || acc.user?.role?.name || 'Administrator'}</div>
                       </div>
                     </div>
                   </td>
@@ -114,7 +114,7 @@ export const ConnectedAccountsTable: React.FC<Props> = ({
                   </td>
                   <td>
                     <span className="fb-cell-muted">
-                      {acc.lastSync || (acc.lastSyncAt ? new Date(acc.lastSyncAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just Now')}
+                      {acc.lastSync || (acc.lastSyncAt ? new Date(acc.lastSyncAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—')}
                     </span>
                   </td>
                   <td>
@@ -123,7 +123,7 @@ export const ConnectedAccountsTable: React.FC<Props> = ({
                         acc.tokenStatus === 'Expired' ? 'text-danger' : 'text-main'
                       }`}
                     >
-                      {acc.tokenExpiry || (acc.tokenExpiresAt ? new Date(acc.tokenExpiresAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Sep 30, 2026')}
+                      {acc.tokenExpiry || (acc.tokenExpiresAt ? new Date(acc.tokenExpiresAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Never')}
                     </span>
                   </td>
                   <td className="text-right">

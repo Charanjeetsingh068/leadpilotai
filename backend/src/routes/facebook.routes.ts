@@ -16,12 +16,20 @@ router.post('/integrations/facebook/disconnect', oauthController.disconnect);
 router.post('/facebook/connect', integrationController.connect);
 router.post('/facebook/disconnect', oauthController.disconnect);
 
-// Diagnostics Routes
+// Diagnostics & Audit Routes
 router.get('/meta/diagnostics', integrationController.getDiagnostics);
 router.get('/facebook/diagnostics', integrationController.getDiagnostics);
+router.get('/meta/audit', integrationController.runAudit);
+router.get('/facebook/audit', integrationController.runAudit);
 
 // Accounts Routes
 router.get('/facebook/accounts', integrationController.getAccounts);
+router.get('/facebook/accounts/:id/details', integrationController.getAccountDetails);
+router.get('/facebook/accounts/:id/leads', integrationController.getAccountLeads);
+router.get('/facebook/accounts/:id/campaigns', integrationController.getAccountCampaigns);
+router.get('/facebook/accounts/:id/ads', integrationController.getAccountAds);
+router.get('/facebook/accounts/:id/insights', integrationController.getAccountInsights);
+router.get('/facebook/accounts/:id/stream', integrationController.streamEvents);
 router.get('/facebook/accounts/:id', integrationController.getAccounts);
 
 // Businesses Routes
@@ -29,6 +37,10 @@ router.get('/facebook/businesses', integrationController.getBusinesses);
 
 // Pages Routes
 router.get('/facebook/pages', integrationController.getPages);
+router.post('/facebook/pages/:pageId/connect', integrationController.connectPage);
+router.post('/facebook/pages/:pageId/disconnect', integrationController.disconnectPage);
+router.post('/facebook/pages/:pageId/sync', integrationController.syncPage);
+router.get('/facebook/pages/:pageId/details', integrationController.getPageDetails);
 router.get('/facebook/pages/:id', integrationController.getPages);
 
 // Forms Routes

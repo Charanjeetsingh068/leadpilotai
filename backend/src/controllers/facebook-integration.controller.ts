@@ -42,6 +42,8 @@ export class FacebookIntegrationController {
         status: verification.status,
         isConnected: verification.isConnected,
         user: verification.user,
+        pagesCount: dashboard.pages?.length || dashboard.totalPages || 0,
+        formsCount: dashboard.forms?.length || dashboard.totalForms || 0,
         connection: {
           ...dashboard.connection,
           status: verification.status,
@@ -171,4 +173,134 @@ export class FacebookIntegrationController {
       next(err);
     }
   };
+
+  getAccountDetails = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const accountId = (req.params.id || req.params.facebookAccountId) as string;
+      const data = await this.service.getAccountDetails(accountId);
+      res.json(createApiResponse(true, data, 'Account details retrieved successfully'));
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  getAccountLeads = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const accountId = (req.params.id || req.params.facebookAccountId) as string;
+      const { pageId, status, search, page, limit } = req.query;
+      const result = await this.service.getAccountLeads({
+        accountId,
+        pageId: pageId as string,
+        status: status as string,
+        search: search as string,
+        page: page ? parseInt(page as string) : 1,
+        limit: limit ? parseInt(limit as string) : 20,
+      });
+      res.json(createApiResponse(true, result, 'Account leads retrieved successfully'));
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  getAccountCampaigns = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const accountId = (req.params.id || req.params.facebookAccountId) as string;
+      const data = await this.service.getAccountCampaigns(accountId);
+      res.json(createApiResponse(true, data, 'Account campaigns retrieved successfully'));
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  getAccountAds = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const accountId = (req.params.id || req.params.facebookAccountId) as string;
+      const data = await this.service.getAccountAds(accountId);
+      res.json(createApiResponse(true, data, 'Account ads retrieved successfully'));
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  getAccountInsights = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const accountId = (req.params.id || req.params.facebookAccountId) as string;
+      const data = await this.service.getAccountInsights(accountId);
+      res.json(createApiResponse(true, data, 'Account insights retrieved successfully'));
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  streamEvents = async (req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    res.write(`data: ${JSON.stringify({ type: 'CONNECTED', message: 'SSE Stream Active' })}\n\n`);
+
+    const interval = setInterval(() => {
+      res.write(`data: ${JSON.stringify({ type: 'HEARTBEAT', timestamp: new Date().toISOString() })}\n\n`);
+    }, 15000);
+
+    req.on('close', () => {
+      clearInterval(interval);
+    });
+  };
+
+  connectPage = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const scope = this.getScope(req);
+      const pageId = (req.params.pageId || req.params.id) as string;
+      const data = await this.service.connectPageFlow(scope, pageId);
+      res.json(createApiResponse(true, data, 'Facebook Page connected & synced successfully'));
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  disconnectPage = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const scope = this.getScope(req);
+      const pageId = (req.params.pageId || req.params.id) as string;
+      const data = await this.service.disconnectPageFlow(scope, pageId);
+      res.json(createApiResponse(true, data, 'Facebook Page disconnected successfully'));
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  syncPage = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const scope = this.getScope(req);
+      const pageId = (req.params.pageId || req.params.id) as string;
+      const data = await this.service.connectPageFlow(scope, pageId);
+      res.json(createApiResponse(true, data, 'Facebook Page re-synchronized successfully'));
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  getPageDetails = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const pageId = (req.params.pageId || req.params.id) as string;
+      const data = await this.service.getPageDetails(pageId);
+      res.json(createApiResponse(true, data, 'Facebook Page details retrieved successfully'));
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  runAudit = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const scope = this.getScope(req);
+      const report = await this.service.runProductionAudit(scope);
+      res.json(createApiResponse(true, report, 'Meta Graph API Production Audit Report Generated'));
+    } catch (err) {
+      next(err);
+    }
+  };
 }
+
+
+

@@ -49,6 +49,12 @@ export const FacebookConnectionWizard: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
+      try {
+        await facebookIntegrationService.triggerManualSync();
+      } catch (syncErr) {
+        console.warn('Auto sync warning on loadData:', syncErr);
+      }
+
       const [capsData, statusData] = await Promise.all([
         facebookIntegrationService.getCapabilities(),
         facebookIntegrationService.getStatus(),

@@ -272,6 +272,17 @@ export class MetaGraphApiService {
     }
   }
 
+  async getOwnedAdAccounts(businessId: string, accessToken: string) {
+    try {
+      const url = `/${businessId}/owned_ad_accounts?fields=id,name,account_id,currency,timezone_name,account_status&access_token=${encodeURIComponent(accessToken)}`;
+      const data = await this.requestGraphApi(url);
+      return data.data || [];
+    } catch (e: any) {
+      logMetaEvent('Owned Ad Accounts Query Info', { businessId, message: e.message });
+      return [];
+    }
+  }
+
   async sendWhatsAppCloudMessage(phoneNumberId: string, accessToken: string, payload: any) {
     const url = `/${phoneNumberId}/messages?access_token=${encodeURIComponent(accessToken)}`;
     const data = await this.requestGraphApi(url, {
@@ -293,16 +304,55 @@ export class MetaGraphApiService {
   }
 
   async subscribePageWebhook(pageId: string, pageAccessToken: string) {
-    const url = `/${pageId}/subscribed_apps?subscribed_fields=leadgen,messages,feed&access_token=${encodeURIComponent(pageAccessToken)}`;
+    const fields = 'leadgen,messages,instagram,comments,messaging_postbacks,messaging_optins,messaging_referrals,messaging_handovers';
+    const url = `/${pageId}/subscribed_apps?subscribed_fields=${fields}&access_token=${encodeURIComponent(pageAccessToken)}`;
     const data = await this.requestGraphApi(url, { method: 'POST' });
 
     logMetaEvent('Webhook Subscribed', {
+      pageId,
+      subscribedFields: fields,
+      success: data.success || data.result === 'success',
+      response: data,
+    });
+
+    return data;
+  }
+
+  async unsubscribePageWebhook(pageId: string, pageAccessToken: string) {
+    const url = `/${pageId}/subscribed_apps?access_token=${encodeURIComponent(pageAccessToken)}`;
+    const data = await this.requestGraphApi(url, { method: 'DELETE' });
+
+    logMetaEvent('Webhook Unsubscribed', {
       pageId,
       success: data.success || data.result === 'success',
       response: data,
     });
 
     return data;
+  }
+
+  async getFormLeads(formId: string, pageAccessToken: string) {
+    const url = `/${formId}/leads?fields=id,created_time,field_data,ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name&access_token=${encodeURIComponent(pageAccessToken)}`;
+    const data = await this.requestGraphApi(url);
+    const leads = data.data || [];
+
+    logMetaEvent('Form Leads Retrieved', {
+      formId,
+      count: leads.length,
+    });
+
+    return leads;
+  }
+
+  async getPageInsights(pageId: string, pageAccessToken: string) {
+    try {
+      const url = `/${pageId}/insights?metric=page_impressions,page_engaged_users,page_post_engagements,page_views_total&period=day&access_token=${encodeURIComponent(pageAccessToken)}`;
+      const data = await this.requestGraphApi(url);
+      return data.data || [];
+    } catch (e: any) {
+      logMetaEvent('Page Insights Info', { pageId, message: e.message });
+      return [];
+    }
   }
 
   async getPermissions(accessToken: string) {
