@@ -44,7 +44,7 @@ export class FacebookIntegrationService {
 
     const statePayload = { scope, timestamp: Date.now() };
     const state = Buffer.from(JSON.stringify(statePayload)).toString('base64url');
-    const oauthUrl = `https://www.facebook.com/v24.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&config_id=${configId}&response_type=code&state=${state}&scope=${REQUIRED_PERMISSIONS.join(',')}`;
+    const oauthUrl = `https://www.facebook.com/v23.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&config_id=${configId}&response_type=code&state=${state}`;
 
     return { oauthUrl, configId, appId, redirectUri, state };
   }
@@ -113,7 +113,11 @@ export class FacebookIntegrationService {
       metadata: { fbUserId: profile.id, tokenStatus, grantedPermissionsCount: grantedPermissions.length },
     });
 
-    await this.discoveryService.runAutomaticDiscovery(scope, longToken);
+    try {
+      await this.discoveryService.runAutomaticDiscovery(scope, longToken);
+    } catch (discErr: any) {
+      logMetaEvent('Automatic Asset Discovery Warning during OAuth Callback', { error: discErr.message });
+    }
 
     return {
       success: true,
