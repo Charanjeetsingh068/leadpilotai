@@ -43,8 +43,8 @@ export class FacebookOAuthController {
       };
       const state = Buffer.from(JSON.stringify(statePayload)).toString('base64url');
 
-      // Facebook Login for Business Auth URL using Config ID Flow & Graph API v23.0
-      const oauthUrl = `https://www.facebook.com/${graphVersion}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&config_id=${configId}&response_type=code&state=${state}&scope=${REQUIRED_SCOPES.join(',')}`;
+      // Facebook Login for Business Auth URL using Config ID Flow & Graph API v23.0 (Zero legacy scope parameter)
+      const oauthUrl = `https://www.facebook.com/${graphVersion}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&config_id=${configId}&response_type=code&state=${state}`;
 
       res.json({
         success: true,
