@@ -167,19 +167,30 @@ export class MetaGraphApiService {
 
   async getPages(accessToken: string) {
     try {
-      const url = `/me/accounts?fields=id,name,category,access_token,fan_count,picture,tasks&access_token=${encodeURIComponent(accessToken)}`;
-      const data = await this.requestGraphApi(url);
-      const pages = data.data || [];
+      let url = `/me/accounts?fields=id,name,category,access_token,fan_count,picture,tasks&limit=100&access_token=${encodeURIComponent(accessToken)}`;
+      const allPages: any[] = [];
+
+      while (url) {
+        const data = await this.requestGraphApi(url);
+        if (Array.isArray(data.data)) {
+          allPages.push(...data.data);
+        }
+        if (data.paging?.next) {
+          url = data.paging.next;
+        } else {
+          url = '';
+        }
+      }
 
       // Guarantee default Page 107603090654737 is included
-      if (!pages.some((p: any) => p.id === '107603090654737')) {
+      if (!allPages.some((p: any) => p.id === '107603090654737')) {
         try {
           const defaultPageData = await this.requestGraphApi(`/107603090654737?fields=id,name,category,access_token,fan_count,picture,tasks&access_token=${encodeURIComponent(accessToken)}`);
           if (defaultPageData && defaultPageData.id) {
-            pages.unshift(defaultPageData);
+            allPages.unshift(defaultPageData);
           }
         } catch (e) {
-          pages.unshift({
+          allPages.unshift({
             id: '107603090654737',
             name: 'LeadPilot Official Page',
             category: 'Real Estate Company',
@@ -189,8 +200,8 @@ export class MetaGraphApiService {
         }
       }
 
-      logMetaEvent('Pages Found', { count: pages.length, pages });
-      return pages;
+      logMetaEvent('Pages Found Total', { count: allPages.length, allPages });
+      return allPages;
     } catch (err: any) {
       logMetaEvent('getPages Warning (Missing Permission)', { message: err.message });
       return [{

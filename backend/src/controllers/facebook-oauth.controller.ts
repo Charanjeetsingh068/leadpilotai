@@ -43,8 +43,23 @@ export class FacebookOAuthController {
       };
       const state = Buffer.from(JSON.stringify(statePayload)).toString('base64url');
 
-      // Facebook Login for Business Auth URL using Config ID Flow & Graph API v23.0 (Zero legacy scope parameter)
-      const oauthUrl = `https://www.facebook.com/${graphVersion}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&config_id=${configId}&response_type=code&state=${state}`;
+      const VALID_META_SCOPES = [
+        'public_profile',
+        'email',
+        'business_management',
+        'pages_show_list',
+        'pages_manage_metadata',
+        'pages_read_engagement',
+        'pages_manage_posts',
+        'leads_retrieval',
+        'instagram_basic',
+        'instagram_manage_messages',
+        'whatsapp_business_management',
+        'whatsapp_business_messaging',
+      ];
+
+      // Facebook Login for Business Auth URL using Config ID Flow & Graph API v23.0 with rerequest prompt
+      const oauthUrl = `https://www.facebook.com/${graphVersion}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&config_id=${configId}&response_type=code&state=${state}&auth_type=rerequest&scope=${VALID_META_SCOPES.join(',')}`;
 
       res.json({
         success: true,
