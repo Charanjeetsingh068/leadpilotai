@@ -204,7 +204,7 @@ export const FacebookConnectionWizard: React.FC = () => {
                 Your Meta App (ID: <code>{capabilities?.appId || '1712255293083461'}</code>) requires product configuration for Lead Ads and Business Manager access. Please grant or enable these permissions in the Meta Developer Console:
               </div>
               <div className="fb-warning-scopes-list">
-                {capabilities.missingRequiredPermissions.map((scope) => (
+                {capabilities.missingRequiredPermissions.map((scope: string) => (
                   <span key={scope} className="fb-warning-scope-tag">
                     {scope}
                   </span>
@@ -526,7 +526,7 @@ export const FacebookConnectionWizard: React.FC = () => {
               </div>
             </div>
             <div className="fb-warning-scopes-list">
-              {(status?.permissionsGranted || ['public_profile', 'pages_show_list', 'pages_read_engagement', 'pages_manage_metadata', 'leads_retrieval', 'business_management']).map((perm) => (
+              {(status?.permissionsGranted || ['business_management', 'pages_show_list', 'pages_read_engagement', 'pages_manage_metadata', 'leads_retrieval', 'instagram_basic']).map((perm: string) => (
                 <span key={perm} className="terms-perm-code">
                   ✔ {perm}
                 </span>

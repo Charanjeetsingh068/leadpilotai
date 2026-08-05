@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, RefreshCw, Unplug, ShieldCheck, Activity } from 'lucide-react';
 import { useFacebookIntegration } from '@/hooks/useFacebookIntegration';
 import { FacebookConnectionWizard } from '@/components/facebook/FacebookConnectionWizard';
 import { FacebookConnectionCard } from '@/components/facebook/FacebookConnectionCard';
@@ -10,6 +10,7 @@ import { BusinessManagerCard } from '@/components/facebook/BusinessManagerCard';
 import { ConnectedPagesTable } from '@/components/facebook/ConnectedPagesTable';
 import { InstagramAccountsCard } from '@/components/facebook/InstagramAccountsCard';
 import { WhatsAppBusinessCard } from '@/components/facebook/WhatsAppBusinessCard';
+import { AdAccountsCard } from '@/components/facebook/AdAccountsCard';
 import { LeadFormsTable } from '@/components/facebook/LeadFormsTable';
 import { PermissionsCard } from '@/components/facebook/PermissionsCard';
 import { WebhookHealthCard } from '@/components/facebook/WebhookHealthCard';
@@ -42,6 +43,8 @@ export default function FacebookIntegrationPage() {
     assignAiAgent,
     retryWebhooks,
     isRetryingWebhooks,
+    manualSync,
+    isManualSyncing,
   } = useFacebookIntegration();
 
   const hasAccounts = Boolean(data?.accounts && data.accounts.length > 0);
@@ -52,16 +55,39 @@ export default function FacebookIntegrationPage() {
       {/* Top Header / Breadcrumb Bar */}
       <div className="fb-header-bar">
         <div className="fb-header-left">
-          <div className="fb-breadcrumb font-sans text-xs text-muted">
-            Integrations &gt; <span className="text-main font-medium">Meta Business Integration Center</span>
+          <div className="fb-breadcrumb">
+            Integrations &gt; <span className="fb-breadcrumb-active">Meta Business Integration Center</span>
           </div>
-          <h1 className="fb-page-title text-2xl font-bold">Meta Business Integration Center</h1>
-          <p className="fb-page-subtitle text-sm text-subtle">
-            Connect Meta App (ID: <code>1712255293083461</code>), Facebook Business Portfolios, Pages, Instagram Accounts, WhatsApp Business &amp; Lead Forms.
+          <h1 className="fb-page-title">Meta Business Integration Center</h1>
+          <p className="fb-page-subtitle">
+            Enterprise Management for Meta Business Manager (ID: <code>312449849278509</code>), Facebook Pages, Instagram Accounts, WhatsApp Business, Ad Accounts &amp; Realtime Lead Forms.
           </p>
         </div>
 
         <div className="fb-header-right">
+          {isConnected && (
+            <>
+              <button
+                type="button"
+                className="fb-btn-sync"
+                onClick={() => manualSync()}
+                disabled={isManualSyncing}
+              >
+                <RefreshCw size={16} className={isManualSyncing ? 'fb-spin' : ''} />
+                <span>{isManualSyncing ? 'Syncing...' : 'Sync Now'}</span>
+              </button>
+
+              <button
+                type="button"
+                className="fb-btn-disconnect"
+                onClick={() => disconnectAccount('primary')}
+              >
+                <Unplug size={16} />
+                <span>Disconnect</span>
+              </button>
+            </>
+          )}
+
           <button type="button" className="fb-btn-guide">
             <BookOpen size={16} />
             <span>Integration Guide</span>
@@ -69,13 +95,28 @@ export default function FacebookIntegrationPage() {
         </div>
       </div>
 
+      {/* Realtime Status Banner Bar */}
+      <div className="fb-realtime-status-bar">
+        <div className="status-indicator-box">
+          <Activity size={18} className="text-emerald" />
+          <span className="status-title">Realtime System Status:</span>
+          <span className={`status-badge ${isConnected ? 'status-badge-active' : 'status-badge-offline'}`}>
+            {isConnected ? 'LIVE & SUBSCRIBED' : 'NOT CONNECTED'}
+          </span>
+        </div>
+        <div className="status-meta-info">
+          <ShieldCheck size={16} className="text-emerald" />
+          <span>Graph API v23.0 &bull; Facebook Login for Business &bull; AES-256 Encrypted</span>
+        </div>
+      </div>
+
       {/* Interactive Connection Wizard */}
       <FacebookConnectionWizard />
 
-      {/* If Workspace is NOT CONNECTED: Render Hero Connection Card & Setup Guide only */}
+      {/* If Workspace is NOT CONNECTED: Render Hero Connection Card & Setup Guide */}
       {!isConnected ? (
         <div className="fb-grid-row-top">
-          <div className="fb-col-left w-full">
+          <div className="fb-col-left-full">
             <FacebookConnectionCard
               connection={data?.connection}
               onReconnect={handleConnectFacebook}
@@ -84,7 +125,7 @@ export default function FacebookIntegrationPage() {
           </div>
         </div>
       ) : (
-        /* If CONNECTED: Render full dynamic dashboard populated from PostgreSQL */
+        /* If CONNECTED: Render full dynamic dashboard populated from backend */
         <>
           {/* Main Grid Section Row 1: Connection & Accounts + Live Stream */}
           <div className="fb-grid-row-top">
@@ -108,7 +149,7 @@ export default function FacebookIntegrationPage() {
             </div>
           </div>
 
-          {/* Main Grid Section Row 2: Portfolio, Pages, Instagram, WhatsApp & Lead Forms */}
+          {/* Main Grid Section Row 2: Portfolio, Pages, Instagram, WhatsApp, Ad Accounts & Lead Forms */}
           <div className="fb-grid-row-middle">
             <div className="fb-col-left">
               <div className="fb-grid-two-col">
@@ -120,14 +161,15 @@ export default function FacebookIntegrationPage() {
                 <ConnectedPagesTable
                   pages={data?.pages || []}
                   totalPages={data?.totalPages || 0}
-                  onRefreshPages={() => syncPages('acc_1')}
+                  onRefreshPages={() => syncPages(undefined)}
                   isRefreshing={isSyncingPages}
                 />
               </div>
 
-              <div className="fb-grid-two-col">
+              <div className="fb-grid-three-col">
                 <InstagramAccountsCard accounts={data?.instagramAccounts || []} />
                 <WhatsAppBusinessCard accounts={data?.whatsAppAccounts || []} />
+                <AdAccountsCard accounts={data?.adAccounts || []} />
               </div>
 
               <LeadFormsTable

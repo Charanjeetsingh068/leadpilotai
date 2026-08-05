@@ -1,20 +1,29 @@
 export interface FacebookConnectionStatus {
   status: 'NOT_CONNECTED' | 'CONNECTING' | 'CONNECTED' | 'TOKEN_EXPIRED' | 'PERMISSION_MISSING' | 'SYNC_FAILED' | 'RECONNECT_REQUIRED' | 'Connected' | 'Warning' | 'Disconnected' | 'Active';
   isConnected?: boolean;
-  connectedBy: string | null;
+  connectedBy?: string | null;
   email?: string | null;
+  user?: {
+    id?: string;
+    name?: string;
+    email?: string;
+    picture?: string;
+  } | null;
   connectedTime?: string | null;
   tokenExpiry?: string | null;
   lastRefresh?: string | null;
-  isExpired: boolean;
+  isExpired?: boolean;
 }
 
 export interface FacebookAccountItem {
   id: string;
-  accountName: string;
+  accountName?: string;
+  name?: string;
   fbUserId: string;
   fbUserEmail?: string;
+  email?: string;
   avatarUrl?: string;
+  status?: string;
   businessManagerName?: string;
   businessManagerId?: string;
   businesses?: any[];
@@ -30,7 +39,7 @@ export interface FacebookAccountItem {
     email: string;
     roleName?: string;
   };
-  tokenStatus: string;
+  tokenStatus?: string;
   lastSync?: string;
   lastSyncAt?: string;
   tokenExpiry?: string;
@@ -41,7 +50,7 @@ export interface FacebookAccountItem {
 
 export interface FacebookBusinessItem {
   id: string;
-  businessId: string;
+  businessId?: string;
   name: string;
   verificationStatus?: string;
   verification?: string;
@@ -54,15 +63,16 @@ export interface FacebookBusinessItem {
 
 export interface FacebookPageItem {
   id: string;
-  pageId: string;
+  pageId?: string;
   name: string;
   category?: string;
   pictureUrl?: string;
-  followersCount: number;
+  followersCount?: number;
+  fanCount?: number;
   leadFormsCount?: number;
-  status: 'Active' | 'Inactive' | 'Disconnected';
-  syncStatus?: 'Synced' | 'Syncing' | 'Pending' | 'Error';
-  webhookStatus: 'Active' | 'Inactive' | 'Error';
+  status?: 'Active' | 'Inactive' | 'Disconnected' | string;
+  syncStatus?: 'Synced' | 'Syncing' | 'Pending' | 'Error' | string;
+  webhookStatus?: 'Active' | 'Inactive' | 'Error' | 'SUBSCRIBED' | 'UNSUBSCRIBED' | string;
   assignedAiAgent?: {
     id: string;
     name: string;
@@ -70,37 +80,42 @@ export interface FacebookPageItem {
   };
   ownerName?: string;
   lastSync?: string;
+  isConnected?: boolean;
+  instagramId?: string;
 }
 
 export interface InstagramAccountItem {
   id: string;
-  instagramId: string;
+  instagramId?: string;
   username: string;
   name?: string;
   profilePictureUrl?: string;
-  followersCount: number;
-  businessConnected: boolean;
-  messagingEnabled: boolean;
-  webhookEnabled: boolean;
-  status: 'Active' | 'Inactive';
+  followersCount?: number;
+  mediaCount?: number;
+  businessConnected?: boolean;
+  messagingEnabled?: boolean;
+  webhookEnabled?: boolean;
+  status?: 'Active' | 'Inactive' | string;
 }
 
 export interface WhatsAppAccountItem {
   id: string;
-  wabaId: string;
+  wabaId?: string;
   name: string;
-  phoneNumber: string;
+  currency?: string;
+  phoneNumber?: string;
   phoneNumberId?: string;
-  qualityRating: 'High' | 'Medium' | 'Low' | 'GREEN' | 'YELLOW' | 'RED';
-  webhookActive: boolean;
-  templatesCount: number;
-  messagingStatus: 'Active' | 'Inactive' | 'Connected';
-  status: 'Connected' | 'Disconnected';
+  phoneNumbers?: any[];
+  qualityRating?: 'High' | 'Medium' | 'Low' | 'GREEN' | 'YELLOW' | 'RED' | string;
+  webhookActive?: boolean;
+  templatesCount?: number;
+  messagingStatus?: 'Active' | 'Inactive' | 'Connected' | string;
+  status?: 'Connected' | 'Disconnected' | string;
 }
 
 export interface FacebookFormItem {
   id: string;
-  formId: string;
+  formId?: string;
   name: string;
   pageName?: string;
   associatedPage?: string;
@@ -111,13 +126,17 @@ export interface FacebookFormItem {
     pageId?: string;
   };
   campaign?: string;
-  leadCount: number;
+  leadCount?: number;
+  leadsCount?: number;
   leadsToday?: number;
   leadsTotal?: number;
-  status: 'Active' | 'Inactive';
-  isActive: boolean;
+  status?: 'Active' | 'Inactive' | 'ACTIVE' | string;
+  isActive?: boolean;
   webhookActive?: boolean;
   lastSync?: string;
+  questionsCount?: number;
+  questions?: any[];
+  assignedAiAgentId?: string;
   assignedAiAgent?: {
     id: string;
     name: string;
@@ -125,72 +144,84 @@ export interface FacebookFormItem {
 }
 
 export interface FacebookPermissionItem {
-  id: string;
-  permission: string;
-  description: string;
-  status: 'Granted' | 'Missing' | 'Warning' | 'Expired' | 'Needs Review';
+  id?: string;
+  name?: string;
+  permission?: string;
+  description?: string;
+  status: 'Granted' | 'Missing' | 'Expired' | 'Reconnect Required' | 'Admin Required' | 'GRANTED' | 'MISSING' | 'EXPIRED' | 'RECONNECT_REQUIRED' | 'ADMIN_REQUIRED' | string;
 }
 
 export interface WebhookHealthData {
-  id: string;
-  webhookUrl: string;
-  verifyToken: string;
-  status: 'Active' | 'Inactive' | 'Degraded';
-  leadgenStatus?: 'Active' | 'Inactive';
-  messagesStatus?: 'Active' | 'Inactive';
-  instagramStatus?: 'Active' | 'Inactive';
-  commentsStatus?: 'Active' | 'Inactive';
-  whatsappStatus?: 'Active' | 'Inactive';
-  verificationStatus?: 'Verified' | 'Pending' | 'Failed';
-  lastEventTime: string;
+  id?: string;
+  webhookUrl?: string;
+  verifyToken?: string;
+  status: 'Active' | 'Inactive' | 'Degraded' | 'HEALTHY' | 'WARNING' | string;
+  leadgenStatus?: 'Active' | 'Inactive' | string;
+  messagesStatus?: 'Active' | 'Inactive' | string;
+  instagramStatus?: 'Active' | 'Inactive' | string;
+  commentsStatus?: 'Active' | 'Inactive' | string;
+  whatsappStatus?: 'Active' | 'Inactive' | string;
+  verificationStatus?: 'Verified' | 'Pending' | 'Failed' | string;
+  lastEventTime?: string;
   lastEvent?: string;
-  successRate7d: number;
-  failedEvents7d: number;
+  successRate7d?: number;
+  failedEvents7d?: number;
   failures?: number;
-  retryQueueCount: number;
+  retryQueueCount?: number;
+  activeSubscriptionsCount?: number;
+  failedCount?: number;
 }
 
 export interface LiveActivityItem {
   id: string;
   title: string;
   description: string;
-  timeAgo: string;
+  timeAgo?: string;
   timestamp: string;
-  type: 'lead' | 'form' | 'page' | 'account' | 'webhook' | 'token' | 'instagram' | 'whatsapp' | 'ai' | 'crm';
+  type?: 'lead' | 'form' | 'page' | 'account' | 'webhook' | 'token' | 'instagram' | 'whatsapp' | 'ai' | 'crm' | string;
+  eventType?: string;
 }
 
 export interface DashboardMetrics {
-  connectedAccounts: number;
-  activeAccounts: number;
-  connectedPages: number;
-  activePages: number;
-  connectedForms: number;
-  activeForms: number;
-  todayLeads: number;
-  leadsTrendPercentage: number;
-  syncSuccessRate: number;
-  syncSuccessTrend: number;
-  apiUsageCalls: number;
-  apiUsageLimit: number;
-  apiUsagePercentage: number;
-  webhookSuccessRate: number;
-  duplicateLeadsCount: number;
-  syncErrorsCount: number;
-  failedEventsCount: number;
+  totalAccounts?: number;
+  connectedAccounts?: number;
+  activeAccounts?: number;
+  totalBusinesses?: number;
+  totalPages?: number;
+  connectedPages?: number;
+  activePages?: number;
+  totalInstagram?: number;
+  totalWhatsApp?: number;
+  totalForms?: number;
+  connectedForms?: number;
+  activeForms?: number;
+  totalLeads?: number;
+  todayLeads?: number;
+  leadsTrendPercentage?: number;
+  syncSuccessRate?: number;
+  syncSuccessTrend?: number;
+  apiUsageCalls?: number;
+  apiUsageLimit?: number;
+  apiUsagePercentage?: number;
+  webhookSuccessRate?: number;
+  duplicateLeadsCount?: number;
+  syncErrorsCount?: number;
+  failedEventsCount?: number;
 }
 
 export interface DashboardData {
   connection: FacebookConnectionStatus;
   accounts: FacebookAccountItem[];
-  totalAccounts: number;
+  totalAccounts?: number;
   businesses: FacebookBusinessItem[];
-  selectedBusinessId: string;
+  selectedBusinessId?: string;
   pages: FacebookPageItem[];
-  totalPages: number;
+  totalPages?: number;
   instagramAccounts?: InstagramAccountItem[];
   whatsAppAccounts?: WhatsAppAccountItem[];
+  adAccounts?: any[];
   forms: FacebookFormItem[];
-  totalForms: number;
+  totalForms?: number;
   permissions: FacebookPermissionItem[];
   webhookHealth: WebhookHealthData;
   recentEvents: LiveActivityItem[];

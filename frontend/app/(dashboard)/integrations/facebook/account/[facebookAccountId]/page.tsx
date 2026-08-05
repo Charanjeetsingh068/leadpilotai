@@ -47,7 +47,7 @@ export default function FacebookAccountDetailPage({ params }: PageProps) {
     async function loadAccountData() {
       setIsLoading(true);
       try {
-        const details = await facebookIntegrationService.getAccountDetails(facebookAccountId);
+        const details: any = await facebookIntegrationService.getAccountDetails(facebookAccountId);
         if (details) {
           setAccountData(details);
           const pagesList = details.pages || [];

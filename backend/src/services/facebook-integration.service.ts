@@ -1,1193 +1,312 @@
-import crypto from 'crypto';
-import { FacebookRepository, MultiTenantScope, isUuid } from '../repositories/facebook.repository';
-import { TokenManagementService } from './token-management.service';
 import { MetaGraphApiService, logMetaEvent } from './meta-graph-api.service';
-import { prisma } from '../config/database';
+import { TokenManagementService, MultiTenantScope } from './token-management.service';
+import { MetaDiscoveryService } from './meta-discovery.service';
+import { MetaAccountModel } from '../models/MetaAccount.model';
+import { BusinessPortfolioModel } from '../models/BusinessPortfolio.model';
+import { FacebookPageModel } from '../models/FacebookPage.model';
+import { InstagramAccountModel } from '../models/InstagramAccount.model';
+import { WhatsAppBusinessModel } from '../models/WhatsAppBusiness.model';
+import { LeadFormModel } from '../models/LeadForm.model';
+import { BusinessAssetModel } from '../models/BusinessAsset.model';
+import { WebhookSubscriptionModel } from '../models/WebhookSubscription.model';
+import { SyncLogModel } from '../models/SyncLog.model';
+import { ActivityLogModel } from '../models/ActivityLog.model';
+import { LeadWebhookModel } from '../models/LeadWebhook.model';
+
+const REQUIRED_PERMISSIONS = [
+  'business_management',
+  'pages_show_list',
+  'pages_manage_metadata',
+  'pages_read_engagement',
+  'pages_manage_posts',
+  'leads_retrieval',
+  'instagram_basic',
+  'instagram_manage_messages',
+  'whatsapp_business_management',
+  'whatsapp_business_messaging',
+];
 
 export class FacebookIntegrationService {
-  private repo: FacebookRepository;
-  private tokenService: TokenManagementService;
   private metaGraphService: MetaGraphApiService;
-
-  // In-Memory OAuth State Store for CSRF Protection with TTL
-  private static stateStore = new Map<string, { companyId?: string; workspaceId?: string; expiresAt: number }>();
+  private tokenService: TokenManagementService;
+  private discoveryService: MetaDiscoveryService;
 
   constructor() {
-    this.repo = new FacebookRepository();
-    this.tokenService = new TokenManagementService();
     this.metaGraphService = new MetaGraphApiService();
+    this.tokenService = new TokenManagementService();
+    this.discoveryService = new MetaDiscoveryService();
   }
 
-  /**
-   * Connection Verification Service (Task 8)
-   * Calls GET /me using stored decrypted token.
-   * Returns CONNECTED if Meta Graph API returns success; NOT_CONNECTED otherwise.
-   */
-  async verifyConnection(scope: MultiTenantScope) {
-    const accountsResult = await this.repo.findAccounts(scope, { page: 1, limit: 1 });
-    let primaryAccount = accountsResult.accounts[0] || null;
+  async startOAuth(scope: MultiTenantScope, redirectUriOverride?: string) {
+    const appId = process.env.FACEBOOK_APP_ID || '1712255293083461';
+    const configId = process.env.FACEBOOK_CONFIG_ID || '937320012719440';
+    const redirectUri = redirectUriOverride || process.env.FACEBOOK_REDIRECT_URI || 'https://leadpilotai-2kar.onrender.com/api/integrations/facebook/callback';
 
-    if (!primaryAccount) {
-      const globalAccounts = await prisma.facebookAccount.findMany({
-        include: {
-          businesses: true,
-          pages: true,
-          user: { select: { id: true, name: true, email: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 1,
-      });
-      primaryAccount = (globalAccounts[0] as any) || null;
-    }
+    const statePayload = { scope, timestamp: Date.now() };
+    const state = Buffer.from(JSON.stringify(statePayload)).toString('base64url');
+    const oauthUrl = `https://www.facebook.com/v24.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&config_id=${configId}&response_type=code&state=${state}&scope=${REQUIRED_PERMISSIONS.join(',')}`;
 
-    if (!primaryAccount || !primaryAccount.accessToken) {
-      return {
-        isConnected: false,
-        status: 'NOT_CONNECTED',
-        user: null,
-      };
-    }
-
-    try {
-      const decryptedToken = this.tokenService.decrypt(primaryAccount.accessToken);
-      const userProfile = await this.metaGraphService.getUserProfile(decryptedToken);
-
-      if (!userProfile || !userProfile.id) {
-        throw new Error('Meta Graph API GET /me returned invalid profile structure.');
-      }
-
-      return {
-        isConnected: true,
-        status: 'CONNECTED',
-        user: {
-          id: userProfile.id,
-          name: userProfile.name || primaryAccount.accountName,
-          email: userProfile.email || primaryAccount.fbUserEmail || '',
-        },
-        connectedTime: primaryAccount.createdAt ? primaryAccount.createdAt.toISOString() : null,
-        tokenExpiry: primaryAccount.tokenExpiresAt ? primaryAccount.tokenExpiresAt.toISOString() : null,
-      };
-    } catch (err: any) {
-      logMetaEvent('Verification Service Failed (GET /me error)', { error: err.message });
-
-      return {
-        isConnected: true,
-        status: 'CONNECTED',
-        user: {
-          id: primaryAccount.fbUserId,
-          name: primaryAccount.accountName,
-          email: primaryAccount.fbUserEmail || '',
-        },
-        connectedTime: primaryAccount.createdAt ? primaryAccount.createdAt.toISOString() : null,
-        tokenExpiry: primaryAccount.tokenExpiresAt ? primaryAccount.tokenExpiresAt.toISOString() : null,
-      };
-    }
-  }
-
-  async getDashboard(scope: MultiTenantScope, businessId?: string) {
-    let [
-      accountsResult,
-      businesses,
-      pagesResult,
-      instagrams,
-      whatsapps,
-      formsResult,
-      permissions,
-      webhookHealth,
-      recentEvents,
-      metrics,
-    ] = await Promise.all([
-      this.repo.findAccounts(scope, { page: 1, limit: 10 }),
-      this.repo.findBusinesses(scope),
-      this.repo.findPages(scope, { businessId, page: 1, limit: 10 }),
-      this.repo.findInstagramAccounts(scope, { businessId }),
-      this.repo.findWhatsAppAccounts(scope, { businessId }),
-      this.repo.findForms(scope, { businessId, page: 1, limit: 10 }),
-      this.repo.findPermissions(scope),
-      this.repo.getWebhookHealth(scope),
-      this.repo.getRecentEvents(scope, 10),
-      this.repo.getDashboardMetrics(scope),
-    ]);
-
-    let primaryAccount = accountsResult.accounts[0] || null;
-
-    if (!primaryAccount) {
-      const globalAccounts = await prisma.facebookAccount.findMany({
-        include: {
-          businesses: true,
-          pages: true,
-          user: { select: { id: true, name: true, email: true, role: { select: { name: true } } } },
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-      primaryAccount = (globalAccounts[0] as any) || null;
-      if (primaryAccount) {
-        accountsResult = { accounts: globalAccounts as any, total: globalAccounts.length, page: 1, limit: 10, totalPages: 1 };
-      }
-    }
-
-    if (primaryAccount) {
-      if (businesses.length === 0) {
-        businesses = await prisma.facebookBusiness.findMany({ orderBy: { createdAt: 'desc' }, include: { pages: true } });
-      }
-      if (pagesResult.pages.length === 0) {
-        const allPages = await prisma.facebookPage.findMany({
-          orderBy: { createdAt: 'desc' },
-          include: {
-            forms: true,
-            assignedAiAgent: { select: { id: true, name: true, agentCode: true } },
-          },
-        });
-        pagesResult = { pages: allPages as any, total: allPages.length, page: 1, limit: 10, totalPages: 1 };
-      }
-      if (instagrams.length === 0) {
-        instagrams = await prisma.instagramAccount.findMany({
-          orderBy: { createdAt: 'desc' },
-          include: {
-            facebookAccount: { select: { accountName: true, fbUserId: true } },
-            facebookPage: { select: { name: true, pageId: true } },
-          },
-        }) as any;
-      }
-      if (whatsapps.length === 0) {
-        whatsapps = await prisma.whatsAppBusinessAccount.findMany({
-          orderBy: { createdAt: 'desc' },
-          include: {
-            facebookAccount: { select: { accountName: true, fbUserId: true } },
-          },
-        }) as any;
-      }
-      if (formsResult.forms.length === 0) {
-        const allForms = await prisma.facebookForm.findMany({
-          orderBy: { createdAt: 'desc' },
-          include: {
-            facebookPage: { select: { id: true, name: true, pageId: true } },
-            assignedAiAgent: { select: { id: true, name: true } },
-          },
-        });
-        formsResult = { forms: allForms as any, total: allForms.length, page: 1, limit: 10, totalPages: 1 };
-      }
-    }
-
-    if (!primaryAccount) {
-      return {
-        connection: {
-          status: 'NOT_CONNECTED',
-          isConnected: false,
-          connectedBy: null,
-          email: null,
-          connectedTime: null,
-          tokenExpiry: null,
-          lastRefresh: null,
-          isExpired: false,
-        },
-        accounts: [],
-        totalAccounts: 0,
-        businesses: [],
-        selectedBusinessId: null,
-        pages: [],
-        totalPages: 0,
-        instagramAccounts: [],
-        whatsAppAccounts: [],
-        forms: [],
-        totalForms: 0,
-        permissions: [],
-        webhookHealth: null,
-        recentEvents: [],
-        metrics: null,
-      };
-    }
-
-    const isTokenExpired = primaryAccount.tokenExpiresAt && new Date(primaryAccount.tokenExpiresAt) < new Date();
-    const tokenStatus = isTokenExpired ? 'TOKEN_EXPIRED' : (primaryAccount.tokenStatus === 'Active' ? 'CONNECTED' : 'RECONNECT_REQUIRED');
-
-    // Real Meta Connection Status
-    const connectionStatus = {
-      status: tokenStatus,
-      isConnected: tokenStatus === 'CONNECTED',
-      connectedBy: primaryAccount.accountName || primaryAccount.fbUserEmail || 'Connected Meta Account',
-      email: primaryAccount.fbUserEmail || '',
-      connectedTime: primaryAccount.createdAt ? primaryAccount.createdAt.toISOString() : new Date().toISOString(),
-      tokenExpiry: primaryAccount.tokenExpiresAt ? primaryAccount.tokenExpiresAt.toISOString() : null,
-      lastRefresh: primaryAccount.updatedAt ? primaryAccount.updatedAt.toISOString() : new Date().toISOString(),
-      isExpired: isTokenExpired,
-    };
-
-    // Enhance Business Portfolios with counts for owned pages, instagram, whatsapp
-    const enhancedBusinesses = businesses.map((b: any) => {
-      const ownedPages = pagesResult.pages.filter((p: any) => p.facebookBusinessId === b.id).length;
-      const ownedInstagram = instagrams.filter((i: any) => i.facebookBusinessId === b.id).length;
-      const ownedWhatsApp = whatsapps.filter((w: any) => w.facebookBusinessId === b.id).length;
-      return {
-        ...b,
-        ownedPagesCount: ownedPages || b.pages?.length || 0,
-        ownedInstagramCount: ownedInstagram || 0,
-        ownedWhatsAppCount: ownedWhatsApp || 0,
-      };
-    });
-
-    return {
-      connection: connectionStatus,
-      accounts: accountsResult.accounts,
-      totalAccounts: accountsResult.total,
-      businesses: enhancedBusinesses,
-      selectedBusinessId: businessId || (businesses[0]?.businessId || null),
-      pages: pagesResult.pages,
-      totalPages: pagesResult.total,
-      instagramAccounts: instagrams,
-      whatsAppAccounts: whatsapps,
-      forms: formsResult.forms,
-      totalForms: formsResult.total,
-      permissions,
-      webhookHealth,
-      recentEvents: recentEvents.map((evt: any) => ({
-        id: evt.id,
-        title: evt.title,
-        description: evt.description || '',
-        timeAgo: new Date(evt.createdAt).toISOString(),
-        timestamp: evt.createdAt.toISOString(),
-        type: evt.eventType.toLowerCase(),
-      })),
-      metrics,
-    };
+    return { oauthUrl, configId, appId, redirectUri, state };
   }
 
   async getDiagnostics(scope: MultiTenantScope) {
-    const accountsResult = await this.repo.findAccounts(scope, { page: 1, limit: 1 });
-    const primaryAccount = accountsResult.accounts[0] || null;
-
-    let accessTokenStatus = 'None';
-    let tokenExpiry = null;
-    let grantedPermissions: string[] = [];
-    let businessCount = 0;
-    let pageCount = 0;
-    let leadFormCount = 0;
-
-    if (primaryAccount) {
-      accessTokenStatus = `Encrypted AES-256 (${primaryAccount.tokenStatus})`;
-      tokenExpiry = primaryAccount.tokenExpiresAt ? primaryAccount.tokenExpiresAt.toISOString() : null;
-
-      try {
-        const decryptedToken = this.tokenService.decrypt(primaryAccount.accessToken);
-        const [permData, bData, pData] = await Promise.all([
-          this.metaGraphService.getPermissions(decryptedToken),
-          this.metaGraphService.getBusinesses(decryptedToken),
-          this.metaGraphService.getPages(decryptedToken),
-        ]);
-
-        grantedPermissions = permData
-          .filter((p: any) => p.status === 'granted')
-          .map((p: any) => p.permission);
-        businessCount = bData.length;
-        pageCount = pData.length;
-
-        for (const page of pData) {
-          if (page.access_token) {
-            const forms = await this.metaGraphService.getLeadForms(page.id, page.access_token);
-            leadFormCount += forms.length;
-          }
-        }
-      } catch (e: any) {
-        logMetaEvent('Diagnostics Token Audit Warning', { error: e.message });
-      }
-    }
-
-    const requiredPermissions = [
-      'business_management',
-      'pages_show_list',
-      'pages_read_engagement',
-      'pages_manage_metadata',
-      'leads_retrieval',
-      'instagram_basic',
-    ];
-    const missingPermissions = requiredPermissions.filter((p) => !grantedPermissions.includes(p));
-
+    const dashboard = await this.getDashboard(scope);
     return {
-      oauthStatus: process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_CONFIG_ID ? 'Configured (Login for Business)' : 'Missing Credentials',
-      configurationId: process.env.FACEBOOK_CONFIG_ID || '937320012719440',
-      accessToken: accessTokenStatus,
-      tokenExpiry,
-      grantedPermissions,
-      businessCount,
-      pageCount,
-      leadFormCount,
-      webhookStatus: pageCount > 0 ? 'Active' : 'Inactive',
-      graphApiVersion: 'v23.0',
-      lastSync: primaryAccount ? primaryAccount.updatedAt.toISOString() : null,
-      missingPermissions: [],
+      connection: dashboard.connection,
+      metrics: dashboard.metrics,
+      webhookHealth: dashboard.webhookHealth,
+      permissions: dashboard.permissions,
     };
   }
 
-  async startOAuth(scope: MultiTenantScope, clientOrigin?: string) {
-    const appId = process.env.FACEBOOK_APP_ID || process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || '1712255293083461';
-    const configId = process.env.FACEBOOK_CONFIG_ID || '937320012719440';
+  async handleOAuthCallback(scope: MultiTenantScope, code: string, redirectUri: string) {
+    logMetaEvent('Processing Meta Authorization Code Exchange Flow', { scope, codeSnippet: code.substring(0, 10) });
 
-    const rawRedirectUri = process.env.FACEBOOK_REDIRECT_URI || 'https://leadpilotai-2kar.onrender.com/api/integrations/facebook/callback';
-    const redirectUri = rawRedirectUri.includes('localhost')
-      ? 'https://leadpilotai-2kar.onrender.com/api/integrations/facebook/callback'
-      : rawRedirectUri;
-    
-    const state = crypto.randomBytes(16).toString('hex');
-    
-    // Store generated state in OAuthStateStore with 10-minute expiry
-    FacebookIntegrationService.stateStore.set(state, {
-      companyId: scope.companyId,
+    const shortTokenData = await this.metaGraphService.exchangeCodeForToken(code, redirectUri);
+    const shortToken = shortTokenData.access_token;
+
+    const longTokenData = await this.metaGraphService.getLongLivedToken(shortToken);
+    const longToken = longTokenData.access_token || shortToken;
+    const expiresIn = longTokenData.expires_in || 5184000;
+
+    const profile = await this.metaGraphService.getUserProfile(longToken);
+
+    const rawPerms = await this.metaGraphService.getPermissions(longToken);
+    const grantedPermissions = rawPerms.filter((p: any) => p.status === 'granted').map((p: any) => p.permission);
+    const missingPermissions = REQUIRED_PERMISSIONS.filter((req) => !grantedPermissions.includes(req));
+
+    const tokenStatus = missingPermissions.length > 0 ? 'PERMISSIONS_MISSING' : 'VALID';
+
+    await this.tokenService.storeEncryptedToken(
+      scope,
+      profile.id,
+      longToken,
+      'USER_LONG',
+      expiresIn,
+      grantedPermissions
+    );
+
+    const metaAccount = await MetaAccountModel.findOneAndUpdate(
+      { workspaceId: scope.workspaceId, fbUserId: profile.id },
+      {
+        companyId: scope.companyId,
+        userId: scope.userId,
+        fbUserName: profile.name,
+        fbUserEmail: profile.email || '',
+        fbPictureUrl: profile.picture?.data?.url || '',
+        tokenStatus,
+        grantedPermissions,
+        missingPermissions,
+        configId: process.env.FACEBOOK_CONFIG_ID || '937320012719440',
+        lastSyncedAt: new Date(),
+      },
+      { upsert: true, new: true }
+    );
+
+    await ActivityLogModel.create({
       workspaceId: scope.workspaceId,
-      expiresAt: Date.now() + 10 * 60 * 1000,
+      companyId: scope.companyId,
+      userId: scope.userId,
+      action: 'META_OAUTH_CONNECTED',
+      actorType: 'USER',
+      description: `Meta account '${profile.name}' connected via Facebook Login for Business.`,
+      metadata: { fbUserId: profile.id, tokenStatus, grantedPermissionsCount: grantedPermissions.length },
     });
 
-    const scopePermissions = 'public_profile,email,business_management,pages_show_list,pages_manage_metadata,pages_read_engagement,pages_read_user_content,pages_manage_posts,leads_retrieval,ads_read,ads_management,instagram_basic,instagram_manage_messages,whatsapp_business_management,whatsapp_business_messaging';
-    const oauthUrl = `https://www.facebook.com/v23.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scopePermissions}&config_id=${configId}&state=${state}`;
+    await this.discoveryService.runAutomaticDiscovery(scope, longToken);
 
-    logMetaEvent('[OAuth Step 1] Meta Business Login Configuration URL Generated', { appId, configId, redirectUri, state, scopePermissions, oauthUrl });
-
-    return { oauthUrl, state, redirectUri, configId };
+    return {
+      success: true,
+      metaAccount,
+      tokenStatus,
+      missingPermissions,
+    };
   }
 
-  async handleOAuthCallback(scope: MultiTenantScope, code: string, redirectUri: string, state?: string) {
-    if (!code) {
-      logMetaEvent('[OAuth Step Failure] Missing Authorization Code', { redirectUri });
-      throw new Error('invalid_code: Missing authorization code from Meta OAuth callback.');
-    }
+  async getDashboard(scope: MultiTenantScope, businessId?: string) {
+    const query: any = { workspaceId: scope.workspaceId };
+    const pageQuery: any = { workspaceId: scope.workspaceId };
+    if (businessId) pageQuery.businessId = businessId;
 
-    // Validate State Parameter
-    if (!state) {
-      logMetaEvent('[OAuth Step Failure] Missing State Parameter', { redirectUri });
-      throw new Error('invalid_state: Missing state parameter in OAuth callback.');
-    }
-
-    const storedState = FacebookIntegrationService.stateStore.get(state);
-    if (!storedState || storedState.expiresAt < Date.now()) {
-      logMetaEvent('[OAuth Step Failure] Invalid or Expired State', { state });
-      throw new Error('invalid_state: OAuth state parameter is invalid or expired. Possible CSRF attack detected.');
-    }
-
-    // Delete state token to enforce single-use state verification
-    FacebookIntegrationService.stateStore.delete(state);
-
-    logMetaEvent('[OAuth Step 2] State Validated & Processing Callback', { codeSnippet: code.substring(0, 10) + '...', redirectUri, state });
-
-    try {
-      // 1. Exchange authorization code for short-lived access token
-      const tokenData = await this.metaGraphService.exchangeCodeForToken(code, redirectUri);
-      if (!tokenData?.access_token) {
-        logMetaEvent('[OAuth Step Failure] Token Exchange Failed', { codeSnippet: code.substring(0, 10) + '...' });
-        throw new Error('invalid_code: Meta Graph API failed to exchange authorization code for access token.');
-      }
-      logMetaEvent('[OAuth Step 3] Code Exchanged for Short-Lived Token', { tokenType: tokenData.token_type || 'bearer' });
-      
-      // 2. Exchange short-lived token for long-lived access token (60-day validity)
-      const longLivedData = await this.metaGraphService.getLongLivedToken(tokenData.access_token);
-      const accessToken = longLivedData?.access_token || tokenData.access_token;
-      logMetaEvent('[OAuth Step 3.1] Long-Lived Token Generated', { expiresIn: longLivedData?.expires_in || 5184000 });
-
-      // 3. Fetch Facebook User Profile (/me?fields=id,name,email,picture)
-      const userProfile = await this.metaGraphService.getUserProfile(accessToken);
-      logMetaEvent('[OAuth Step 4] User Profile Fetched', { fbUserId: userProfile.id, name: userProfile.name, email: userProfile.email || 'N/A' });
-
-      // 4. Encrypt long-lived access token using AES-256-GCM via TokenManagementService
-      const encryptedToken = this.tokenService.encrypt(accessToken);
-      const tokenExpiresAt = new Date(Date.now() + (longLivedData.expires_in || 5184000) * 1000);
-      logMetaEvent('[OAuth Step 5] Access Token Encrypted (AES-256-GCM)', { expiresAt: tokenExpiresAt.toISOString() });
-
-      // 5. Save FacebookAccount in PostgreSQL via FacebookRepository
-      const account = await this.repo.upsertAccount({
-        companyId: scope.companyId || '11111111-1111-1111-1111-111111111111',
-        workspaceId: scope.workspaceId || '22222222-2222-2222-2222-222222222222',
-        userId: scope.userId || '33333333-3333-3333-3333-333333333333',
-        accountName: userProfile.name || 'LeadPilot Connected Meta Account',
-        fbUserId: userProfile.id,
-        fbUserEmail: userProfile.email || '',
-        avatarUrl: userProfile.picture?.data?.url || '',
-        accessToken: encryptedToken,
-        tokenExpiresAt,
-        tokenStatus: 'Active',
-      });
-      logMetaEvent('[OAuth Step 6] FacebookAccount Saved to PostgreSQL', { accountId: account.id, fbUserId: userProfile.id });
-
-      // 6. Automatically discover & save Business Manager in PostgreSQL
-      let syncResult = null;
-      try {
-        logMetaEvent('[OAuth Step 7] Starting Business Manager Discovery');
-        syncResult = await this.syncAssets(scope);
-        logMetaEvent('[OAuth Step 7.1] Business Discovery Complete', syncResult);
-      } catch (syncErr: any) {
-        logMetaEvent('[OAuth Step Warning] Business Discovery Partial Warning', { error: syncErr.message });
-      }
-
-      // 7. Save in FacebookConnection table for Login for Business track
-      try {
-        const isUuidStr = (str?: string) => Boolean(str && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str));
-        const companyId = isUuidStr(scope.companyId) ? scope.companyId! : null;
-        const workspaceId = isUuidStr(scope.workspaceId) ? scope.workspaceId! : null;
-
-        const page = (syncResult as any)?.pages?.[0];
-        const business = (syncResult as any)?.businesses?.[0];
-        const instagram = (syncResult as any)?.instagrams?.[0];
-
-        await prisma.facebookConnection.create({
-          data: {
-            companyId,
-            workspaceId,
-            businessId: business?.businessId || null,
-            pageId: page?.pageId || null,
-            pageName: page?.name || null,
-            pageAccessToken: page?.accessToken ? this.tokenService.encrypt(page.accessToken) : null,
-            instagramId: instagram?.instagramId || null,
-            instagramUsername: instagram?.username || null,
-            userAccessToken: encryptedToken,
-            longLivedToken: encryptedToken,
-            expiresAt: tokenExpiresAt,
-            configurationId: process.env.FACEBOOK_CONFIG_ID || '937320012719440',
-            status: 'CONNECTED',
-          },
-        });
-      } catch (connErr: any) {
-        logMetaEvent('[OAuth Step Warning] FacebookConnection Save Note', { error: connErr.message });
-      }
-
-      // 8. Log Timeline Audit Event
-      await this.repo.createEvent(scope, {
-        eventType: 'OAUTH_SUCCESS',
-        title: 'Meta Business Connected',
-        description: `Meta Business user ${userProfile.name || userProfile.id} authorized successfully via Login for Business (Config ID: 937320012719440).`,
-        status: 'SUCCESS',
-      });
-
-      logMetaEvent('[OAuth Step 8] Final Status: CONNECTED', {
-        accountId: account.id,
-        fbUserId: userProfile.id,
-        name: userProfile.name,
-        tokenExpiresAt: tokenExpiresAt.toISOString(),
-      });
-
-      return {
-        connected: true,
-        facebookUser: {
-          id: userProfile.id,
-          name: userProfile.name || 'Connected Meta Business User',
-          email: userProfile.email || '',
-          avatarUrl: userProfile.picture?.data?.url || '',
-        },
-        workspaceId: scope.workspaceId || 'workspace-uuid-001',
-        tokenExpiresAt: tokenExpiresAt.toISOString(),
-        account,
-        syncResult,
-      };
-    } catch (err: any) {
-      logMetaEvent('[OAuth Step Failure] Exception during callback processing', { error: err.message, stack: err.stack });
-      throw err;
-    }
-  }
-
-  async syncAssets(scope: MultiTenantScope) {
-    const { accounts } = await this.repo.findAccounts(scope, { limit: 1 });
-    let primaryAccount = accounts[0] || null;
-
-    if (!primaryAccount) {
-      const globalAccounts = await prisma.facebookAccount.findMany({
-        include: {
-          businesses: true,
-          pages: true,
-          user: { select: { id: true, name: true, email: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 1,
-      });
-      primaryAccount = (globalAccounts[0] as any) || null;
-    }
-
-    if (!primaryAccount || !primaryAccount.accessToken) {
-      return {
-        status: 'NOT_CONNECTED',
-        syncedBusinesses: 0,
-        syncedPages: 0,
-        syncedInstagram: 0,
-        syncedWhatsApp: 0,
-        syncedForms: 0,
-        message: 'No connected Meta account found for workspace.',
-      };
-    }
-
-    const decryptedToken = this.tokenService.decrypt(primaryAccount.accessToken);
-    let syncedBusinessesCount = 0;
-    let syncedPagesCount = 0;
-    let syncedInstagramCount = 0;
-    let syncedWhatsAppCount = 0;
-    let syncedFormsCount = 0;
-
-    try {
-      // 1. Fetch & Store Businesses (GET /me/businesses)
-      const businesses = await this.metaGraphService.getBusinesses(decryptedToken);
-      const savedBusinesses: any[] = [];
-
-      for (const b of businesses) {
-        const saved = await this.repo.upsertBusiness({
-          companyId: primaryAccount.companyId,
-          workspaceId: primaryAccount.workspaceId,
-          facebookAccountId: primaryAccount.id,
-          businessId: b.id,
-          name: b.name,
-          verificationStatus: b.verification_status || 'VERIFIED',
-        });
-        savedBusinesses.push(saved);
-        syncedBusinessesCount++;
-      }
-
-      const primaryBusinessId = savedBusinesses[0]?.id || null;
-
-      // 2. Fetch Pages per Business (Owned & Client Pages) + User Accounts
-      const rawUserPages = await this.metaGraphService.getPages(decryptedToken);
-      const pagesMap = new Map<string, any>();
-
-      for (const page of rawUserPages) {
-        pagesMap.set(page.id, page);
-      }
-
-      for (const b of businesses) {
-        const owned = await this.metaGraphService.getOwnedPages(b.id, decryptedToken);
-        const client = await this.metaGraphService.getClientPages(b.id, decryptedToken);
-
-        for (const page of [...owned, ...client]) {
-          if (!pagesMap.has(page.id)) {
-            pagesMap.set(page.id, page);
-          }
-        }
-      }
-
-      const allPages = Array.from(pagesMap.values());
-
-      for (const page of allPages) {
-        const pageTokenEncrypted = page.access_token ? this.tokenService.encrypt(page.access_token) : primaryAccount.accessToken;
-        const savedPage = await this.repo.upsertPage({
-          companyId: primaryAccount.companyId,
-          workspaceId: primaryAccount.workspaceId,
-          facebookAccountId: primaryAccount.id,
-          facebookBusinessId: primaryBusinessId,
-          pageId: page.id,
-          name: page.name,
-          category: page.category || 'Business Page',
-          pictureUrl: page.picture?.data?.url,
-          followersCount: page.fan_count || 0,
-          accessToken: pageTokenEncrypted,
-          status: 'Active',
-          webhookStatus: 'Active',
-        });
-        syncedPagesCount++;
-
-        // 3. Automatically Subscribe Facebook Page to Webhooks (leadgen, messages, feed)
-        if (page.access_token) {
-          try {
-            await this.metaGraphService.subscribePageWebhook(page.id, page.access_token);
-            logMetaEvent('Auto Webhook Subscription Success', { pageId: page.id, pageName: page.name });
-          } catch (e: any) {
-            logMetaEvent('Auto Webhook Subscription Warning', { pageId: page.id, error: e.message });
-          }
-
-          // 4. Detect & Store Instagram Business Account per Page
-          try {
-            const igAccount = await this.metaGraphService.getInstagramBusinessAccount(page.id, page.access_token);
-            if (igAccount) {
-              await this.repo.upsertInstagramAccount({
-                companyId: primaryAccount.companyId,
-                workspaceId: primaryAccount.workspaceId,
-                facebookAccountId: primaryAccount.id,
-                facebookBusinessId: primaryBusinessId,
-                facebookPageId: savedPage.id,
-                instagramId: igAccount.id,
-                username: igAccount.username,
-                name: igAccount.name || igAccount.username,
-                profilePictureUrl: igAccount.profile_picture_url,
-                followersCount: igAccount.followers_count || 0,
-                businessConnected: true,
-                messagingEnabled: true,
-                webhookEnabled: true,
-                status: 'Active',
-              });
-              syncedInstagramCount++;
-            }
-          } catch (e: any) {
-            logMetaEvent('Instagram Discovery Warning', { pageId: page.id, error: e.message });
-          }
-
-          // 5. Fetch & Store Lead Forms per Facebook Page (GET /{page-id}/leadgen_forms)
-          try {
-            const forms = await this.metaGraphService.getLeadForms(page.id, page.access_token);
-            for (const form of forms) {
-              await this.repo.upsertForm({
-                companyId: primaryAccount.companyId,
-                workspaceId: primaryAccount.workspaceId,
-                facebookPageId: savedPage.id,
-                formId: form.id,
-                name: form.name,
-                status: form.status || 'ACTIVE',
-                leadCount: form.leads_count || 0,
-              });
-              syncedFormsCount++;
-            }
-          } catch (e: any) {
-            logMetaEvent('Lead Forms Sync Warning', { pageId: page.id, error: e.message });
-          }
-        }
-      }
-
-      // 5. Detect & Store WhatsApp Business Accounts
-      for (const b of businesses) {
-        try {
-          const ownedWa = await this.metaGraphService.getOwnedWhatsAppAccounts(b.id, decryptedToken);
-          for (const wa of ownedWa) {
-            await this.repo.upsertWhatsAppAccount({
-              companyId: primaryAccount.companyId,
-              workspaceId: primaryAccount.workspaceId,
-              facebookAccountId: primaryAccount.id,
-              facebookBusinessId: b.id,
-              wabaId: wa.id,
-              name: wa.name || 'WhatsApp Business Account',
-              phoneNumber: wa.phone_numbers?.data?.[0]?.display_phone_number || '+91 98765 43210',
-              phoneNumberId: wa.phone_numbers?.data?.[0]?.id,
-              qualityRating: wa.phone_numbers?.data?.[0]?.quality_rating || 'GREEN',
-              webhookActive: true,
-              templatesCount: 10,
-              messagingStatus: 'Active',
-              status: 'Connected',
-            });
-            syncedWhatsAppCount++;
-          }
-        } catch (e: any) {
-          logMetaEvent('WhatsApp Discovery Warning', { businessId: b.id, error: e.message });
-        }
-      }
-
-      // 6. Detect & Store Owned Ad Accounts (GET /{business-id}/owned_ad_accounts)
-      for (const b of businesses) {
-        try {
-          const adAccounts = await this.metaGraphService.getOwnedAdAccounts(b.id, decryptedToken);
-          for (const adAcc of adAccounts) {
-            await this.repo.upsertAdAccount({
-              facebookAccountId: primaryAccount.id,
-              adAccountId: adAcc.id || adAcc.account_id,
-              name: adAcc.name || `Ad Account ${adAcc.account_id || adAcc.id}`,
-              currency: adAcc.currency || 'USD',
-              timezone: adAcc.timezone_name || 'America/Los_Angeles',
-              status: adAcc.account_status === 1 ? 'ACTIVE' : 'INACTIVE',
-            });
-          }
-        } catch (e: any) {
-          logMetaEvent('Ad Accounts Discovery Warning', { businessId: b.id, error: e.message });
-        }
-      }
-
-      // Log Sync Summary Timeline Event
-      await this.repo.createEvent(scope, {
-        eventType: 'ASSETS_SYNCED',
-        title: 'Meta Assets Idempotent Sync Completed',
-        description: `Synced ${syncedBusinessesCount} Businesses, ${syncedPagesCount} Pages, ${syncedInstagramCount} Instagram Accounts, ${syncedWhatsAppCount} WhatsApp Accounts & ${syncedFormsCount} Lead Forms.`,
-        status: 'SUCCESS',
-      });
-
-      return {
-        status: 'COMPLETED',
-        syncedBusinesses: syncedBusinessesCount,
-        syncedPages: syncedPagesCount,
-        syncedInstagram: syncedInstagramCount,
-        syncedWhatsApp: syncedWhatsAppCount,
-        syncedForms: syncedFormsCount,
-        message: 'Meta Business assets synchronized successfully.',
-      };
-    } catch (err: any) {
-      logMetaEvent('Asset Discovery Error', { error: err.message });
-      return {
-        status: 'PARTIAL_SUCCESS',
-        syncedBusinesses: syncedBusinessesCount,
-        syncedPages: syncedPagesCount,
-        syncedInstagram: syncedInstagramCount,
-        syncedWhatsApp: syncedWhatsAppCount,
-        syncedForms: syncedFormsCount,
-        errorMessage: err.message,
-      };
-    }
-  }
-
-  async getAccounts(scope: MultiTenantScope, options: any) {
-    return this.repo.findAccounts(scope, options);
-  }
-
-  async getBusinesses(scope: MultiTenantScope) {
-    return this.repo.findBusinesses(scope);
-  }
-
-  async getPages(scope: MultiTenantScope, options: any) {
-    return this.repo.findPages(scope, options);
-  }
-
-  async getForms(scope: MultiTenantScope, options: any) {
-    return this.repo.findForms(scope, options);
-  }
-
-  async disconnectAccount(scope: MultiTenantScope, accountId?: string) {
-    let account = null;
-    if (accountId) {
-      account = isUuid(accountId)
-        ? await this.repo.findAccountById(accountId)
-        : await this.repo.findAccountByFbUserId(accountId);
-    }
-
-    if (!account) {
-      const accountsResult = await this.repo.findAccounts(scope, { page: 1, limit: 1 });
-      account = accountsResult.accounts[0] || (await prisma.facebookAccount.findFirst({ orderBy: { createdAt: 'desc' } }));
-    }
-
-    if (!account) return { state: 'NOT_CONNECTED' };
-
-    await this.repo.deleteAccount(account.id);
-    await this.repo.logEvent({
-      companyId: scope.companyId || '11111111-1111-1111-1111-111111111111',
-      workspaceId: scope.workspaceId || '22222222-2222-2222-2222-222222222222',
-      eventType: 'ACCOUNT_DISCONNECTED',
-      title: 'Meta Account Disconnected',
-      description: `Disconnected Facebook Account ID ${account.id}.`,
-    });
-    return { state: 'NOT_CONNECTED' };
-  }
-
-  async getAccountDetails(accountId: string) {
-    const account = await this.repo.findAccountDetails(accountId);
-    if (!account) {
-      throw new Error(`Facebook Account not found for id: ${accountId}`);
-    }
-
-    const pages = account.pages || [];
-    const totalPages = pages.length;
-    const activePages = pages.filter((p: any) => p.status === 'Active').length;
-
-    // Calculate aggregated metrics across account pages
-    const pageIds = pages.map((p: any) => p.id);
-    const [totalLeadsCount, unreadLeadsCount, totalFormsCount, todayLeadsCount, yesterdayLeadsCount] = await Promise.all([
-      prisma.lead.count({ where: { facebookPageId: { in: pageIds } } }),
-      prisma.lead.count({ where: { facebookPageId: { in: pageIds }, status: 'NEW' } }),
-      prisma.facebookForm.count({ where: { facebookPageId: { in: pageIds } } }),
-      prisma.lead.count({
-        where: {
-          facebookPageId: { in: pageIds },
-          createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
-        },
-      }),
-      prisma.lead.count({
-        where: {
-          facebookPageId: { in: pageIds },
-          createdAt: {
-            gte: new Date(Date.now() - 48 * 3600 * 1000),
-            lt: new Date(new Date().setHours(0, 0, 0, 0)),
-          },
-        },
-      }),
+    const [
+      accounts,
+      businesses,
+      pages,
+      instagramAccounts,
+      whatsAppAccounts,
+      forms,
+      businessAssets,
+      webhookSubs,
+      recentLogs,
+      failedWebhooks,
+    ] = await Promise.all([
+      MetaAccountModel.find(query).sort({ updatedAt: -1 }),
+      BusinessPortfolioModel.find(query).sort({ name: 1 }),
+      FacebookPageModel.find(pageQuery).sort({ name: 1 }),
+      InstagramAccountModel.find(query).sort({ username: 1 }),
+      WhatsAppBusinessModel.find(query).sort({ name: 1 }),
+      LeadFormModel.find(pageQuery).sort({ name: 1 }),
+      BusinessAssetModel.find(query).sort({ name: 1 }),
+      WebhookSubscriptionModel.find(query),
+      ActivityLogModel.find(query).sort({ createdAt: -1 }).limit(15),
+      LeadWebhookModel.countDocuments({ ...query, status: 'FAILED' }),
     ]);
 
-    const qualifiedLeadsCount = await prisma.lead.count({
-      where: { facebookPageId: { in: pageIds }, status: 'QUALIFIED' },
-    });
-    const convertedLeadsCount = await prisma.lead.count({
-      where: { facebookPageId: { in: pageIds }, status: 'CONVERTED' },
-    });
+    const primaryAccount = accounts[0] || null;
+    const isConnected = Boolean(primaryAccount && primaryAccount.tokenStatus !== 'REVOKED');
 
-    const conversionRate = totalLeadsCount > 0 ? ((convertedLeadsCount / totalLeadsCount) * 100).toFixed(1) : '16.1';
-    const qualifiedRate = totalLeadsCount > 0 ? ((qualifiedLeadsCount / totalLeadsCount) * 100).toFixed(1) : '25.8';
+    const grantedList = primaryAccount?.grantedPermissions || [];
+    const missingList = primaryAccount?.missingPermissions || [];
+    const permissionsSummary = REQUIRED_PERMISSIONS.map((perm) => ({
+      name: perm,
+      status: grantedList.includes(perm) ? 'GRANTED' : 'MISSING',
+    }));
+
+    const totalLeads = forms.reduce((acc, f) => acc + (f.leadsCount || 0), 0);
 
     return {
-      account: {
-        id: account.id,
-        accountName: account.accountName,
-        fbUserId: account.fbUserId,
-        fbUserEmail: account.fbUserEmail,
-        avatarUrl: account.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-        tokenStatus: account.tokenStatus,
-        tokenExpiresAt: account.tokenExpiresAt,
-        connectedAt: account.createdAt,
-        lastSyncAt: account.lastSyncAt,
-        scopes: account.scopes,
-        user: account.user,
+      connection: {
+        isConnected,
+        status: primaryAccount?.tokenStatus || 'NOT_CONNECTED',
+        user: primaryAccount
+          ? {
+              id: primaryAccount.fbUserId,
+              name: primaryAccount.fbUserName,
+              email: primaryAccount.fbUserEmail,
+              picture: primaryAccount.fbPictureUrl,
+            }
+          : null,
+        lastSyncedAt: primaryAccount?.lastSyncedAt || null,
+        missingPermissions: missingList,
       },
-      metrics: {
-        totalPages,
-        activePages,
-        totalLeads30Days: totalLeadsCount || 1248,
-        unreadLeads: unreadLeadsCount || 86,
-        totalLeadForms: totalFormsCount || 24,
-        todayLeads: todayLeadsCount || 34,
-        yesterdayLeads: yesterdayLeadsCount || 28,
-        conversionPercentage: conversionRate,
-        qualifiedPercentage: qualifiedRate,
-      },
-      pages: pages.map((p: any) => ({
-        id: p.id,
-        pageId: p.pageId,
-        name: p.name,
-        category: p.category || 'Real Estate Company',
-        pictureUrl: p.pictureUrl || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=150&auto=format&fit=crop&q=80',
-        followersCount: p.followersCount || 13200,
-        likesCount: Math.round((p.followersCount || 13200) * 0.95),
-        status: p.status,
-        webhookStatus: p.webhookStatus,
-        unreadLeadsCount: 324,
-        leadFormsCount: p.forms?.length || 24,
-        totalLeads: 324,
-        lastSyncAt: p.updatedAt,
+      accounts: accounts.map((a) => ({
+        id: a._id.toString(),
+        fbUserId: a.fbUserId,
+        name: a.fbUserName,
+        email: a.fbUserEmail,
+        status: a.tokenStatus,
+        grantedPermissionsCount: a.grantedPermissions.length,
+        missingPermissionsCount: a.missingPermissions.length,
+        lastSyncedAt: a.lastSyncedAt,
       })),
-      permissions: account.permissions,
-      businesses: account.businesses,
-    };
-  }
-
-  async getAccountLeads(options: any) {
-    return this.repo.findAccountLeads(options);
-  }
-
-  async getAccountCampaigns(accountId: string) {
-    return this.repo.findCampaignsByAccountId(accountId);
-  }
-
-  async getAccountAds(accountId: string) {
-    return this.repo.findAdsByAccountId(accountId);
-  }
-
-  async getAccountInsights(accountId: string) {
-    return this.repo.findInsightsByAccountId(accountId);
-  }
-
-  /**
-   * Complete 7-Step Facebook Page Connection Sequence (Task Objective)
-   */
-  async connectPageFlow(scope: MultiTenantScope, pageId: string) {
-    const page = await this.repo.findPageDetails(pageId);
-    if (!page) {
-      throw new Error(`Facebook Page not found for id: ${pageId}`);
-    }
-
-    logMetaEvent('Page Connection Flow Started', { pageId: page.pageId, name: page.name });
-
-    // STEP 1: Validate Permissions & Tokens
-    let decryptedPageToken = page.accessToken;
-    try {
-      decryptedPageToken = this.tokenService.decrypt(page.accessToken);
-    } catch (e) {
-      // keep raw token if plain text
-    }
-
-    // STEP 2: Store / Update Page Status
-    await this.repo.connectPageRecord(page.id, 'Active');
-
-    // STEP 3: Subscribe Webhooks to Meta Graph API v23
-    try {
-      await this.metaGraphService.subscribePageWebhook(page.pageId, decryptedPageToken);
-    } catch (e: any) {
-      logMetaEvent('Webhook Subscription Soft Warning (using system webhook fallback)', { error: e.message });
-    }
-
-    // STEP 4: Fetch & Store Lead Forms
-    try {
-      const graphForms = await this.metaGraphService.getLeadForms(page.pageId, decryptedPageToken);
-      for (const formItem of graphForms) {
-        const existingForm = await prisma.facebookForm.findFirst({ where: { formId: formItem.id } });
-        if (!existingForm) {
-          await prisma.facebookForm.create({
-            data: {
-              companyId: page.companyId,
-              workspaceId: page.workspaceId,
-              facebookPageId: page.id,
-              formId: formItem.id,
-              name: formItem.name || 'Meta Lead Form',
-              leadCount: formItem.leads_count || 0,
-              status: formItem.status || 'Active',
-              isActive: true,
-              webhookActive: true,
-            },
-          });
-        }
-      }
-    } catch (e: any) {
-      logMetaEvent('Lead Forms Fetch Info', { pageId: page.pageId, message: e.message });
-    }
-
-    // STEP 5: Fetch Existing Leads from Graph API
-    try {
-      const forms = await prisma.facebookForm.findMany({ where: { facebookPageId: page.id } });
-      for (const formRecord of forms) {
-        try {
-          const graphLeads = await this.metaGraphService.getFormLeads(formRecord.formId, decryptedPageToken);
-          for (const leadItem of graphLeads) {
-            const fieldMap: Record<string, string> = {};
-            if (leadItem.field_data) {
-              for (const f of leadItem.field_data) {
-                fieldMap[f.name] = f.values?.[0] || '';
-              }
-            }
-            const phone = fieldMap['phone_number'] || fieldMap['phone'] || `+9198${Math.floor(10000000 + Math.random() * 90000000)}`;
-            const existingLead = await prisma.lead.findFirst({ where: { phone } });
-            if (!existingLead) {
-              await prisma.lead.create({
-                data: {
-                  name: fieldMap['full_name'] || fieldMap['name'] || 'Meta Lead',
-                  phone,
-                  email: fieldMap['email'] || null,
-                  status: 'NEW',
-                  workspaceId: page.workspaceId,
-                  facebookPageId: page.id,
-                  facebookFormId: formRecord.id,
-                  campaign: leadItem.campaign_name || formRecord.campaign || 'Meta Performance Campaign',
-                  sourceName: 'Facebook Page',
-                  qualificationScore: 80,
-                  createdAt: leadItem.created_time ? new Date(leadItem.created_time) : new Date(),
-                },
-              });
-            }
-          }
-        } catch (fErr: any) {
-          logMetaEvent('Form Leads Sync Info', { formId: formRecord.formId, message: fErr.message });
-        }
-      }
-    } catch (e: any) {
-      logMetaEvent('Leads Sync Soft Error', { pageId: page.pageId, message: e.message });
-    }
-
-    // STEP 6: Sync Insights
-    try {
-      await this.metaGraphService.getPageInsights(page.pageId, decryptedPageToken);
-    } catch (e: any) {
-      logMetaEvent('Page Insights Soft Error', { pageId: page.pageId, message: e.message });
-    }
-
-    // STEP 7: Return Updated Page
-    const updatedPage = await this.repo.findPageDetails(page.id);
-    logMetaEvent('Page Connection Flow Completed Successfully', { pageId: page.pageId });
-    return updatedPage;
-  }
-
-  async disconnectPageFlow(scope: MultiTenantScope, pageId: string) {
-    const page = await this.repo.findPageDetails(pageId);
-    if (!page) {
-      throw new Error(`Facebook Page not found for id: ${pageId}`);
-    }
-
-    let decryptedPageToken = page.accessToken;
-    try {
-      decryptedPageToken = this.tokenService.decrypt(page.accessToken);
-    } catch (e) {
-      // ignore
-    }
-
-    // Unsubscribe webhook
-    try {
-      await this.metaGraphService.unsubscribePageWebhook(page.pageId, decryptedPageToken);
-    } catch (e: any) {
-      logMetaEvent('Unsubscribe Webhook Soft Error', { message: e.message });
-    }
-
-    // Update DB status to Inactive (preserving lead history)
-    await this.repo.disconnectPageRecord(page.id);
-
-    return { status: 'Disconnected', pageId: page.id };
-  }
-
-  async getPageDetails(pageId: string) {
-    const page = await this.repo.findPageDetails(pageId);
-    if (!page) {
-      throw new Error(`Facebook Page not found for id: ${pageId}`);
-    }
-    return page;
-  }
-
-  /**
-   * Complete 20-Point Production Pipeline Audit
-   */
-  async runProductionAudit(scope: MultiTenantScope) {
-    const auditResults: any[] = [];
-    const accountsResult = await this.repo.findAccounts(scope, { page: 1, limit: 1 });
-    const primaryAccount = accountsResult.accounts[0] || null;
-
-    let decryptedToken = '';
-    if (primaryAccount && primaryAccount.accessToken) {
-      try {
-        decryptedToken = this.tokenService.decrypt(primaryAccount.accessToken);
-      } catch (e) {
-        decryptedToken = primaryAccount.accessToken;
-      }
-    }
-
-    // Probe 1: GET /me
-    try {
-      if (!decryptedToken) throw new Error('No decrypted User Access Token stored in PostgreSQL facebook_accounts');
-      const user = await this.metaGraphService.getUserProfile(decryptedToken);
-      auditResults.push({
-        step: 1,
-        name: 'OAuth User Profile (GET /me)',
-        endpoint: '/me',
-        status: 'SUCCESS',
-        executed: true,
-        itemsFound: 1,
-        permissionsGranted: ['public_profile', 'email'],
-        responseSnippet: `User: ${user.name} (ID: ${user.id})`,
-      });
-    } catch (err: any) {
-      auditResults.push({
-        step: 1,
-        name: 'OAuth User Profile (GET /me)',
-        endpoint: '/me',
-        status: 'FAIL',
-        executed: true,
-        itemsFound: 0,
-        permissionsGranted: [],
-        rootCause: err.message || 'Token missing or invalid',
-      });
-    }
-
-    // Probe 2: GET /me/permissions
-    try {
-      if (!decryptedToken) throw new Error('No decrypted token');
-      const perms = await this.metaGraphService.getPermissions(decryptedToken);
-      const granted = perms.filter((p: any) => p.status === 'granted').map((p: any) => p.permission);
-      auditResults.push({
-        step: 2,
-        name: 'OAuth Granted Scopes (GET /me/permissions)',
-        endpoint: '/me/permissions',
-        status: 'SUCCESS',
-        executed: true,
-        itemsFound: granted.length,
-        permissionsGranted: granted,
-        responseSnippet: granted.join(', '),
-      });
-    } catch (err: any) {
-      auditResults.push({
-        step: 2,
-        name: 'OAuth Granted Scopes (GET /me/permissions)',
-        endpoint: '/me/permissions',
-        status: 'FAIL',
-        executed: true,
-        itemsFound: 0,
-        permissionsGranted: [],
-        rootCause: err.message,
-      });
-    }
-
-    // Probe 3: GET /me/businesses & PostgreSQL Store
-    try {
-      if (!decryptedToken) throw new Error('No decrypted token');
-      const bList = await this.metaGraphService.getBusinesses(decryptedToken);
-      const dbBusinesses = await prisma.facebookBusiness.count();
-      auditResults.push({
-        step: 3,
-        name: 'Business Managers (GET /me/businesses)',
-        endpoint: '/me/businesses',
-        status: 'SUCCESS',
-        executed: true,
-        itemsFound: bList.length,
-        dbRecordCount: dbBusinesses,
-        responseSnippet: `Fetched ${bList.length} businesses from Meta. Stored ${dbBusinesses} in PostgreSQL.`,
-      });
-    } catch (err: any) {
-      const dbBusinesses = await prisma.facebookBusiness.count();
-      auditResults.push({
-        step: 3,
-        name: 'Business Managers (GET /me/businesses)',
-        endpoint: '/me/businesses',
-        status: 'FAIL_OR_EMPTY',
-        executed: true,
-        itemsFound: 0,
-        dbRecordCount: dbBusinesses,
-        rootCause: err.message.includes('permission') ? 'Missing business_management permission' : 'Personal FB Account has no linked Meta Business Managers',
-      });
-    }
-
-    // Probe 4: GET /me/accounts & PostgreSQL Pages & Tokens
-    try {
-      if (!decryptedToken) throw new Error('No decrypted token');
-      const pList = await this.metaGraphService.getPages(decryptedToken);
-      const dbPages = await prisma.facebookPage.count();
-      auditResults.push({
-        step: 4,
-        name: 'Facebook Pages & Access Tokens (GET /me/accounts)',
-        endpoint: '/me/accounts',
-        status: 'SUCCESS',
-        executed: true,
-        itemsFound: pList.length,
-        dbRecordCount: dbPages,
-        responseSnippet: `Fetched ${pList.length} pages from Meta. Stored ${dbPages} in PostgreSQL. Page tokens encrypted with AES-256-GCM.`,
-      });
-    } catch (err: any) {
-      const dbPages = await prisma.facebookPage.count();
-      auditResults.push({
-        step: 4,
-        name: 'Facebook Pages & Access Tokens (GET /me/accounts)',
-        endpoint: '/me/accounts',
-        status: 'FAIL',
-        executed: true,
-        itemsFound: 0,
-        dbRecordCount: dbPages,
-        rootCause: err.message,
-      });
-    }
-
-    // Probe 5: GET Lead Forms & Existing Leads
-    try {
-      const dbForms = await prisma.facebookForm.count();
-      const dbLeads = await prisma.lead.count({ where: { facebookPageId: { not: null } } });
-      auditResults.push({
-        step: 5,
-        name: 'Lead Forms & Imported Leads (GET /{page-id}/leadgen_forms)',
-        endpoint: '/{page-id}/leadgen_forms',
-        status: 'SUCCESS',
-        executed: true,
-        itemsFound: dbForms,
-        dbRecordCount: dbLeads,
-        responseSnippet: `Stored ${dbForms} Leadgen Forms and ${dbLeads} Leads in PostgreSQL.`,
-      });
-    } catch (err: any) {
-      auditResults.push({
-        step: 5,
-        name: 'Lead Forms & Imported Leads',
-        endpoint: '/{page-id}/leadgen_forms',
-        status: 'FAIL',
-        executed: true,
-        itemsFound: 0,
-        rootCause: err.message,
-      });
-    }
-
-    // Probe 6: Database Integrity Check (No Mocks, 100% PostgreSQL Reading)
-    const totalAccountsInDb = await prisma.facebookAccount.count();
-    const totalPagesInDb = await prisma.facebookPage.count();
-    const totalFormsInDb = await prisma.facebookForm.count();
-    const totalLeadsInDb = await prisma.lead.count();
-
-    return {
-      auditTimestamp: new Date().toISOString(),
-      metaGraphApiVersion: 'v23.0',
-      databaseReadOnlyVerified: true,
-      mockDataRemoved: true,
-      postgresRecordCounts: {
-        facebookAccounts: totalAccountsInDb,
-        facebookPages: totalPagesInDb,
-        facebookForms: totalFormsInDb,
-        totalLeads: totalLeadsInDb,
+      businesses: businesses.map((b) => ({
+        id: b.businessId,
+        name: b.name,
+        verificationStatus: b.verificationStatus,
+        primaryPageId: b.primaryPageId,
+      })),
+      pages: pages.map((p) => ({
+        id: p.pageId,
+        name: p.name,
+        category: p.category,
+        fanCount: p.fanCount,
+        pictureUrl: p.pictureUrl,
+        isConnected: p.isConnected,
+        webhookStatus: p.webhookStatus,
+        instagramId: p.instagramBusinessAccountId,
+      })),
+      instagramAccounts: instagramAccounts.map((ig) => ({
+        id: ig.instagramId,
+        username: ig.username,
+        name: ig.name,
+        followersCount: ig.followersCount,
+        mediaCount: ig.mediaCount,
+        profilePictureUrl: ig.profilePictureUrl,
+      })),
+      whatsAppAccounts: whatsAppAccounts.map((wa) => ({
+        id: wa.wabaId,
+        name: wa.name,
+        currency: wa.currency,
+        phoneNumbers: wa.phoneNumbers,
+      })),
+      forms: forms.map((f) => ({
+        id: f.formId,
+        name: f.name,
+        pageId: f.pageId,
+        status: f.status,
+        leadsCount: f.leadsCount,
+        questionsCount: f.questions?.length || 0,
+        questions: f.questions,
+        isActive: f.isActive,
+        assignedAiAgentId: f.assignedAiAgentId || '',
+      })),
+      businessAssets: businessAssets.map((asset) => ({
+        id: asset.assetId,
+        type: asset.assetType,
+        name: asset.name,
+        details: asset.details,
+      })),
+      permissions: permissionsSummary,
+      webhookHealth: {
+        status: failedWebhooks > 0 ? 'WARNING' : 'HEALTHY',
+        activeSubscriptionsCount: webhookSubs.filter((s) => s.status === 'ACTIVE').length,
+        failedCount: failedWebhooks,
       },
-      pipelineAudits: auditResults,
+      recentEvents: recentLogs.map((log) => ({
+        id: log._id.toString(),
+        eventType: log.action,
+        title: log.action.replace(/_/g, ' '),
+        description: log.description,
+        timestamp: log.createdAt,
+      })),
+      metrics: {
+        totalAccounts: accounts.length,
+        totalBusinesses: businesses.length,
+        totalPages: pages.length,
+        totalInstagram: instagramAccounts.length,
+        totalWhatsApp: whatsAppAccounts.length,
+        totalForms: forms.length,
+        totalLeads,
+      },
     };
   }
-}
 
+  async triggerManualSync(scope: MultiTenantScope) {
+    const metaAccount = await MetaAccountModel.findOne({ workspaceId: scope.workspaceId });
+    const fbUserId = metaAccount?.fbUserId || '';
+    const decryptedToken = await this.tokenService.getValidAccessToken(scope, fbUserId);
+    if (!decryptedToken) {
+      throw new Error('No valid encrypted Meta token found for workspace.');
+    }
 
-function getPermissionDescription(perm: string): string {
-  const map: Record<string, string> = {
-    public_profile: 'Access public profile information (name, avatar)',
-    email: 'Read user email address',
-    business_management: 'Manage Business Manager assets and settings',
-    pages_show_list: 'List owned Facebook Pages',
-    pages_read_engagement: 'Read engagement & posts on Facebook Pages',
-    pages_manage_metadata: 'Manage Page webhooks and metadata configuration',
-    leads_retrieval: 'Retrieve lead form submissions in real time',
-    instagram_basic: 'Read Instagram profile & connected business account info',
-    instagram_manage_messages: 'Receive and respond to Instagram direct messages',
-    whatsapp_business_management: 'Manage WhatsApp Business Account templates and settings',
-    whatsapp_business_messaging: 'Send and receive WhatsApp Business customer messages',
-  };
-  return map[perm] || 'Granted permission for Meta API integration';
+    logMetaEvent('Manual Full Sync Triggered', { scope });
+    return this.discoveryService.runAutomaticDiscovery(scope, decryptedToken);
+  }
+
+  async toggleFormActive(scope: MultiTenantScope, formId: string, isActive: boolean) {
+    const updated = await LeadFormModel.findOneAndUpdate(
+      { workspaceId: scope.workspaceId, formId },
+      { isActive },
+      { new: true }
+    );
+    return updated;
+  }
+
+  async assignAiAgent(scope: MultiTenantScope, formId: string, aiAgentId: string) {
+    const updated = await LeadFormModel.findOneAndUpdate(
+      { workspaceId: scope.workspaceId, formId },
+      { assignedAiAgentId: aiAgentId },
+      { new: true }
+    );
+    return updated;
+  }
+
+  async disconnectAccount(scope: MultiTenantScope, fbUserId?: string) {
+    const query: any = { workspaceId: scope.workspaceId };
+    if (fbUserId) query.fbUserId = fbUserId;
+
+    await MetaAccountModel.updateMany(query, { tokenStatus: 'REVOKED' });
+    await FacebookPageModel.updateMany(query, { isConnected: false, webhookStatus: 'UNSUBSCRIBED' });
+
+    await ActivityLogModel.create({
+      workspaceId: scope.workspaceId,
+      companyId: scope.companyId,
+      userId: scope.userId,
+      action: 'META_ACCOUNT_DISCONNECTED',
+      actorType: 'USER',
+      description: 'Meta Integration account disconnected by user.',
+    });
+
+    return { success: true };
+  }
 }

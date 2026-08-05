@@ -1,38 +1,55 @@
+'use client';
+
 import React from 'react';
-import { CheckCircle2, AlertTriangle, ShieldCheck, AlertCircle } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, ShieldCheck, AlertCircle, Clock, Key, ShieldAlert } from 'lucide-react';
 import { FacebookPermissionItem } from '@/types/facebook.types';
 
 interface Props {
   permissions: FacebookPermissionItem[];
 }
 
+export type PermissionStatusType = 'Granted' | 'Missing' | 'Expired' | 'Reconnect Required' | 'Admin Required';
+
 export const PermissionsCard: React.FC<Props> = ({ permissions = [] }) => {
-  const requiredPermissions: { permission: string; description: string }[] = [
-    { permission: 'public_profile', description: 'Access public profile info (name, picture)' },
-    { permission: 'business_management', description: 'Manage Business Manager assets and settings' },
-    { permission: 'pages_show_list', description: 'View and list owned Facebook Pages' },
-    { permission: 'pages_read_engagement', description: 'Read engagement and posts on Facebook Pages' },
-    { permission: 'pages_manage_metadata', description: 'Manage Page webhooks and metadata configuration' },
-    { permission: 'leads_retrieval', description: 'Retrieve Meta lead form submissions in real time' },
+  const requiredPermissions: { permission: string; description: string; defaultStatus?: PermissionStatusType }[] = [
+    { permission: 'business_management', description: 'Access Business Portfolios, asset discovery & system users', defaultStatus: 'Granted' },
+    { permission: 'pages_show_list', description: 'Discover owned and client Facebook Pages', defaultStatus: 'Granted' },
+    { permission: 'pages_manage_metadata', description: 'Subscribe Page webhooks & lead form listeners', defaultStatus: 'Granted' },
+    { permission: 'pages_read_engagement', description: 'Read page engagement, posts & insights', defaultStatus: 'Granted' },
+    { permission: 'pages_manage_posts', description: 'Manage and publish page feed content', defaultStatus: 'Granted' },
+    { permission: 'leads_retrieval', description: 'Retrieve Meta Lead Ads submissions in real time', defaultStatus: 'Granted' },
+    { permission: 'instagram_basic', description: 'Discover linked Instagram Business Accounts', defaultStatus: 'Granted' },
+    { permission: 'instagram_manage_messages', description: 'Manage Instagram direct messaging and comments', defaultStatus: 'Granted' },
+    { permission: 'whatsapp_business_management', description: 'Discover WhatsApp Business Accounts & phone numbers', defaultStatus: 'Granted' },
+    { permission: 'whatsapp_business_messaging', description: 'Send and receive WhatsApp Cloud API messages', defaultStatus: 'Granted' },
   ];
 
-  const totalRequired = requiredPermissions.length; // 6 permissions
+  const totalRequired = requiredPermissions.length;
 
-  // Map permissions array (handles strings or objects)
-  const grantedSet = new Set<string>();
+  const statusMap = new Map<string, PermissionStatusType>();
   permissions.forEach((p: any) => {
-    if (typeof p === 'string') grantedSet.add(p);
-    else if (p?.permission && (p.status === 'Granted' || p.status === 'granted')) grantedSet.add(p.permission);
+    const code = p?.permission || p?.name || (typeof p === 'string' ? p : '');
+    if (!code) return;
+
+    const rawStatus = (p?.status || 'Granted').toString().toUpperCase();
+    let normalized: PermissionStatusType = 'Granted';
+
+    if (rawStatus === 'GRANTED') normalized = 'Granted';
+    else if (rawStatus === 'MISSING') normalized = 'Missing';
+    else if (rawStatus === 'EXPIRED') normalized = 'Expired';
+    else if (rawStatus === 'RECONNECT_REQUIRED' || rawStatus === 'RECONNECT REQUIRED') normalized = 'Reconnect Required';
+    else if (rawStatus === 'ADMIN_REQUIRED' || rawStatus === 'ADMIN REQUIRED') normalized = 'Admin Required';
+
+    statusMap.set(code, normalized);
   });
 
-  // Default to all granted if permissions list is empty when connected
   const displayPermissions = requiredPermissions.map((req, idx) => {
-    const isGranted = grantedSet.size > 0 ? grantedSet.has(req.permission) : true;
+    const currentStatus = statusMap.get(req.permission) || req.defaultStatus || 'Granted';
     return {
       id: `p-${idx}`,
       permission: req.permission,
       description: req.description,
-      status: (isGranted ? 'Granted' : 'Missing') as 'Granted' | 'Missing',
+      status: currentStatus,
     };
   });
 
@@ -54,7 +71,7 @@ export const PermissionsCard: React.FC<Props> = ({ permissions = [] }) => {
       {missingCount > 0 && (
         <div className="fb-perm-warning-banner">
           <AlertCircle size={16} className="text-warning-icon" />
-          <span>Warning: {missingCount} required Meta permission(s) missing. Reconnect account to restore access.</span>
+          <span>Notice: Action required for {missingCount} permission(s). Reconnect account to update access rights.</span>
         </div>
       )}
 
@@ -62,15 +79,20 @@ export const PermissionsCard: React.FC<Props> = ({ permissions = [] }) => {
         {displayPermissions.map((perm) => (
           <div key={perm.id || perm.permission} className="fb-permission-item">
             <div className="fb-permission-icon">
-              {perm.status === 'Granted' ? (
-                <CheckCircle2 size={16} className="text-success-icon" />
-              ) : (
-                <AlertTriangle size={16} className="text-warning-icon" />
-              )}
+              {perm.status === 'Granted' && <CheckCircle2 size={16} className="text-emerald" />}
+              {perm.status === 'Missing' && <AlertTriangle size={16} className="text-amber" />}
+              {perm.status === 'Expired' && <Clock size={16} className="text-amber" />}
+              {perm.status === 'Reconnect Required' && <ShieldAlert size={16} className="text-rose" />}
+              {perm.status === 'Admin Required' && <Key size={16} className="text-indigo" />}
             </div>
+            
             <div className="fb-permission-text-group">
-              <span className="fb-permission-code font-mono">{perm.permission}</span>
+              <span className="fb-permission-code">{perm.permission}</span>
               <span className="fb-permission-desc">{perm.description}</span>
+            </div>
+
+            <div className={`perm-status-badge perm-status-${perm.status.toLowerCase().replace(/\s+/g, '-')}`}>
+              {perm.status.toUpperCase()}
             </div>
           </div>
         ))}

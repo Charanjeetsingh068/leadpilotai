@@ -1,33 +1,37 @@
-import { FacebookIntegrationService } from '../services/facebook-integration.service';
-import { prisma } from '../config/database';
+import { MetaAccountModel } from '../models/MetaAccount.model';
+import { TokenManagementService } from '../services/token-management.service';
+import { MetaDiscoveryService } from '../services/meta-discovery.service';
 import { logMetaEvent } from '../services/meta-graph-api.service';
 
-const integrationService = new FacebookIntegrationService();
-const SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+export async function run15MinuteMetaSync() {
+  logMetaEvent('Starting 15-Minute Automated Meta Synchronization Job');
 
-export async function runMetaSyncCycle() {
-  logMetaEvent('5-Minute Meta Sync Job Triggered', { timestamp: new Date().toISOString() });
+  const tokenService = new TokenManagementService();
+  const discoveryService = new MetaDiscoveryService();
 
   try {
-    const activeAccounts = await prisma.facebookAccount.findMany({
-      where: { tokenStatus: 'Active' },
-      select: { id: true, companyId: true, workspaceId: true, userId: true, accountName: true },
+    const activeAccounts = await MetaAccountModel.find({
+      tokenStatus: { $ne: 'REVOKED' },
     });
 
-    logMetaEvent('Active Accounts for Scheduled Sync', { count: activeAccounts.length });
+    logMetaEvent('Active Accounts Selected for 15-Minute Sync', { count: activeAccounts.length });
 
     for (const acc of activeAccounts) {
       try {
         const scope = {
-          companyId: acc.companyId,
           workspaceId: acc.workspaceId,
+          companyId: acc.companyId,
           userId: acc.userId,
         };
 
-        const result = await integrationService.syncAssets(scope);
-        logMetaEvent(`Scheduled Sync Completed for Account: ${acc.accountName}`, { accountId: acc.id, result });
+        // Check & Refresh token if expiring
+        const validToken = await tokenService.getValidAccessToken(scope, acc.fbUserId);
+        if (validToken) {
+          await discoveryService.runAutomaticDiscovery(scope, validToken);
+          logMetaEvent(`15-Min Sync Cycle Completed for User: ${acc.fbUserName}`, { fbUserId: acc.fbUserId });
+        }
       } catch (accErr: any) {
-        logMetaEvent(`Scheduled Sync Account Warning: ${acc.accountName}`, { accountId: acc.id, error: accErr.message });
+        logMetaEvent(`15-Min Sync Cycle Account Warning: ${acc.fbUserName}`, { error: accErr.message });
       }
     }
   } catch (err: any) {
@@ -36,15 +40,15 @@ export async function runMetaSyncCycle() {
 }
 
 export function startMetaSyncCron() {
-  logMetaEvent('Initializing Meta 15-Minute Sync Background Worker');
-  
-  // Run initial sync after 10 seconds of server startup
+  logMetaEvent('Initializing Meta 15-Minute Sync Background Cron Worker');
+
+  // Run initial sync on boot after 10s delay
   setTimeout(() => {
-    runMetaSyncCycle();
+    run15MinuteMetaSync();
   }, 10000);
 
-  // Repeat every 15 minutes
+  // Interval timer every 15 minutes
   setInterval(() => {
-    runMetaSyncCycle();
-  }, SYNC_INTERVAL_MS);
+    run15MinuteMetaSync();
+  }, 15 * 60 * 1000);
 }

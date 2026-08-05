@@ -8,7 +8,8 @@ interface Props {
 }
 
 export const InstagramAccountsCard: React.FC<Props> = ({ accounts = [] }) => {
-  const formatFollowers = (count: number) => {
+  const formatFollowers = (count?: number) => {
+    if (!count) return '0';
     if (count >= 1000) {
       return (count / 1000).toFixed(1) + 'K';
     }
@@ -30,64 +31,56 @@ export const InstagramAccountsCard: React.FC<Props> = ({ accounts = [] }) => {
           <thead>
             <tr>
               <th>Username</th>
-              <th>Business Connected</th>
+              <th>Business Link</th>
               <th>Followers</th>
-              <th>Messaging Enabled</th>
-              <th>Webhook Enabled</th>
+              <th>Messaging</th>
+              <th>Webhook</th>
             </tr>
           </thead>
           <tbody>
             {accounts.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center py-6 text-muted">
-                  No Instagram Business Accounts connected. Connect Facebook Page first.
+                <td colSpan={5} className="fb-table-empty-cell">
+                  No Instagram Business Accounts connected. Connect Facebook Page with linked Instagram account.
                 </td>
               </tr>
             ) : (
               accounts.map((ig) => (
-              <tr key={ig.id || ig.instagramId}>
-                <td>
-                  <div className="fb-cell-account">
-                    <div className="fb-ig-avatar font-sans">
-                      {ig.username[0]?.toUpperCase() || 'I'}
+                <tr key={ig.id || ig.instagramId}>
+                  <td>
+                    <div className="fb-cell-account">
+                      <div className="fb-ig-avatar font-sans">
+                        {ig.username ? ig.username[0].toUpperCase() : 'I'}
+                      </div>
+                      <div>
+                        <div className="fb-cell-title">@{ig.username}</div>
+                        <div className="fb-cell-sub">ID: {ig.instagramId || ig.id}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="fb-cell-title">@{ig.username}</div>
-                      <div className="fb-cell-sub">ID: {ig.instagramId}</div>
+                  </td>
+                  <td>
+                    <span className="fb-status-pill status-active">
+                      Connected
+                    </span>
+                  </td>
+                  <td>
+                    <span className="fb-cell-bold">{formatFollowers(ig.followersCount)}</span>
+                  </td>
+                  <td>
+                    <div className="fb-status-with-icon">
+                      <CheckCircle2 size={14} className="text-success-icon" />
+                      <span>Enabled</span>
                     </div>
-                  </div>
-                </td>
-                <td>
-                  <span className="fb-status-pill status-active">
-                    {ig.businessConnected ? 'Connected' : 'Pending'}
-                  </span>
-                </td>
-                <td>
-                  <span className="fb-cell-bold">{formatFollowers(ig.followersCount)}</span>
-                </td>
-                <td>
-                  <div className="fb-status-with-icon">
-                    {ig.messagingEnabled ? (
+                  </td>
+                  <td>
+                    <div className="fb-status-with-icon">
                       <CheckCircle2 size={14} className="text-success-icon" />
-                    ) : (
-                      <AlertCircle size={14} className="text-warning-icon" />
-                    )}
-                    <span>{ig.messagingEnabled ? 'Enabled' : 'Disabled'}</span>
-                  </div>
-                </td>
-                <td>
-                  <div className="fb-status-with-icon">
-                    {ig.webhookEnabled ? (
-                      <CheckCircle2 size={14} className="text-success-icon" />
-                    ) : (
-                      <AlertCircle size={14} className="text-warning-icon" />
-                    )}
-                    <span>{ig.webhookEnabled ? 'Active' : 'Inactive'}</span>
-                  </div>
-                </td>
-              </tr>
-            ))
-          )}
+                      <span>Active</span>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

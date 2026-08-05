@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Zap, MessageSquare, Bot, Database, CheckCircle2, UserPlus } from 'lucide-react';
+import { ArrowRight, Zap, MessageSquare, Bot, Database, UserPlus } from 'lucide-react';
 import { FacebookIcon } from './FacebookIcon';
 import { InstagramIcon } from './InstagramIcon';
 import { LiveActivityItem } from '@/types/facebook.types';
@@ -9,23 +9,15 @@ interface Props {
 }
 
 export const LiveSyncActivityStream: React.FC<Props> = ({ events = [] }) => {
-  const renderIcon = (type: string) => {
-    switch (type.toLowerCase()) {
-      case 'lead':
-        return <UserPlus size={15} className="text-emerald-500" />;
-      case 'webhook':
-        return <Zap size={15} className="text-amber-500" />;
-      case 'instagram':
-        return <InstagramIcon size={15} className="fb-ig-icon" />;
-      case 'whatsapp':
-        return <MessageSquare size={15} className="fb-wa-icon" />;
-      case 'ai':
-        return <Bot size={15} className="text-purple-500" />;
-      case 'crm':
-        return <Database size={15} className="text-blue-500" />;
-      default:
-        return <FacebookIcon size={15} className="fb-activity-fb-svg" />;
-    }
+  const renderIcon = (type?: string) => {
+    const safeType = (type || 'facebook').toLowerCase();
+    if (safeType.includes('lead')) return <UserPlus size={15} className="text-emerald-500" />;
+    if (safeType.includes('webhook')) return <Zap size={15} className="text-amber-500" />;
+    if (safeType.includes('instagram')) return <InstagramIcon size={15} className="fb-ig-icon" />;
+    if (safeType.includes('whatsapp')) return <MessageSquare size={15} className="fb-wa-icon" />;
+    if (safeType.includes('ai')) return <Bot size={15} className="text-purple-500" />;
+    if (safeType.includes('crm')) return <Database size={15} className="text-blue-500" />;
+    return <FacebookIcon size={15} className="fb-activity-fb-svg" />;
   };
 
   return (
@@ -42,20 +34,20 @@ export const LiveSyncActivityStream: React.FC<Props> = ({ events = [] }) => {
           </div>
         ) : (
           events.map((item) => (
-          <div key={item.id} className="fb-activity-item">
-            <div className="fb-activity-icon">
-              {renderIcon(item.type)}
-            </div>
-            <div className="fb-activity-content">
-              <div className="fb-activity-title-row">
-                <span className="fb-activity-title">{item.title}</span>
-                <span className="fb-activity-time">{item.timeAgo || item.timestamp}</span>
+            <div key={item.id} className="fb-activity-item">
+              <div className="fb-activity-icon">
+                {renderIcon(item.type || item.eventType)}
               </div>
-              <div className="fb-activity-desc">{item.description}</div>
+              <div className="fb-activity-content">
+                <div className="fb-activity-title-row">
+                  <span className="fb-activity-title">{item.title}</span>
+                  <span className="fb-activity-time">{item.timeAgo || (item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now')}</span>
+                </div>
+                <div className="fb-activity-desc">{item.description}</div>
+              </div>
             </div>
-          </div>
-        ))
-      )}
+          ))
+        )}
       </div>
 
       <div className="fb-activity-footer">
