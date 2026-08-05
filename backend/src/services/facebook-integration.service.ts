@@ -128,19 +128,12 @@ export class FacebookIntegrationService {
   }
 
   async getDashboard(scope: MultiTenantScope, businessId?: string) {
-    let accounts = await MetaAccountModel.find({ workspaceId: scope.workspaceId, tokenStatus: { $ne: 'REVOKED' } }).sort({ updatedAt: -1 });
-
-    // Persistent Fallback: If no account under current workspaceId, query any active connected account
-    if (accounts.length === 0) {
-      accounts = await MetaAccountModel.find({ tokenStatus: { $ne: 'REVOKED' } }).sort({ updatedAt: -1 });
-    }
-
-    const targetWorkspaceId = accounts[0]?.workspaceId || scope.workspaceId;
-    const assetQuery: any = { workspaceId: targetWorkspaceId };
-    const pageQuery: any = { workspaceId: targetWorkspaceId };
+    const query: any = { workspaceId: scope.workspaceId };
+    const pageQuery: any = { workspaceId: scope.workspaceId };
     if (businessId) pageQuery.businessId = businessId;
 
     const [
+      accounts,
       businesses,
       pages,
       instagramAccounts,
@@ -151,15 +144,16 @@ export class FacebookIntegrationService {
       recentLogs,
       failedWebhooks,
     ] = await Promise.all([
-      BusinessPortfolioModel.find(assetQuery).sort({ name: 1 }),
+      MetaAccountModel.find(query).sort({ updatedAt: -1 }),
+      BusinessPortfolioModel.find(query).sort({ name: 1 }),
       FacebookPageModel.find(pageQuery).sort({ name: 1 }),
-      InstagramAccountModel.find(assetQuery).sort({ username: 1 }),
-      WhatsAppBusinessModel.find(assetQuery).sort({ name: 1 }),
+      InstagramAccountModel.find(query).sort({ username: 1 }),
+      WhatsAppBusinessModel.find(query).sort({ name: 1 }),
       LeadFormModel.find(pageQuery).sort({ name: 1 }),
-      BusinessAssetModel.find(assetQuery).sort({ name: 1 }),
-      WebhookSubscriptionModel.find(assetQuery),
-      ActivityLogModel.find({}).sort({ createdAt: -1 }).limit(15),
-      LeadWebhookModel.countDocuments({ status: 'FAILED' }),
+      BusinessAssetModel.find(query).sort({ name: 1 }),
+      WebhookSubscriptionModel.find(query),
+      ActivityLogModel.find(query).sort({ createdAt: -1 }).limit(15),
+      LeadWebhookModel.countDocuments({ ...query, status: 'FAILED' }),
     ]);
 
     const primaryAccount = accounts[0] || null;
