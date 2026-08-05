@@ -113,13 +113,13 @@ export class MetaCallbackController {
       };
 
       if (req.headers.accept?.includes('text/html') || req.accepts('html')) {
-        const targetUrl = `${ENV.FRONTEND_URL}/integrations/facebook`;
+        const liveAppUrl = 'https://leadpilotai-rust.vercel.app';
+        const targetUrl = `${liveAppUrl}/integrations/facebook`;
         return res.send(`
           <!DOCTYPE html>
           <html>
           <head>
             <title>Meta Connection Successful</title>
-            <meta http-equiv="refresh" content="2;url=${targetUrl}">
           </head>
           <body style="font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #0f172a; color: white; margin: 0;">
             <div style="text-align: center; max-width: 480px; padding: 32px; background: #1e293b; border-radius: 16px;">
@@ -131,9 +131,9 @@ export class MetaCallbackController {
                 try {
                   window.opener.postMessage({ type: 'FB_OAUTH_SUCCESS', data: ${JSON.stringify(responseData)} }, '*');
                 } catch (e) {}
-                setTimeout(() => window.close(), 1000);
+                setTimeout(function() { try { window.close(); } catch(e){} }, 800);
               } else {
-                setTimeout(() => window.location.href = ${JSON.stringify(targetUrl)}, 1500);
+                setTimeout(function() { window.location.href = ${JSON.stringify(targetUrl)}; }, 1000);
               }
             </script>
           </body>

@@ -104,9 +104,8 @@ export class FacebookOAuthController {
       const redirectUri = ENV.FACEBOOK_REDIRECT_URI;
       const result = await this.service.handleOAuthCallback(scope, code as string, redirectUri);
 
-      const rawFrontendUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'https://leadpilotai-rust.vercel.app';
-      const appUrl = rawFrontendUrl.replace(/\/$/, '');
-      const frontendTarget = `${appUrl}/integrations/facebook`;
+      const liveAppUrl = 'https://leadpilotai-rust.vercel.app';
+      const frontendTarget = `${liveAppUrl}/integrations/facebook`;
 
       if (req.headers.accept?.includes('text/html') || req.accepts('html')) {
         return res.send(`
@@ -114,7 +113,6 @@ export class FacebookOAuthController {
           <html>
           <head>
             <title>Meta Business Integration Connected</title>
-            <meta http-equiv="refresh" content="2;url=${frontendTarget}">
           </head>
           <body style="font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #0f172a; color: white; margin: 0;">
             <div style="text-align: center; max-width: 480px; padding: 32px; background: #1e293b; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);">
@@ -130,11 +128,14 @@ export class FacebookOAuthController {
               if (window.opener) {
                 try {
                   window.opener.postMessage({ type: 'FB_OAUTH_SUCCESS', data: ${JSON.stringify(result)} }, '*');
-                  window.opener.location.href = targetUrl;
                 } catch (e) {}
-                setTimeout(() => { try { window.close(); } catch(e){} }, 800);
+                setTimeout(function() {
+                  try { window.close(); } catch(e) {}
+                }, 800);
               } else {
-                setTimeout(() => { window.location.href = targetUrl; }, 1500);
+                setTimeout(function() {
+                  window.location.href = targetUrl;
+                }, 1000);
               }
             </script>
           </body>
