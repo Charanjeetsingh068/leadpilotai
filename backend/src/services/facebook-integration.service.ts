@@ -293,51 +293,75 @@ export class FacebookIntegrationService {
           verificationStatus: b.verificationStatus || 'VERIFIED',
         }));
 
-        if (mongoList.length > 0) {
-          return mongoList;
-        }
-
-        if (primaryAccount) {
-          const accName = (primaryAccount as any).fbUserName || (primaryAccount as any).accountName || (primaryAccount as any).name || 'Meta';
-          const accId = (primaryAccount as any).fbUserId || 'connected';
-          return [{
-            id: `biz_${accId}`,
-            businessId: `biz_${accId}`,
-            name: `${accName} Business Portfolio`,
-            businessName: `${accName} Business Portfolio`,
-            verificationStatus: 'VERIFIED',
-          }];
-        }
-
-        return pgBusinesses.map((b: any) => ({
+        const pgList = pgBusinesses.map((b: any) => ({
           id: b.businessId,
           businessId: b.businessId,
           name: b.businessName || b.name,
           businessName: b.businessName || b.name,
           verificationStatus: b.verificationStatus || 'VERIFIED',
         }));
+
+        let list = mongoList.length > 0 ? mongoList : pgList;
+
+        if (primaryAccount) {
+          const accName = (primaryAccount as any).fbUserName || (primaryAccount as any).accountName || (primaryAccount as any).name || 'Meta';
+          const accId = (primaryAccount as any).fbUserId || 'connected';
+          const dynamicBizId = `biz_${accId}`;
+          if (!list.some((b) => b.businessId === dynamicBizId)) {
+            list.unshift({
+              id: dynamicBizId,
+              businessId: dynamicBizId,
+              name: `${accName} Business Portfolio`,
+              businessName: `${accName} Business Portfolio`,
+              verificationStatus: 'VERIFIED',
+            });
+          }
+        }
+
+        if (businessId && !list.some((b) => b.businessId === businessId || b.id === businessId)) {
+          list.unshift({
+            id: businessId,
+            businessId: businessId,
+            name: `Meta Business Portfolio`,
+            businessName: `Meta Business Portfolio`,
+            verificationStatus: 'VERIFIED',
+          });
+        }
+
+        return list;
       })(),
-      pages: pgPages.length > 0 ? pgPages.map((p: any) => ({
-        id: p.id,
-        pageId: p.pageId,
-        name: p.name || p.pageName,
-        category: p.category || 'Business Services',
-        followersCount: p.followersCount || 12000,
-        pictureUrl: p.pictureUrl || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=150&auto=format&fit=crop&q=80',
-        isConnected: true,
-        status: 'Active',
-        webhookStatus: 'Active',
-      })) : pages.map((p) => ({
-        id: p.pageId,
-        pageId: p.pageId,
-        name: p.name,
-        category: p.category,
-        followersCount: p.fanCount || 12000,
-        pictureUrl: p.pictureUrl,
-        isConnected: true,
-        status: 'Active',
-        webhookStatus: 'Active',
-      })),
+      pages: (() => {
+        const pgList = pgPages.map((p: any) => ({
+          id: p.id,
+          pageId: p.pageId,
+          name: p.name || p.pageName,
+          category: p.category || 'Business Services',
+          followersCount: p.followersCount || 12000,
+          pictureUrl: p.pictureUrl || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=150&auto=format&fit=crop&q=80',
+          isConnected: true,
+          status: 'Active',
+          webhookStatus: 'Active',
+        }));
+
+        const mongoList = pages.map((p) => ({
+          id: p._id ? p._id.toString() : p.id,
+          pageId: p.pageId,
+          name: p.name,
+          category: p.category || 'Business Services',
+          followersCount: p.followersCount || 12000,
+          pictureUrl: p.pictureUrl || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=150&auto=format&fit=crop&q=80',
+          isConnected: true,
+          status: 'Active',
+          webhookStatus: 'Active',
+        }));
+
+        if (pgList.length > 0 || mongoList.length > 0) {
+          const combined = [...pgList, ...mongoList];
+          return combined.filter((v, i, a) => a.findIndex((t) => t.pageId === v.pageId) === i);
+        }
+
+        return [];
+      })(),
       instagramAccounts: pgInstagram.length > 0 ? pgInstagram.map((ig: any) => ({
         id: ig.id || ig.instagramId,
         instagramId: ig.instagramId,
