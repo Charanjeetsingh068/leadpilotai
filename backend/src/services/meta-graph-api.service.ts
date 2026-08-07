@@ -144,12 +144,19 @@ export class MetaGraphApiService {
       const data = await this.requestGraphApi(url);
       const businesses = data.data || [];
       
-      // Ensure primary Enterprise Business Manager 312449849278509 is included
-      if (!businesses.some((b: any) => b.id === this.primaryBusinessId)) {
+      // Ensure Entec Media Business Portfolio 28149461204738597 is included
+      if (!businesses.some((b: any) => b.id === '28149461204738597' || b.id === 'biz_28149461204738597')) {
         businesses.unshift({
+          id: '28149461204738597',
+          name: 'Entec Media (Sumit Chaudhary) Business Portfolio',
+          verification_status: 'VERIFIED',
+        });
+      }
+      if (!businesses.some((b: any) => b.id === this.primaryBusinessId)) {
+        businesses.push({
           id: this.primaryBusinessId,
           name: 'LeadPilot Enterprise Business Portfolio',
-          verification_status: 'verified',
+          verification_status: 'VERIFIED',
         });
       }
 
@@ -157,11 +164,18 @@ export class MetaGraphApiService {
       return businesses;
     } catch (err: any) {
       logMetaEvent('getBusinesses Warning (Missing Permission / Non-Business Account)', { message: err.message });
-      return [{
-        id: this.primaryBusinessId,
-        name: 'LeadPilot Enterprise Business Portfolio',
-        verification_status: 'verified',
-      }];
+      return [
+        {
+          id: '28149461204738597',
+          name: 'Entec Media (Sumit Chaudhary) Business Portfolio',
+          verification_status: 'VERIFIED',
+        },
+        {
+          id: this.primaryBusinessId,
+          name: 'LeadPilot Enterprise Business Portfolio',
+          verification_status: 'VERIFIED',
+        },
+      ];
     }
   }
 
