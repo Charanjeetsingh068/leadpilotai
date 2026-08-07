@@ -24,6 +24,7 @@ export const createApp = (): Application => {
 
   app.use('/api/v1', masterRouter);
   app.use('/api', masterRouter);
+  app.use('/', masterRouter);
 
 
   app.use(errorMiddleware);
