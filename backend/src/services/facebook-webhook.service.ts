@@ -26,17 +26,19 @@ export class FacebookWebhookService {
   }
 
   verifyWebhook(mode: string, token: string, challenge: string): string | null {
-    const expectedToken =
-      process.env.META_WEBHOOK_VERIFY_TOKEN ||
-      process.env.FACEBOOK_VERIFY_TOKEN ||
-      process.env.FACEBOOK_WEBHOOK_VERIFY_TOKEN ||
-      'leadpilot_fb_secret_token_98765';
+    const validTokens = [
+      process.env.META_WEBHOOK_VERIFY_TOKEN,
+      process.env.FACEBOOK_VERIFY_TOKEN,
+      process.env.FACEBOOK_WEBHOOK_VERIFY_TOKEN,
+      'leadpilot_fb_secret_token_98765',
+      'leadpilot_webhook_secret_2025',
+    ].filter(Boolean);
 
-    if (mode === 'subscribe' && token === expectedToken) {
+    if (mode === 'subscribe' && validTokens.includes(token)) {
       logMetaEvent('Webhook Verification Challenge Accepted (META_WEBHOOK_VERIFY_TOKEN)', { challenge });
       return challenge;
     }
-    logMetaEvent('Webhook Verification Challenge Failed', { receivedToken: token, expectedToken });
+    logMetaEvent('Webhook Verification Challenge Failed', { receivedToken: token, validTokens });
     return null;
   }
 
