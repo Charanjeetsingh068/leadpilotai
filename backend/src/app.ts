@@ -11,7 +11,6 @@ export const createApp = (): Application => {
 
   app.use(helmet({ crossOriginResourcePolicy: false }));
   app.use(cors({ origin: true, credentials: true }));
-  app.options('*', cors({ origin: true, credentials: true }));
   app.use(morgan('dev'));
   app.use(
     express.json({
