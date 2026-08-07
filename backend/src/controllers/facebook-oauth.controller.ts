@@ -46,17 +46,11 @@ export class FacebookOAuthController {
 
       const VALID_META_SCOPES = [
         'public_profile',
-        'email',
         'business_management',
         'pages_show_list',
-        'pages_manage_metadata',
         'pages_read_engagement',
-        'pages_manage_posts',
+        'pages_manage_metadata',
         'leads_retrieval',
-        'instagram_basic',
-        'instagram_manage_messages',
-        'whatsapp_business_management',
-        'whatsapp_business_messaging',
       ];
 
       // Facebook Login for Business Auth URL using Config ID Flow & Graph API v23.0

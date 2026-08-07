@@ -15,19 +15,17 @@ import { ActivityLogModel } from '../models/ActivityLog.model';
 import { LeadWebhookModel } from '../models/LeadWebhook.model';
 
 const CORE_PERMISSIONS = [
+  'public_profile',
   'business_management',
   'pages_show_list',
-  'pages_manage_metadata',
   'pages_read_engagement',
-  'pages_manage_posts',
+  'pages_manage_metadata',
   'leads_retrieval',
 ];
 
 const OPTIONAL_PERMISSIONS = [
   'instagram_basic',
-  'instagram_manage_messages',
   'whatsapp_business_management',
-  'whatsapp_business_messaging',
 ];
 
 const REQUIRED_PERMISSIONS = [...CORE_PERMISSIONS, ...OPTIONAL_PERMISSIONS];

@@ -82,17 +82,11 @@ export function useFacebookIntegration() {
     const redirectUri = process.env.NEXT_PUBLIC_FACEBOOK_REDIRECT_URI || 'https://leadpilotai-2kar.onrender.com/api/integrations/facebook/callback';
     const scopes = [
       'public_profile',
-      'email',
       'business_management',
       'pages_show_list',
-      'pages_manage_metadata',
       'pages_read_engagement',
-      'pages_manage_posts',
+      'pages_manage_metadata',
       'leads_retrieval',
-      'instagram_basic',
-      'instagram_manage_messages',
-      'whatsapp_business_management',
-      'whatsapp_business_messaging',
     ].join(',');
 
     const statePayload = {
