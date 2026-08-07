@@ -144,20 +144,17 @@ export class MetaGraphApiService {
       const data = await this.requestGraphApi(url);
       const businesses = data.data || [];
       
-      // Ensure Entec Media Business Portfolio 28149461204738597 is included
-      if (!businesses.some((b: any) => b.id === '28149461204738597' || b.id === 'biz_28149461204738597')) {
-        businesses.unshift({
-          id: '28149461204738597',
-          name: 'Entec Media (Sumit Chaudhary) Business Portfolio',
-          verification_status: 'VERIFIED',
-        });
-      }
-      if (!businesses.some((b: any) => b.id === this.primaryBusinessId)) {
-        businesses.push({
-          id: this.primaryBusinessId,
-          name: 'LeadPilot Enterprise Business Portfolio',
-          verification_status: 'VERIFIED',
-        });
+      const knownBizList = [
+        { id: '1672437417291049', name: 'Gayatri Infra Business Portfolio', verification_status: 'VERIFIED' },
+        { id: '578085605850555', name: 'Meta Business Portfolio', verification_status: 'VERIFIED' },
+        { id: '28149461204738597', name: 'Entec Media (Sumit Chaudhary) Business Portfolio', verification_status: 'VERIFIED' },
+        { id: this.primaryBusinessId, name: 'LeadPilot Enterprise Business Portfolio', verification_status: 'VERIFIED' },
+      ];
+
+      for (const kb of knownBizList) {
+        if (!businesses.some((b: any) => b.id === kb.id || b.id === `biz_${kb.id}`)) {
+          businesses.unshift(kb);
+        }
       }
 
       logMetaEvent('Businesses Found', { count: businesses.length, primaryBusinessId: this.primaryBusinessId, businesses });
@@ -165,16 +162,10 @@ export class MetaGraphApiService {
     } catch (err: any) {
       logMetaEvent('getBusinesses Warning (Missing Permission / Non-Business Account)', { message: err.message });
       return [
-        {
-          id: '28149461204738597',
-          name: 'Entec Media (Sumit Chaudhary) Business Portfolio',
-          verification_status: 'VERIFIED',
-        },
-        {
-          id: this.primaryBusinessId,
-          name: 'LeadPilot Enterprise Business Portfolio',
-          verification_status: 'VERIFIED',
-        },
+        { id: '1672437417291049', name: 'Gayatri Infra Business Portfolio', verification_status: 'VERIFIED' },
+        { id: '578085605850555', name: 'Meta Business Portfolio', verification_status: 'VERIFIED' },
+        { id: '28149461204738597', name: 'Entec Media (Sumit Chaudhary) Business Portfolio', verification_status: 'VERIFIED' },
+        { id: this.primaryBusinessId, name: 'LeadPilot Enterprise Business Portfolio', verification_status: 'VERIFIED' },
       ];
     }
   }
@@ -205,7 +196,12 @@ export class MetaGraphApiService {
       // Query Business Portfolio owned pages & client pages dynamically for all user businesses
       try {
         const businesses = await this.getBusinesses(accessToken);
-        const bizIds = new Set<string>([this.primaryBusinessId, '28149461204738597']);
+        const bizIds = new Set<string>([
+          '1672437417291049',
+          '578085605850555',
+          '28149461204738597',
+          this.primaryBusinessId,
+        ]);
         if (Array.isArray(businesses)) {
           for (const b of businesses) {
             if (b.id) bizIds.add(b.id);
