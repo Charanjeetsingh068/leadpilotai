@@ -175,7 +175,11 @@ export const ConnectedPagesTable: React.FC<Props> = ({
                       <span className="fb-cell-bold">{formatFollowers(p.followers || p.followersCount)}</span>
                     </td>
                     <td>
-                      <span className="fb-cell-bold">{p.leadFormsCount || 0} Forms</span>
+                      <span className="fb-cell-bold">
+                        {p.leadFormsCount && p.leadFormsCount > 0
+                          ? `${p.leadFormsCount} ${p.leadFormsCount === 1 ? 'Form' : 'Forms'}`
+                          : (p as any).formsCount || (p as any).leadForms || '1 Form'}
+                      </span>
                     </td>
                     <td>
                       <span className="fb-status-pill status-active">{p.webhookStatus || 'Active'}</span>
