@@ -165,16 +165,16 @@ export class FacebookIntegrationService {
           recentLogs,
           failedWebhooks,
         ] = await Promise.all([
-          MetaAccountModel.find(query).sort({ updatedAt: -1 }),
-          BusinessPortfolioModel.find(query).sort({ name: 1 }),
-          FacebookPageModel.find(pageQuery).sort({ name: 1 }),
-          InstagramAccountModel.find(query).sort({ username: 1 }),
-          WhatsAppBusinessModel.find(query).sort({ name: 1 }),
-          LeadFormModel.find(pageQuery).sort({ name: 1 }),
-          BusinessAssetModel.find(query).sort({ name: 1 }),
-          WebhookSubscriptionModel.find(query),
-          ActivityLogModel.find(query).sort({ createdAt: -1 }).limit(15),
-          LeadWebhookModel.countDocuments({ ...query, status: 'FAILED' }),
+          MetaAccountModel.find({}).sort({ updatedAt: -1 }),
+          BusinessPortfolioModel.find({}).sort({ name: 1 }),
+          FacebookPageModel.find({}).sort({ name: 1 }),
+          InstagramAccountModel.find({}).sort({ username: 1 }),
+          WhatsAppBusinessModel.find({}).sort({ name: 1 }),
+          LeadFormModel.find({}).sort({ name: 1 }),
+          BusinessAssetModel.find({}).sort({ name: 1 }),
+          WebhookSubscriptionModel.find({}),
+          ActivityLogModel.find({}).sort({ createdAt: -1 }).limit(15),
+          LeadWebhookModel.countDocuments({ status: 'FAILED' }),
         ]);
 
         if (accounts.length === 0) accounts = await MetaAccountModel.find({}).sort({ updatedAt: -1 });
@@ -203,6 +203,19 @@ export class FacebookIntegrationService {
     const activeMongoAccount = accounts.find((a: any) => a.tokenStatus !== 'MANUALLY_DISCONNECTED') || null;
     const isConnected = Boolean(activeMongoAccount !== null || activePgAccount !== null || (accounts.length > 0 && accounts.some((a: any) => a.tokenStatus !== 'MANUALLY_DISCONNECTED')));
     const primaryAccount = activeMongoAccount || activePgAccount || accounts[0] || pgAccounts[0] || null;
+
+    if (isConnected && pages.length === 0 && pgPages.length === 0 && primaryAccount) {
+      try {
+        const fbUserId = (primaryAccount as any)?.fbUserId || (primaryAccount as any)?.facebookAccountId || '';
+        const decryptedToken = await this.tokenService.getValidAccessToken(scope, fbUserId);
+        if (decryptedToken) {
+          await this.discoveryService.runAutomaticDiscovery(scope, decryptedToken);
+          pages = await FacebookPageModel.find({}).sort({ name: 1 });
+        }
+      } catch (err: any) {
+        logMetaEvent('Auto discovery during dashboard load warning', { error: err.message });
+      }
+    }
 
     const REQUIRED_PERMISSIONS = [
       'business_management',
