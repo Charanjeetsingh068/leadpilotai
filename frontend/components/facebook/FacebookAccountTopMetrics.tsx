@@ -1,77 +1,77 @@
 'use client';
 
 import React from 'react';
-import { Layers, CheckCircle2, Users, Mail, FileText } from 'lucide-react';
+import { UserCheck, Building2, Layers, Users, Megaphone } from 'lucide-react';
 
 interface MetricsProps {
+  totalAccounts?: number;
+  totalBusinesses?: number;
   totalPages?: number;
-  activePages?: number;
-  totalLeads30Days?: number;
-  unreadLeads?: number;
-  totalLeadForms?: number;
+  totalLeads?: number;
+  totalCampaigns?: number;
 }
 
 export const FacebookAccountTopMetrics: React.FC<MetricsProps> = ({
-  totalPages = 8,
-  activePages = 6,
-  totalLeads30Days = 1248,
-  unreadLeads = 86,
-  totalLeadForms = 24,
+  totalAccounts = 0,
+  totalBusinesses = 0,
+  totalPages = 0,
+  totalLeads = 0,
+  totalCampaigns = 0,
 }) => {
   return (
     <div className="fb-top-metrics-grid">
       <div className="fb-metric-card">
         <div className="fb-metric-icon-box fb-icon-blue">
-          <Layers width={20} height={20} />
+          <UserCheck width={20} height={20} />
         </div>
         <div className="fb-metric-content">
-          <span className="fb-metric-label">Total Pages</span>
-          <span className="fb-metric-value">{totalPages}</span>
-          <span className="fb-metric-sub">All connected pages</span>
+          <span className="fb-metric-label">Total Accounts</span>
+          <span className="fb-metric-value">{totalAccounts}</span>
+          <span className="fb-metric-sub">Connected Meta profiles</span>
         </div>
       </div>
 
       <div className="fb-metric-card">
         <div className="fb-metric-icon-box fb-icon-green">
-          <CheckCircle2 width={20} height={20} />
+          <Building2 width={20} height={20} />
         </div>
         <div className="fb-metric-content">
-          <span className="fb-metric-label">Active Pages</span>
-          <span className="fb-metric-value">{activePages}</span>
-          <span className="fb-metric-sub">Receiving leads</span>
+          <span className="fb-metric-label">Total Businesses</span>
+          <span className="fb-metric-value">{totalBusinesses}</span>
+          <span className="fb-metric-sub">Business Portfolios</span>
         </div>
       </div>
 
       <div className="fb-metric-card">
         <div className="fb-metric-icon-box fb-icon-purple">
-          <Users width={20} height={20} />
+          <Layers width={20} height={20} />
         </div>
         <div className="fb-metric-content">
-          <span className="fb-metric-label">Total Leads (30 Days)</span>
-          <span className="fb-metric-value">{totalLeads30Days.toLocaleString()}</span>
-          <span className="fb-metric-sub">From all pages</span>
+          <span className="fb-metric-label">Total Pages</span>
+          <span className="fb-metric-value">{totalPages}</span>
+          <span className="fb-metric-sub">Connected Facebook Pages</span>
         </div>
       </div>
 
       <div className="fb-metric-card">
         <div className="fb-metric-icon-box fb-icon-orange">
-          <Mail width={20} height={20} />
+          <Users width={20} height={20} />
         </div>
         <div className="fb-metric-content">
-          <span className="fb-metric-label">Unread Leads</span>
-          <span className="fb-metric-value">{unreadLeads}</span>
-          <span className="fb-metric-sub">Requires attention</span>
+          <span className="fb-metric-label">Total Leads</span>
+          <span className="fb-metric-value">{totalLeads.toLocaleString()}</span>
+          <span className="fb-metric-sub">Ingested across forms</span>
         </div>
       </div>
 
       <div className="fb-metric-card">
         <div className="fb-metric-icon-box fb-icon-cyan">
-          <FileText width={20} height={20} />
+          <Megaphone width={20} height={20} />
         </div>
         <div className="fb-metric-content">
-          <span className="fb-metric-label">Total Lead Forms</span>
-          <span className="fb-metric-value">{totalLeadForms}</span>
-          <span className="fb-metric-sub">Across all pages</span>
+          <span className="fb-metric-label">Total Campaigns</span>
+          <span className="fb-metric-value">{totalCampaigns}</span>
+          <span className="fb-metric-sub">Ad campaign performance</span>
         </div>
       </div>
     </div>

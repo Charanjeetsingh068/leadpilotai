@@ -40,6 +40,7 @@ export class FacebookOAuthController {
       const statePayload = {
         scope: this.getScope(req),
         timestamp: Date.now(),
+        frontendUrl: req.body.frontendUrl || 'https://leadpilotai-rust.vercel.app',
       };
       const state = Buffer.from(JSON.stringify(statePayload)).toString('base64url');
 
@@ -58,13 +59,19 @@ export class FacebookOAuthController {
         'whatsapp_business_messaging',
       ];
 
-      // Facebook Login for Business Auth URL using Config ID Flow & Graph API v23.0 with rerequest prompt
-      const oauthUrl = `https://www.facebook.com/${graphVersion}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&config_id=${configId}&response_type=code&state=${state}&auth_type=rerequest&scope=${VALID_META_SCOPES.join(',')}`;
+      // Facebook Login for Business Auth URL using Config ID Flow & Graph API v23.0
+      // NOTE: Per Meta specification, when config_id is present, scope parameter MUST NOT be appended.
+      const oauthUrl = configId
+        ? `https://www.facebook.com/${graphVersion}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&config_id=${configId}&response_type=code&state=${state}&auth_type=rerequest`
+        : `https://www.facebook.com/${graphVersion}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&state=${state}&auth_type=rerequest&scope=${VALID_META_SCOPES.join(',')}`;
+
+      const fallbackOauthUrl = `https://www.facebook.com/${graphVersion}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&state=${state}&auth_type=rerequest&scope=${VALID_META_SCOPES.join(',')}`;
 
       res.json({
         success: true,
         data: {
           oauthUrl,
+          fallbackOauthUrl,
           configId,
           appId,
           businessId: ENV.FACEBOOK_BUSINESS_ID,
@@ -105,22 +112,42 @@ export class FacebookOAuthController {
       }
 
       if (!code) {
-        return res.status(400).json({ success: false, error: 'Missing authorization code parameter.' });
+        const errorMsg = 'Missing authorization code parameter.';
+        if (req.accepts('html') || req.headers.accept?.includes('text/html')) {
+          return res.status(400).send(`
+            <!DOCTYPE html>
+            <html>
+            <head><title>Meta OAuth Error</title></head>
+            <body style="font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #0f172a; color: white; margin: 0;">
+              <script>
+                if (window.opener) {
+                  try { window.opener.postMessage({ type: 'FB_OAUTH_ERROR', error: ${JSON.stringify(errorMsg)} }, '*'); } catch(e){}
+                  setTimeout(function() { window.close(); }, 500);
+                } else {
+                  window.location.href = 'https://leadpilotai-rust.vercel.app/integrations/facebook?error=' + encodeURIComponent(${JSON.stringify(errorMsg)});
+                }
+              </script>
+            </body>
+            </html>
+          `);
+        }
+        return res.status(400).json({ success: false, error: errorMsg });
       }
 
       let scope = this.getScope(req);
+      let targetUrl = 'https://leadpilotai-rust.vercel.app/integrations/facebook?popup_close=true';
       if (state) {
         try {
           const parsed = JSON.parse(Buffer.from(state as string, 'base64url').toString('utf8'));
           if (parsed.scope) scope = { ...scope, ...parsed.scope };
+          if (parsed.frontendUrl) {
+            targetUrl = `${parsed.frontendUrl}/integrations/facebook?popup_close=true`;
+          }
         } catch (e) {}
       }
 
       const redirectUri = ENV.FACEBOOK_REDIRECT_URI;
       const result = await this.service.handleOAuthCallback(scope, code as string, redirectUri);
-
-      const liveAppUrl = 'https://leadpilotai-rust.vercel.app';
-      const frontendTarget = `${liveAppUrl}/integrations/facebook`;
 
       if (req.headers.accept?.includes('text/html') || req.accepts('html')) {
         return res.send(`
@@ -136,10 +163,14 @@ export class FacebookOAuthController {
               </div>
               <h2 style="font-size: 24px; font-weight: 700; margin: 0 0 12px 0;">Meta Integration Authorized!</h2>
               <p style="color: #94a3b8; font-size: 15px; margin-bottom: 24px;">Automatically discovering Business Portfolios, Pages, Instagram, WhatsApp, & Lead Forms...</p>
-              <a href="${frontendTarget}" style="display: inline-block; padding: 10px 20px; background: #3b82f6; color: white; border-radius: 8px; text-decoration: none; font-weight: 600;">Return to LeadPilot Dashboard</a>
+              <a href="${targetUrl}" style="display: inline-block; padding: 10px 20px; background: #3b82f6; color: white; border-radius: 8px; text-decoration: none; font-weight: 600;">Return to LeadPilot Dashboard</a>
             </div>
             <script>
-              const targetUrl = ${JSON.stringify(frontendTarget)};
+              const targetUrl = ${JSON.stringify(targetUrl)};
+              try {
+                localStorage.setItem('fb_oauth_success', JSON.stringify({ timestamp: Date.now(), data: ${JSON.stringify(result)} }));
+              } catch (e) {}
+
               if (window.opener) {
                 try {
                   window.opener.postMessage({ type: 'FB_OAUTH_SUCCESS', data: ${JSON.stringify(result)} }, '*');
@@ -160,6 +191,30 @@ export class FacebookOAuthController {
 
       res.json({ success: true, data: result });
     } catch (err: any) {
+      const errorMsg = err.message || 'An unexpected error occurred during Meta authorization.';
+      if (req.accepts('html') || req.headers.accept?.includes('text/html')) {
+        return res.status(400).send(`
+          <!DOCTYPE html>
+          <html>
+          <head><title>Meta OAuth Error</title></head>
+          <body style="font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #0f172a; color: white; margin: 0;">
+            <div style="text-align: center; max-width: 480px; padding: 32px; background: #1e293b; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);">
+              <h2 style="font-size: 24px; font-weight: 700; margin: 0 0 12px 0; color: #ef4444;">Authorization Error</h2>
+              <p style="color: #94a3b8; font-size: 15px; margin-bottom: 24px;">${errorMsg}</p>
+              <button onclick="window.close()" style="padding: 10px 20px; background: #3b82f6; color: white; border-radius: 8px; border: none; cursor: pointer; font-weight: 600;">Close Window</button>
+            </div>
+            <script>
+              if (window.opener) {
+                try { window.opener.postMessage({ type: 'FB_OAUTH_ERROR', error: ${JSON.stringify(errorMsg)} }, '*'); } catch(e){}
+                setTimeout(function() { window.close(); }, 2000);
+              } else {
+                setTimeout(function() { window.location.href = 'https://leadpilotai-rust.vercel.app/integrations/facebook?error=' + encodeURIComponent(${JSON.stringify(errorMsg)}); }, 3000);
+              }
+            </script>
+          </body>
+          </html>
+        `);
+      }
       next(err);
     }
   };

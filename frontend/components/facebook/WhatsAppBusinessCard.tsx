@@ -43,8 +43,8 @@ export const WhatsAppBusinessCard: React.FC<Props> = ({ accounts = [] }) => {
                   <div className="fb-cell-account">
                     <div className="fb-wa-avatar font-sans">WA</div>
                     <div>
-                      <div className="fb-cell-title">{wa.name}</div>
-                      <div className="fb-cell-sub">WABA ID: {wa.wabaId}</div>
+                      <div className="fb-cell-title font-medium">{wa.displayName || wa.name}</div>
+                      <div className="fb-cell-sub text-xs text-muted">WABA ID: {wa.wabaId}</div>
                     </div>
                   </div>
                 </td>
@@ -53,7 +53,7 @@ export const WhatsAppBusinessCard: React.FC<Props> = ({ accounts = [] }) => {
                 </td>
                 <td>
                   <span className="fb-status-pill status-quality-high">
-                    {wa.qualityRating || 'High'}
+                    {wa.qualityRating || 'GREEN'}
                   </span>
                 </td>
                 <td>
@@ -67,7 +67,7 @@ export const WhatsAppBusinessCard: React.FC<Props> = ({ accounts = [] }) => {
                 </td>
                 <td>
                   <span className="fb-status-pill status-active">
-                    {wa.messagingStatus || 'Active'}
+                    {wa.status || wa.messagingStatus || 'Connected'}
                   </span>
                 </td>
               </tr>

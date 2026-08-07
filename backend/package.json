@@ -4,7 +4,7 @@
   "description": "LeadPilot AI Enterprise Backend Engine",
   "main": "src/server.ts",
   "scripts": {
-    "dev": "npx tsx watch src/server.ts",
+    "dev": "tsx watch src/server.ts",
     "build": "prisma generate && tsc",
     "start": "node dist/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"

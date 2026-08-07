@@ -172,25 +172,27 @@ export const LeadPreviewDrawer: React.FC<LeadPreviewDrawerProps> = ({
             <div className="lead-detail-row">
               <span className="lead-detail-label">Email</span>
               <div className="lead-detail-value-group">
-                <span className="lead-created-text">{lead.email || 'rohit.sharma@example.com'}</span>
-                <a
-                  href={`mailto:${lead.email || 'rohit.sharma@example.com'}`}
-                  className="lead-quick-icon-btn lead-email-icon-btn"
-                  title="Send Email"
-                >
-                  <Mail size={12} />
-                </a>
+                <span className="lead-created-text">{lead.email || 'N/A'}</span>
+                {lead.email && (
+                  <a
+                    href={`mailto:${lead.email}`}
+                    className="lead-quick-icon-btn lead-email-icon-btn"
+                    title="Send Email"
+                  >
+                    <Mail size={12} />
+                  </a>
+                )}
               </div>
             </div>
 
             <div className="lead-detail-row">
               <span className="lead-detail-label">Project</span>
-              <span className="lead-project-text">{lead.project || 'Sunshine Villas'}</span>
+              <span className="lead-project-text">{lead.project || 'N/A'}</span>
             </div>
 
             <div className="lead-detail-row">
               <span className="lead-detail-label">Budget</span>
-              <span className="lead-project-text">{lead.budget || '₹50 - ₹70 Lakhs'}</span>
+              <span className="lead-project-text">{lead.budget || 'N/A'}</span>
             </div>
 
             <div className="lead-detail-row">

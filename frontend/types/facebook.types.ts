@@ -65,9 +65,11 @@ export interface FacebookPageItem {
   id: string;
   pageId?: string;
   name: string;
+  pageName?: string;
   category?: string;
   pictureUrl?: string;
   followersCount?: number;
+  followers?: number;
   fanCount?: number;
   leadFormsCount?: number;
   status?: 'Active' | 'Inactive' | 'Disconnected' | string;
@@ -81,6 +83,8 @@ export interface FacebookPageItem {
   ownerName?: string;
   lastSync?: string;
   isConnected?: boolean;
+  connected?: boolean;
+  isSelected?: boolean;
   instagramId?: string;
 }
 
@@ -90,7 +94,9 @@ export interface InstagramAccountItem {
   username: string;
   name?: string;
   profilePictureUrl?: string;
+  profilePicture?: string;
   followersCount?: number;
+  followers?: number;
   mediaCount?: number;
   businessConnected?: boolean;
   messagingEnabled?: boolean;
@@ -102,6 +108,7 @@ export interface WhatsAppAccountItem {
   id: string;
   wabaId?: string;
   name: string;
+  displayName?: string;
   currency?: string;
   phoneNumber?: string;
   phoneNumberId?: string;
@@ -117,7 +124,9 @@ export interface FacebookFormItem {
   id: string;
   formId?: string;
   name: string;
+  formName?: string;
   pageName?: string;
+  facebookPageName?: string;
   associatedPage?: string;
   pageId?: string;
   facebookPage?: {
@@ -132,6 +141,7 @@ export interface FacebookFormItem {
   leadsTotal?: number;
   status?: 'Active' | 'Inactive' | 'ACTIVE' | string;
   isActive?: boolean;
+  isSelected?: boolean;
   webhookActive?: boolean;
   lastSync?: string;
   questionsCount?: number;
@@ -213,10 +223,12 @@ export interface DashboardData {
   connection: FacebookConnectionStatus;
   accounts: FacebookAccountItem[];
   totalAccounts?: number;
+  connectedAccounts?: number;
   businesses: FacebookBusinessItem[];
   selectedBusinessId?: string;
   pages: FacebookPageItem[];
   totalPages?: number;
+  connectedPages?: number;
   instagramAccounts?: InstagramAccountItem[];
   whatsAppAccounts?: WhatsAppAccountItem[];
   adAccounts?: any[];
@@ -224,6 +236,9 @@ export interface DashboardData {
   totalForms?: number;
   permissions: FacebookPermissionItem[];
   webhookHealth: WebhookHealthData;
+  webhook?: any;
   recentEvents: LiveActivityItem[];
   metrics: DashboardMetrics;
+  leads?: any[];
+  campaigns?: any[];
 }

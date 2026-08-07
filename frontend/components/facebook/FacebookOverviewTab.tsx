@@ -22,16 +22,16 @@ export const FacebookOverviewTab: React.FC<OverviewTabProps> = ({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <FacebookAccountTopMetrics
         totalPages={metrics?.totalPages}
-        activePages={metrics?.activePages}
-        totalLeads30Days={metrics?.totalLeads30Days}
-        unreadLeads={metrics?.unreadLeads}
-        totalLeadForms={metrics?.totalLeadForms}
+        totalLeads={metrics?.totalLeads || leads.length}
+        totalBusinesses={metrics?.totalBusinesses}
+        totalAccounts={metrics?.totalAccounts}
+        totalCampaigns={metrics?.totalCampaigns}
       />
 
       <FacebookLeadInboxTable
         pageName={selectedPage?.name || 'All Connected Pages'}
         leads={leads}
-        totalLeadsCount={324}
+        totalLeadsCount={leads.length}
         onSelectLead={onSelectLead}
       />
     </div>

@@ -42,8 +42,35 @@ export function useFacebookIntegration() {
       }
     };
 
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === 'fb_oauth_success' && event.newValue) {
+        setIsConnecting(false);
+        setIsAddAccountOpen(false);
+        setConnectionErrorMsg(null);
+        setConnectionSuccessMsg('Meta Business account authorized successfully!');
+        
+        queryClient.invalidateQueries({ queryKey: ['facebook-dashboard'] });
+        queryClient.invalidateQueries({ queryKey: ['facebook-status'] });
+        queryClient.invalidateQueries({ queryKey: ['connected-accounts'] });
+        localStorage.removeItem('fb_oauth_success');
+      }
+    };
+
     window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    window.addEventListener('storage', handleStorage);
+    
+    // Auto-close if this window is a popup fallback
+    if (typeof window !== 'undefined' && window.location.search.includes('popup_close=true')) {
+      if (window.opener) {
+        try { window.opener.postMessage({ type: 'FB_OAUTH_SUCCESS' }, '*'); } catch (e) {}
+      }
+      try { window.close(); } catch(e) {}
+    }
+    
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      window.removeEventListener('storage', handleStorage);
+    };
   }, [queryClient]);
 
   // Start Meta OAuth Flow
@@ -81,8 +108,11 @@ export function useFacebookIntegration() {
   };
 
   // Business Switch Mutation
-  const handleBusinessChange = (businessId: string) => {
+  const handleBusinessChange = async (businessId: string) => {
     setSelectedBusinessId(businessId);
+    try {
+      await facebookIntegrationService.selectBusiness(businessId);
+    } catch (e) {}
     queryClient.invalidateQueries({ queryKey: ['facebook-dashboard'] });
   };
 
@@ -139,16 +169,17 @@ export function useFacebookIntegration() {
   // Disconnect Account Mutation
   const disconnectAccountMutation = useMutation({
     mutationFn: (accountId: string) => facebookIntegrationService.disconnectAccount(accountId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['facebook-dashboard'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['facebook-dashboard'] });
+      await queryClient.invalidateQueries({ queryKey: ['facebook-status'] });
+      await queryClient.invalidateQueries({ queryKey: ['connected-accounts'] });
       setConnectionSuccessMsg('Facebook account disconnected. All imported leads remain safe.');
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      dashboardQuery.refetch();
     },
   });
 
-  const hasConnectedAccount = Boolean(dashboardQuery.data?.accounts && dashboardQuery.data.accounts.length > 0);
+  const activeAccounts = dashboardQuery.data?.accounts?.filter((a: any) => a.tokenStatus !== 'Disconnected' && a.status !== 'Disconnected' && a.tokenStatus !== 'REVOKED') || [];
+  const hasConnectedAccount = Boolean(activeAccounts.length > 0);
   const rawStatus = dashboardQuery.data?.connection?.status;
   const connectionStatus = (rawStatus && rawStatus !== 'NOT_CONNECTED') ? rawStatus : (hasConnectedAccount ? 'CONNECTED' : 'NOT_CONNECTED');
   const isBackendConnected = hasConnectedAccount || (dashboardQuery.data?.connection?.isConnected === true) || connectionStatus === 'CONNECTED';

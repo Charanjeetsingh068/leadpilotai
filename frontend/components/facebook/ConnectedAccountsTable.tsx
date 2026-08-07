@@ -1,11 +1,14 @@
 import React from 'react';
-import { Plus, Search, Trash2 } from 'lucide-react';
+import { Plus, Search, Trash2, RefreshCw, Power, Link2 } from 'lucide-react';
 import { FacebookAccountItem } from '@/types/facebook.types';
 
 interface Props {
   accounts: FacebookAccountItem[];
   onAddAccount: () => void;
+  onConnectAccount?: () => void;
+  onReconnectAccount?: (accountId: string) => void;
   onDisconnectAccount?: (accountId: string) => void;
+  onDeleteAccount?: (accountId: string) => void;
   search: string;
   onSearchChange: (val: string) => void;
 }
@@ -13,7 +16,10 @@ interface Props {
 export const ConnectedAccountsTable: React.FC<Props> = ({
   accounts = [],
   onAddAccount,
+  onConnectAccount,
+  onReconnectAccount,
   onDisconnectAccount,
+  onDeleteAccount,
   search,
   onSearchChange,
 }) => {
@@ -40,7 +46,7 @@ export const ConnectedAccountsTable: React.FC<Props> = ({
   return (
     <div className="fb-card fb-accounts-card">
       <div className="fb-card-header-row">
-        <h3 className="fb-card-title">Connected Meta Accounts</h3>
+        <h3 className="fb-card-title">Connected Meta Accounts ({accounts.length})</h3>
         <div className="fb-header-actions-group">
           <div className="fb-search-wrapper">
             <Search size={14} className="fb-search-icon" />
@@ -52,9 +58,9 @@ export const ConnectedAccountsTable: React.FC<Props> = ({
               onChange={(e) => onSearchChange(e.target.value)}
             />
           </div>
-          <button type="button" className="fb-btn-secondary" onClick={onAddAccount}>
-            <Plus size={16} />
-            <span>Add Account</span>
+          <button type="button" className="fb-btn-primary" onClick={onConnectAccount || onAddAccount}>
+            <Link2 size={16} />
+            <span>Connect Account</span>
           </button>
         </div>
       </div>
@@ -76,7 +82,7 @@ export const ConnectedAccountsTable: React.FC<Props> = ({
             {filteredAccounts.length === 0 ? (
               <tr>
                 <td colSpan={7} className="fb-table-empty-cell">
-                  {search ? 'No Meta accounts match your search.' : 'No Meta accounts connected yet. Click "+ Add Account" to connect.'}
+                  {search ? 'No Meta accounts match your search.' : 'No Meta accounts connected yet. Click "Connect Account" to add.'}
                 </td>
               </tr>
             ) : (
@@ -116,7 +122,7 @@ export const ConnectedAccountsTable: React.FC<Props> = ({
                           acc.tokenStatus === 'VALID' || acc.status === 'VALID' || acc.tokenStatus === 'Active' || acc.tokenStatus === 'CONNECTED' ? 'status-active' : 'status-expired'
                         }`}
                       >
-                        {acc.tokenStatus || acc.status || 'VALID'}
+                        {acc.tokenStatus || acc.status || 'Active'}
                       </span>
                     </td>
                     <td>
@@ -134,18 +140,40 @@ export const ConnectedAccountsTable: React.FC<Props> = ({
                       </span>
                     </td>
                     <td className="text-right">
-                      <button
-                        type="button"
-                        className="fb-action-icon-btn text-danger-hover"
-                        title="Disconnect Account"
-                        onClick={() => {
-                          if (confirm(`Are you sure you want to disconnect ${accName}? All stored leads will remain safe.`)) {
-                            onDisconnectAccount?.(acc.id);
-                          }
-                        }}
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <div style={{ display: 'inline-flex', gap: '0.375rem', alignItems: 'center' }}>
+                        <button
+                          type="button"
+                          className="fb-action-icon-btn text-primary-hover"
+                          title="Reconnect Account"
+                          onClick={() => onReconnectAccount?.(acc.id)}
+                        >
+                          <RefreshCw size={15} />
+                        </button>
+                        <button
+                          type="button"
+                          className="fb-action-icon-btn text-warning-hover"
+                          title="Disconnect Account"
+                          onClick={() => {
+                            if (confirm(`Are you sure you want to disconnect ${accName}? Leads will remain saved.`)) {
+                              onDisconnectAccount?.(acc.id);
+                            }
+                          }}
+                        >
+                          <Power size={15} />
+                        </button>
+                        <button
+                          type="button"
+                          className="fb-action-icon-btn text-danger-hover"
+                          title="Delete Account Permanently"
+                          onClick={() => {
+                            if (confirm(`Are you sure you want to DELETE ${accName} permanently?`)) {
+                              onDeleteAccount?.(acc.id);
+                            }
+                          }}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

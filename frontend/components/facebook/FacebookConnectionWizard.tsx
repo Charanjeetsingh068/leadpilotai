@@ -25,7 +25,12 @@ import {
   Check
 } from 'lucide-react';
 
-export const FacebookConnectionWizard: React.FC = () => {
+interface FacebookConnectionWizardProps {
+  onConnect?: () => void;
+  isConnecting?: boolean;
+}
+
+export const FacebookConnectionWizard: React.FC<FacebookConnectionWizardProps> = ({ onConnect, isConnecting }) => {
   const [capabilities, setCapabilities] = useState<MetaCapabilities | null>(null);
   const [status, setStatus] = useState<MetaConnectionStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,6 +79,10 @@ export const FacebookConnectionWizard: React.FC = () => {
   };
 
   const handleStartOAuth = async () => {
+    if (onConnect) {
+      onConnect();
+      return;
+    }
     if (!capabilities?.oauthUrl) return;
     window.location.href = capabilities.oauthUrl;
   };
@@ -286,9 +295,15 @@ export const FacebookConnectionWizard: React.FC = () => {
             <div className="fb-actions-row">
               <button
                 onClick={handleStartOAuth}
+                disabled={isConnecting}
                 className="fb-btn-next fb-btn-blue"
               >
-                <Share2 size={18} /> Connect Facebook Account
+                {isConnecting ? (
+                  <RefreshCw size={18} className="fb-spin" />
+                ) : (
+                  <Share2 size={18} />
+                )}
+                {isConnecting ? 'Connecting...' : 'Connect Facebook Account'}
               </button>
             </div>
           </div>

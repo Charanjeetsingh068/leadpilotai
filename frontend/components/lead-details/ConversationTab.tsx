@@ -21,8 +21,8 @@ export const ConversationTab: React.FC = () => {
       {/* WhatsApp Chat Room Sub-Header */}
       <div className="whatsapp-chat-header-bar">
         <div className="chat-header-user-info">
-          <span className="chat-user-name">{lead?.name || 'Rohit Sharma'}</span>
-          <span className="chat-user-phone">{lead?.phone || '+91 98765 43210'}</span>
+          <span className="chat-user-name">{lead?.name || 'Customer'}</span>
+          {lead?.phone && <span className="chat-user-phone">{lead.phone}</span>}
         </div>
         <span className="chat-encryption-badge">🔒 End-to-end encrypted WhatsApp integration</span>
       </div>

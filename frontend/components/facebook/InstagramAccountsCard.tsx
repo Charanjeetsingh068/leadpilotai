@@ -49,8 +49,12 @@ export const InstagramAccountsCard: React.FC<Props> = ({ accounts = [] }) => {
                 <tr key={ig.id || ig.instagramId}>
                   <td>
                     <div className="fb-cell-account">
-                      <div className="fb-ig-avatar font-sans">
-                        {ig.username ? ig.username[0].toUpperCase() : 'I'}
+                      <div className="fb-ig-avatar font-sans overflow-hidden rounded-full">
+                        {ig.profilePictureUrl ? (
+                          <img src={ig.profilePictureUrl} alt={ig.username} className="fb-page-img w-full h-full object-cover" />
+                        ) : (
+                          <div className="fb-avatar-fallback">{ig.username ? ig.username[0].toUpperCase() : 'I'}</div>
+                        )}
                       </div>
                       <div>
                         <div className="fb-cell-title">@{ig.username}</div>
@@ -64,7 +68,7 @@ export const InstagramAccountsCard: React.FC<Props> = ({ accounts = [] }) => {
                     </span>
                   </td>
                   <td>
-                    <span className="fb-cell-bold">{formatFollowers(ig.followersCount)}</span>
+                    <span className="fb-cell-bold">{formatFollowers(ig.followersCount || ig.followers)}</span>
                   </td>
                   <td>
                     <div className="fb-status-with-icon">

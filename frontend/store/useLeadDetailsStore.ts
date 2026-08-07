@@ -307,7 +307,7 @@ const INITIAL_AI_SUMMARY: AISummaryMetrics = {
 };
 
 export const useLeadDetailsStore = create<LeadDetailsState>((set) => ({
-  lead: INITIAL_MOCK_LEAD,
+  lead: null as any,
   activeTab: 'timeline',
   timeline: INITIAL_TIMELINE,
   messages: INITIAL_MESSAGES,

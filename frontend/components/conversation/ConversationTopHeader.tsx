@@ -15,9 +15,9 @@ export const ConversationTopHeader: React.FC<ConversationTopHeaderProps> = ({
   activeConv,
   onMobileBack,
 }) => {
-  const leadName = activeConv?.leadName || 'Rohit Sharma';
-  const phone = activeConv?.leadPhone || '+91 98765 43210';
-  const source = activeConv?.leadSource || 'Facebook Lead';
+  const leadName = activeConv?.leadName || 'Customer';
+  const phone = activeConv?.leadPhone || '';
+  const source = activeConv?.leadSource || 'Meta Lead';
   const score = activeConv?.leadScore || 85;
   const status = activeConv?.status || 'In Progress';
   const salespersonName = activeConv?.assignedSalesperson?.name || 'Neha Singh';

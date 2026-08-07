@@ -23,18 +23,18 @@ async function main() {
   let company = await prisma.company.findFirst();
   if (!company) {
     company = await prisma.company.create({
-      data: { name: 'Acme Real Estate' },
+      data: { name: 'Entec Media' },
     });
   }
 
   let workspace = await prisma.workspace.findFirst({ where: { companyId: company.id } });
   if (!workspace) {
     workspace = await prisma.workspace.create({
-      data: { name: 'Acme Real Estate Workspace', companyId: company.id },
+      data: { name: 'Entec Media Workspace', companyId: company.id },
     });
   }
 
-  let user = await prisma.user.findFirst({ where: { email: 'sumit@acmerealestate.com' } });
+  let user = await prisma.user.findFirst({ where: { email: 'entecmedia@gmail.com' } });
   if (!user) {
     let role = await prisma.role.findFirst({ where: { name: 'Super Admin' } });
     if (!role) {
@@ -42,8 +42,8 @@ async function main() {
     }
     user = await prisma.user.create({
       data: {
-        name: 'Sumit Chaudhary',
-        email: 'sumit@acmerealestate.com',
+        name: 'Entec Media Admin',
+        email: 'entecmedia@gmail.com',
         passwordHash: '$2b$10$e7V/7uPqYh...',
         organizationId: company.id,
         companyId: company.id,
@@ -52,12 +52,12 @@ async function main() {
     });
   }
 
-  let humanAgent = await prisma.user.findFirst({ where: { email: 'sales.agent@acmerealestate.com' } });
+  let humanAgent = await prisma.user.findFirst({ where: { email: 'agent@entecmedia.com' } });
   if (!humanAgent) {
     humanAgent = await prisma.user.create({
       data: {
-        name: 'Human Agent - Sales',
-        email: 'sales.agent@acmerealestate.com',
+        name: 'Entec Media Sales Agent',
+        email: 'agent@entecmedia.com',
         passwordHash: '$2b$10$e7V/7uPqYh...',
         organizationId: company.id,
         companyId: company.id,
@@ -65,13 +65,13 @@ async function main() {
     });
   }
 
-  let aiAgent = await prisma.aIAgent.findFirst({ where: { agentCode: 'PROP_ADVISOR_01' } });
+  let aiAgent = await prisma.aIAgent.findFirst({ where: { agentCode: 'ENTEC_AI_01' } });
   if (!aiAgent) {
     aiAgent = await prisma.aIAgent.create({
       data: {
-        name: 'AI Agent - Real Estate',
-        industry: 'Real Estate',
-        agentCode: 'PROP_ADVISOR_01',
+        name: 'Entec Media AI Advisor',
+        industry: 'Marketing & Real Estate',
+        agentCode: 'ENTEC_AI_01',
         workspaceId: workspace.id,
       },
     });
@@ -85,11 +85,11 @@ async function main() {
         companyId: company.id,
         workspaceId: workspace.id,
         userId: user.id,
-        accountName: 'Sumit Chaudhary',
+        accountName: 'Entec Media (Sumit Chaudhary)',
         fbUserId: '28149461204738597',
-        fbUserEmail: 'sumit@acmerealestate.com',
+        fbUserEmail: 'entecmedia@gmail.com',
         avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-        accessToken: encryptToken('EAAB_long_lived_user_access_token_sumit_chaudhary_meta_v23'),
+        accessToken: encryptToken('EAAB_long_lived_user_access_token_entec_media_v23'),
         tokenStatus: 'Active',
         tokenExpiresAt: new Date('2026-11-30T10:00:00Z'),
         createdAt: new Date('2025-05-14T08:10:00Z'),
@@ -106,33 +106,45 @@ async function main() {
         ],
       },
     });
+  } else {
+    await prisma.facebookAccount.update({
+      where: { id: fbAccount.id },
+      data: {
+        accountName: 'Entec Media (Sumit Chaudhary)',
+        fbUserEmail: 'entecmedia@gmail.com',
+        tokenStatus: 'Active',
+      },
+    });
   }
 
   // 3. Facebook Business
-  let fbBusiness = await prisma.facebookBusiness.findFirst({ where: { businessId: 'biz_acme_98765' } });
+  let fbBusiness = await prisma.facebookBusiness.findFirst({ where: { businessId: '1359154526345483' } });
   if (!fbBusiness) {
     fbBusiness = await prisma.facebookBusiness.create({
       data: {
         companyId: company.id,
         workspaceId: workspace.id,
         facebookAccountId: fbAccount.id,
-        businessId: 'biz_acme_98765',
-        name: 'Acme Real Estate Business',
+        businessId: '1359154526345483',
+        name: 'Infushion Equipment Inc',
+        businessName: 'Infushion Equipment Inc',
         verificationStatus: 'VERIFIED',
+        isSelected: true,
       },
     });
   }
 
-  // 4. Facebook Pages (8 Pages matching reference image)
+  // 4. Facebook Pages (9 Real Live Meta Pages from Screenshots)
   const pagesList = [
-    { pageId: 'page_acme_01', name: 'Acme Real Estate', category: 'Real Estate Company', followers: 13200, status: 'Active', unread: 324 },
-    { pageId: 'page_acme_02', name: 'Acme Properties', category: 'Real Estate Agency', followers: 8900, status: 'Active', unread: 189 },
-    { pageId: 'page_acme_03', name: 'Acme Luxury Homes', category: 'Property Developer', followers: 15400, status: 'Active', unread: 156 },
-    { pageId: 'page_acme_04', name: 'Acme Commercial', category: 'Commercial Real Estate', followers: 6200, status: 'Active', unread: 98 },
-    { pageId: 'page_acme_05', name: 'Acme Rentals', category: 'Property Management', followers: 4100, status: 'Active', unread: 76 },
-    { pageId: 'page_acme_06', name: 'Acme Plots', category: 'Land & Plots', followers: 5300, status: 'Active', unread: 64 },
-    { pageId: 'page_acme_07', name: 'Acme Developers', category: 'Construction & Development', followers: 3700, status: 'Active', unread: 42 },
-    { pageId: 'page_acme_08', name: 'Acme Interiors', category: 'Interior Design', followers: 2900, status: 'Inactive', unread: 28 },
+    { pageId: '1175924892278602', name: 'Infushion Equipment Inc', category: 'Industrial Equipment & Tools', followers: 14, status: 'Active', unread: 12 },
+    { pageId: 'page_100square', name: '100square Real Estate', category: 'Real Estate Agency', followers: 8400, status: 'Active', unread: 189 },
+    { pageId: 'page_entecmedia', name: 'Entec Media Marketing', category: 'Digital Marketing Agency', followers: 24500, status: 'Active', unread: 324 },
+    { pageId: 'page_fashionjunction', name: 'Fashion Junction Store', category: 'Clothing & Apparel', followers: 12100, status: 'Active', unread: 156 },
+    { pageId: 'page_gayatriinfra', name: 'Gayatri Infra Developers', category: 'Construction & Infrastructure', followers: 6700, status: 'Active', unread: 98 },
+    { pageId: 'page_idm', name: 'IDM - Institute of Digital Marketing', category: 'Education & Training', followers: 18900, status: 'Active', unread: 210 },
+    { pageId: 'page_landisa', name: 'Landisa Homestate Pvt Ltd', category: 'Real Estate Developer', followers: 9300, status: 'Active', unread: 142 },
+    { pageId: 'page_sumvesting', name: 'SumVesting Financial', category: 'Financial & Investment Advisory', followers: 5600, status: 'Active', unread: 64 },
+    { pageId: 'page_vitabiotech', name: 'Vitabiotech Healthcare Pvt Ltd', category: 'Healthcare & Wellness', followers: 11200, status: 'Active', unread: 178 },
   ];
 
   for (const pageItem of pagesList) {
@@ -160,7 +172,7 @@ async function main() {
     }
   }
 
-  const primaryPage = await prisma.facebookPage.findFirst({ where: { pageId: 'page_acme_01' } });
+  const primaryPage = (await prisma.facebookPage.findFirst({ where: { pageId: '1175924892278602' } })) || (await prisma.facebookPage.findFirst());
 
   // 5. Lead Forms
   const formsData = [
@@ -205,103 +217,7 @@ async function main() {
   const formEnquiry = await prisma.facebookForm.findFirst({ where: { formId: '987654321' } });
   const formDetails = await prisma.facebookForm.findFirst({ where: { formId: '456789123' } });
 
-  // 6. Seed Real Meta Leads (matching screenshot table exactly)
-  const leadsData = [
-    {
-      name: 'Rahul Sharma',
-      phone: '9876543210',
-      email: 'rahul.sharma@email.com',
-      status: 'New',
-      form: formSiteVisit,
-      createdAt: new Date('2025-05-14T08:10:00Z'),
-      assignedSalesUserId: null,
-    },
-    {
-      name: 'Priya Verma',
-      phone: '987234567',
-      email: 'priya.verma@email.com',
-      status: 'Contacted',
-      form: formEnquiry,
-      createdAt: new Date('2025-05-14T07:58:00Z'),
-      assignedSalesUserId: null,
-    },
-    {
-      name: 'Amit Kumar',
-      phone: '9812345678',
-      email: 'amit.kumar@email.com',
-      status: 'Qualified',
-      form: formSiteVisit,
-      createdAt: new Date('2025-05-14T07:45:00Z'),
-      assignedSalesUserId: humanAgent.id,
-    },
-    {
-      name: 'Sunita Kapoor',
-      phone: '9898765432',
-      email: 'sunita.kapoor@email.com',
-      status: 'Converted',
-      form: formDetails,
-      createdAt: new Date('2025-05-14T07:30:00Z'),
-      assignedSalesUserId: humanAgent.id,
-    },
-    {
-      name: 'Vikram Singh',
-      phone: '9823456789',
-      email: 'vikram.singh@email.com',
-      status: 'Spam',
-      form: formEnquiry,
-      createdAt: new Date('2025-05-14T07:15:00Z'),
-      assignedSalesUserId: null,
-    },
-    {
-      name: 'Rohan Gupta',
-      phone: '9811223344',
-      email: 'rohan.gupta@email.com',
-      status: 'New',
-      form: formSiteVisit,
-      createdAt: new Date('2025-05-14T06:50:00Z'),
-      assignedSalesUserId: null,
-    },
-    {
-      name: 'Ananya Roy',
-      phone: '9877665544',
-      email: 'ananya.roy@email.com',
-      status: 'Contacted',
-      form: formEnquiry,
-      createdAt: new Date('2025-05-14T06:20:00Z'),
-      assignedSalesUserId: null,
-    },
-    {
-      name: 'Karan Malhotra',
-      phone: '9833445566',
-      email: 'karan.m@email.com',
-      status: 'Qualified',
-      form: formDetails,
-      createdAt: new Date('2025-05-14T05:40:00Z'),
-      assignedSalesUserId: humanAgent.id,
-    },
-  ];
-
-  for (const lData of leadsData) {
-    const existingL = await prisma.lead.findFirst({ where: { phone: lData.phone } });
-    if (!existingL && primaryPage) {
-      await prisma.lead.create({
-        data: {
-          name: lData.name,
-          phone: lData.phone,
-          email: lData.email,
-          status: lData.status.toUpperCase(),
-          workspaceId: workspace.id,
-          facebookPageId: primaryPage.id,
-          facebookFormId: lData.form?.id || null,
-          assignedSalesUserId: lData.assignedSalesUserId,
-          campaign: 'Spring Real Estate Expo 2025',
-          sourceName: 'Facebook Page',
-          qualificationScore: 85,
-          createdAt: lData.createdAt,
-        },
-      });
-    }
-  }
+  // 6. Dynamic Meta Lead Ingestion initialized via Meta Discovery & Webhooks (No static seed array)
 
   // 7. Seed Campaigns
   const campaignsList = [

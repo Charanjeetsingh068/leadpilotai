@@ -80,7 +80,7 @@ export default function FacebookAccountDetailPage({ params }: PageProps) {
             email: l.email,
             formName: l.facebookForm?.name || 'Book Site Visit',
             formId: l.facebookForm?.formId || '123456789',
-            pageName: l.facebookPage?.name || selectedPage?.name || 'Acme Real Estate',
+            pageName: l.facebookPage?.name || selectedPage?.name || 'Meta Page',
             receivedAt: new Date(l.createdAt).toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
@@ -222,11 +222,10 @@ export default function FacebookAccountDetailPage({ params }: PageProps) {
 
       {/* TOP METRICS (Visible Across Views) */}
       <FacebookAccountTopMetrics
-        totalPages={metricsInfo.totalPages || 8}
-        activePages={metricsInfo.activePages || 6}
-        totalLeads30Days={metricsInfo.totalLeads30Days || 1248}
-        unreadLeads={metricsInfo.unreadLeads || 86}
-        totalLeadForms={metricsInfo.totalLeadForms || 24}
+        totalPages={pages.length}
+        totalLeads={leads.length}
+        totalBusinesses={1}
+        totalAccounts={1}
       />
 
       {/* TABS BAR */}
@@ -260,9 +259,9 @@ export default function FacebookAccountDetailPage({ params }: PageProps) {
             />
 
             <FacebookLeadInboxTable
-              pageName={selectedPage?.name || 'Acme Real Estate'}
+              pageName={selectedPage?.name || 'Meta Page'}
               leads={leads}
-              totalLeadsCount={324}
+              totalLeadsCount={leads.length}
               onSelectLead={handleSelectLead}
               onExportCsv={() => alert('Exporting leads to CSV...')}
               onViewAllLeads={() => setActiveTab('lead_inbox')}

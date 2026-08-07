@@ -47,7 +47,8 @@ export default function FacebookIntegrationPage() {
     isManualSyncing,
   } = useFacebookIntegration();
 
-  const hasAccounts = Boolean(data?.accounts && data.accounts.length > 0);
+  const activeAccounts = data?.accounts?.filter((a: any) => a.tokenStatus !== 'Disconnected' && a.status !== 'Disconnected' && a.tokenStatus !== 'REVOKED') || [];
+  const hasAccounts = Boolean(activeAccounts.length > 0);
   const isConnected = integrationStatus === 'CONNECTED' || hasAccounts || data?.connection?.isConnected === true;
 
   return (
@@ -110,96 +111,81 @@ export default function FacebookIntegrationPage() {
         </div>
       </div>
 
-      {/* Interactive Connection Wizard */}
-      <FacebookConnectionWizard />
 
-      {/* If Workspace is NOT CONNECTED: Render Hero Connection Card & Setup Guide */}
-      {!isConnected ? (
+      {/* Full dynamic dashboard populated from backend */}
+      <>
+        {/* Main Grid Section Row 1: Connection & Accounts + Live Stream */}
         <div className="fb-grid-row-top">
-          <div className="fb-col-left-full">
+          <div className="fb-col-left">
             <FacebookConnectionCard
               connection={data?.connection}
               onReconnect={handleConnectFacebook}
               isConnecting={isConnecting}
             />
+            <ConnectedAccountsTable
+              accounts={data?.accounts || []}
+              onAddAccount={() => setIsAddAccountOpen(true)}
+              onDisconnectAccount={disconnectAccount}
+              search={accountsSearch}
+              onSearchChange={setAccountsSearch}
+            />
+          </div>
+
+          <div className="fb-col-right">
+            <LiveSyncActivityStream events={data?.recentEvents || []} />
           </div>
         </div>
-      ) : (
-        /* If CONNECTED: Render full dynamic dashboard populated from backend */
-        <>
-          {/* Main Grid Section Row 1: Connection & Accounts + Live Stream */}
-          <div className="fb-grid-row-top">
-            <div className="fb-col-left">
-              <FacebookConnectionCard
-                connection={data?.connection}
-                onReconnect={handleConnectFacebook}
-                isConnecting={isConnecting}
+
+        {/* Main Grid Section Row 2: Portfolio, Pages, Instagram, WhatsApp, Ad Accounts & Lead Forms */}
+        <div className="fb-grid-row-middle">
+          <div className="fb-col-left">
+            <div className="fb-grid-two-col">
+              <BusinessManagerCard
+                businesses={data?.businesses || []}
+                selectedBusinessId={selectedBusinessId}
+                onBusinessChange={handleBusinessChange}
               />
-              <ConnectedAccountsTable
-                accounts={data?.accounts || []}
-                onAddAccount={() => setIsAddAccountOpen(true)}
-                onDisconnectAccount={disconnectAccount}
-                search={accountsSearch}
-                onSearchChange={setAccountsSearch}
+              <ConnectedPagesTable
+                pages={data?.pages || []}
+                totalPages={data?.totalPages || 0}
+                onRefreshPages={() => syncPages(undefined)}
+                isRefreshing={isSyncingPages}
               />
             </div>
 
-            <div className="fb-col-right">
-              <LiveSyncActivityStream events={data?.recentEvents || []} />
-            </div>
-          </div>
-
-          {/* Main Grid Section Row 2: Portfolio, Pages, Instagram, WhatsApp, Ad Accounts & Lead Forms */}
-          <div className="fb-grid-row-middle">
-            <div className="fb-col-left">
-              <div className="fb-grid-two-col">
-                <BusinessManagerCard
-                  businesses={data?.businesses || []}
-                  selectedBusinessId={selectedBusinessId}
-                  onBusinessChange={handleBusinessChange}
-                />
-                <ConnectedPagesTable
-                  pages={data?.pages || []}
-                  totalPages={data?.totalPages || 0}
-                  onRefreshPages={() => syncPages(undefined)}
-                  isRefreshing={isSyncingPages}
-                />
-              </div>
-
-              <div className="fb-grid-three-col">
-                <InstagramAccountsCard accounts={data?.instagramAccounts || []} />
-                <WhatsAppBusinessCard accounts={data?.whatsAppAccounts || []} />
-                <AdAccountsCard accounts={data?.adAccounts || []} />
-              </div>
-
-              <LeadFormsTable
-                forms={data?.forms || []}
-                onAssignAiAgent={(formId, agentId) => assignAiAgent({ formId, aiAgentId: agentId })}
-                onToggleActive={toggleFormActive}
-                onSyncForms={() => syncForms(undefined)}
-                onPreviewForm={(form) => setPreviewForm(form)}
-                isSyncing={isSyncingForms}
-              />
-            </div>
-          </div>
-
-          {/* Main Grid Section Row 3: Permissions, Webhook Health, Chart */}
-          <div className="fb-grid-row-bottom">
             <div className="fb-grid-three-col">
-              <PermissionsCard permissions={data?.permissions || []} />
-              <WebhookHealthCard
-                webhookHealth={data?.webhookHealth}
-                onRetryWebhooks={() => retryWebhooks()}
-                isRetrying={isRetryingWebhooks}
-              />
-              <SyncOverviewChart />
+              <InstagramAccountsCard accounts={data?.instagramAccounts || []} />
+              <WhatsAppBusinessCard accounts={data?.whatsAppAccounts || []} />
+              <AdAccountsCard accounts={data?.adAccounts || []} />
             </div>
-          </div>
 
-          {/* Bottom Summary Analytics Cards */}
-          <BottomAnalyticsCards metrics={data?.metrics} />
-        </>
-      )}
+            <LeadFormsTable
+              forms={data?.forms || []}
+              onAssignAiAgent={(formId, agentId) => assignAiAgent({ formId, aiAgentId: agentId })}
+              onToggleActive={toggleFormActive}
+              onSyncForms={() => syncForms(undefined)}
+              onPreviewForm={(form) => setPreviewForm(form)}
+              isSyncing={isSyncingForms}
+            />
+          </div>
+        </div>
+
+        {/* Main Grid Section Row 3: Permissions, Webhook Health, Chart */}
+        <div className="fb-grid-row-bottom">
+          <div className="fb-grid-three-col">
+            <PermissionsCard permissions={data?.permissions || []} />
+            <WebhookHealthCard
+              webhookHealth={data?.webhookHealth}
+              onRetryWebhooks={() => retryWebhooks()}
+              isRetrying={isRetryingWebhooks}
+            />
+            <SyncOverviewChart />
+          </div>
+        </div>
+
+        {/* Bottom Summary Analytics Cards */}
+        <BottomAnalyticsCards metrics={data?.metrics} />
+      </>
 
       {/* Modals */}
       <AddAccountModal

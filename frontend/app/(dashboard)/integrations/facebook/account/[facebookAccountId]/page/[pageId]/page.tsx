@@ -51,7 +51,7 @@ export default function FacebookSinglePageDetailPage({ params }: PageProps) {
               email: l.email,
               formName: l.facebookForm?.name || 'Book Site Visit',
               formId: l.facebookForm?.formId || '123456789',
-              pageName: details?.name || 'Acme Real Estate',
+              pageName: details?.name || 'Meta Page',
               receivedAt: new Date(l.createdAt).toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric',
@@ -117,7 +117,7 @@ export default function FacebookSinglePageDetailPage({ params }: PageProps) {
     );
   }
 
-  const pName = pageDetails?.name || 'Acme Real Estate';
+  const pName = pageDetails?.name || 'Meta Page';
   const handleName = pageDetails?.handle || `@${pName.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
 
   return (

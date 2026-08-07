@@ -77,6 +77,10 @@ model User {
   activityLogs     ActivityLog[]
   humanApprovals   HumanApproval[] @relation("Actor")
   facebookAccounts FacebookAccount[]
+  facebookBusinesses FacebookBusiness[]
+  instagramAccounts  InstagramAccount[]
+  whatsappAccounts   WhatsAppBusinessAccount[]
+  facebookForms      FacebookForm[]
 }
 
 model UserSession {
@@ -103,13 +107,24 @@ model Project {
 
 model Lead {
   id                  String          @id @default(uuid()) @db.Uuid
+  leadId              String?
+  facebookLeadId      String?
   name                String
   phone               String
   email               String?
+  company             String?
+  companyName         String?
+  photo               String?
+  avatar              String?
+  city                String?
+  message             String?         @db.Text
+  campaign            String?
+  campaignName        String?
+  formName            String?
+  pageName            String?
   sourceId            String?         @db.Uuid
   source              LeadSource?     @relation(fields: [sourceId], references: [id])
   sourceName          String?         
-  campaign            String?
   project             String?
   industry            String?
   budget              String?
@@ -128,6 +143,7 @@ model Lead {
   facebookForm        FacebookForm?   @relation(fields: [facebookFormId], references: [id], onDelete: SetNull)
   facebookPageId      String?         @db.Uuid
   facebookPage        FacebookPage?   @relation(fields: [facebookPageId], references: [id], onDelete: SetNull)
+  createdTime         DateTime?       @default(now())
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
   notes               LeadNote[]
@@ -1007,11 +1023,15 @@ model FacebookBusiness {
   company            Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   workspaceId        String                    @db.Uuid
   workspace          Workspace                 @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId             String?                   @db.Uuid
+  user               User?                     @relation(fields: [userId], references: [id], onDelete: SetNull)
   facebookAccountId  String                    @db.Uuid
   facebookAccount    FacebookAccount           @relation(fields: [facebookAccountId], references: [id], onDelete: Cascade)
   businessId         String
+  businessName       String?
   name               String
   verificationStatus String?                   @default("VERIFIED")
+  isSelected         Boolean                   @default(false)
   primaryPageId      String?
   accessLevel        String                    @default("FULL_ACCESS")
   createdAt          DateTime                  @default(now())
@@ -1035,13 +1055,18 @@ model FacebookPage {
   facebookBusiness   FacebookBusiness? @relation(fields: [facebookBusinessId], references: [id], onDelete: SetNull)
   pageId             String
   name               String
+  pageName           String?
   category           String?           @default("Real Estate Company")
   pictureUrl         String?
   followersCount     Int               @default(0)
+  followers          Int               @default(0)
   accessToken        String            @db.Text
+  pageAccessToken    String?           @db.Text
   status             String            @default("Active")
   syncStatus         String            @default("Synced")
   webhookStatus      String            @default("Active")
+  connected          Boolean           @default(true)
+  isSelected         Boolean           @default(true)
   assignedAiAgentId  String?           @db.Uuid
   assignedAiAgent    AIAgent?          @relation(fields: [assignedAiAgentId], references: [id], onDelete: SetNull)
   ownerName          String?           @default("LeadPilot Marketing")
@@ -1061,6 +1086,8 @@ model InstagramAccount {
   id                 String            @id @default(uuid()) @db.Uuid
   companyId          String            @db.Uuid
   workspaceId        String            @db.Uuid
+  userId             String?           @db.Uuid
+  user               User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
   facebookAccountId  String            @db.Uuid
   facebookAccount    FacebookAccount   @relation(fields: [facebookAccountId], references: [id], onDelete: Cascade)
   facebookBusinessId String?           @db.Uuid
@@ -1071,7 +1098,9 @@ model InstagramAccount {
   username           String
   name               String?
   profilePictureUrl  String?
+  profilePicture     String?
   followersCount     Int               @default(0)
+  followers          Int               @default(0)
   businessConnected  Boolean           @default(true)
   messagingEnabled   Boolean           @default(true)
   webhookEnabled     Boolean           @default(true)
@@ -1086,12 +1115,15 @@ model WhatsAppBusinessAccount {
   id                 String            @id @default(uuid()) @db.Uuid
   companyId          String            @db.Uuid
   workspaceId        String            @db.Uuid
+  userId             String?           @db.Uuid
+  user               User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
   facebookAccountId  String            @db.Uuid
   facebookAccount    FacebookAccount   @relation(fields: [facebookAccountId], references: [id], onDelete: Cascade)
   facebookBusinessId String?           @db.Uuid
   facebookBusiness   FacebookBusiness? @relation(fields: [facebookBusinessId], references: [id], onDelete: SetNull)
   wabaId             String
   name               String
+  displayName        String?
   phoneNumber        String
   phoneNumberId      String?
   qualityRating      String            @default("GREEN")
@@ -1111,17 +1143,22 @@ model FacebookForm {
   company           Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
   workspaceId       String       @db.Uuid
   workspace         Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId            String?      @db.Uuid
+  user              User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
   facebookPageId    String       @db.Uuid
   facebookPage      FacebookPage @relation(fields: [facebookPageId], references: [id], onDelete: Cascade)
   formId            String
   name              String
+  formName          String?
   campaign          String?      @default("Performance Ads 2025")
   leadCount         Int          @default(0)
   leadsToday        Int          @default(0)
   leadsTotal        Int          @default(0)
   status            String       @default("Active")
   isActive          Boolean      @default(true)
+  isSelected        Boolean      @default(true)
   webhookActive     Boolean      @default(true)
+  createdTime       DateTime?    @default(now())
   lastSyncAt        DateTime?    @default(now())
   assignedAiAgentId String?      @db.Uuid
   assignedAiAgent   AIAgent?     @relation(fields: [assignedAiAgentId], references: [id], onDelete: SetNull)
@@ -1300,7 +1337,11 @@ model FacebookAd {
   imageUrl          String?
   videoUrl          String?
   spend             Float             @default(0.0)
+  reach             Int               @default(0)
   clicks            Int               @default(0)
+  ctr               Float             @default(0.0)
+  leadsCount        Int               @default(0)
+  cpl               Float             @default(0.0)
   conversions       Int               @default(0)
   roas              Float             @default(0.0)
   status            String            @default("ACTIVE")
@@ -1339,6 +1380,11 @@ model FacebookAdAccount {
   name              String
   currency          String          @default("USD")
   timezone          String          @default("America/Los_Angeles")
+  spend             Float           @default(0.0)
+  reach             Int             @default(0)
+  ctr               Float           @default(0.0)
+  leadsCount        Int             @default(0)
+  cpl               Float           @default(0.0)
   status            String          @default("ACTIVE")
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @default(now()) @updatedAt
@@ -1354,6 +1400,11 @@ model FacebookAdSet {
   name               String
   dailyBudget        Float             @default(0.0)
   lifetimeBudget     Float             @default(0.0)
+  spend              Float             @default(0.0)
+  reach              Int               @default(0)
+  ctr                Float             @default(0.0)
+  leadsCount         Int               @default(0)
+  cpl                Float             @default(0.0)
   status             String            @default("ACTIVE")
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @default(now()) @updatedAt

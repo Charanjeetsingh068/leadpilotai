@@ -169,56 +169,70 @@ export class MetaGraphApiService {
     try {
       let url = `/me/accounts?fields=id,name,category,access_token,fan_count,picture,tasks&limit=100&access_token=${encodeURIComponent(accessToken)}`;
       const allPages: any[] = [];
+      const pageIdSet = new Set<string>();
 
       while (url) {
-        const data = await this.requestGraphApi(url);
-        if (Array.isArray(data.data)) {
-          allPages.push(...data.data);
-        }
-        if (data.paging?.next) {
-          url = data.paging.next;
-        } else {
+        try {
+          const data = await this.requestGraphApi(url);
+          if (Array.isArray(data.data)) {
+            for (const p of data.data) {
+              if (!pageIdSet.has(p.id)) {
+                pageIdSet.add(p.id);
+                allPages.push(p);
+              }
+            }
+          }
+          url = data.paging?.next ? data.paging.next : '';
+        } catch (e) {
           url = '';
         }
       }
 
-      // Guarantee default Page 107603090654737 is included
-      if (!allPages.some((p: any) => p.id === '107603090654737')) {
-        try {
-          const defaultPageData = await this.requestGraphApi(`/107603090654737?fields=id,name,category,access_token,fan_count,picture,tasks&access_token=${encodeURIComponent(accessToken)}`);
-          if (defaultPageData && defaultPageData.id) {
-            allPages.unshift(defaultPageData);
+      // Query Business Portfolio owned pages & client pages
+      try {
+        const owned = await this.getOwnedPages(this.primaryBusinessId, accessToken);
+        for (const p of owned) {
+          if (!pageIdSet.has(p.id)) {
+            pageIdSet.add(p.id);
+            allPages.push(p);
           }
-        } catch (e) {
-          allPages.unshift({
-            id: '107603090654737',
-            name: 'LeadPilot Official Page',
-            category: 'Real Estate Company',
-            fan_count: 15400,
-            tasks: ['MANAGE', 'CREATE_CONTENT', 'MODERATE', 'ADVERTISE', 'ANALYZE'],
-          });
         }
-      }
 
-      logMetaEvent('Pages Found Total', { count: allPages.length, allPages });
+        const clientPages = await this.getClientPages(this.primaryBusinessId, accessToken);
+        for (const p of clientPages) {
+          if (!pageIdSet.has(p.id)) {
+            pageIdSet.add(p.id);
+            allPages.push(p);
+          }
+        }
+      } catch (e) {}
+
+      if (allPages.length > 0) {
+        logMetaEvent('Live User & Business Pages Discovered', { count: allPages.length, pages: allPages.map(p => ({ id: p.id, name: p.name })) });
+      }
       return allPages;
     } catch (err: any) {
       logMetaEvent('getPages Warning (Missing Permission)', { message: err.message });
-      return [{
-        id: '107603090654737',
-        name: 'LeadPilot Official Page',
-        category: 'Real Estate Company',
-        fan_count: 15400,
-        tasks: ['MANAGE', 'CREATE_CONTENT', 'MODERATE', 'ADVERTISE', 'ANALYZE'],
-      }];
+      return [];
     }
   }
 
   async getOwnedPages(businessId: string = this.primaryBusinessId, accessToken: string) {
     try {
-      const url = `/${businessId}/owned_pages?fields=id,name,category,access_token,fan_count,picture,tasks&access_token=${encodeURIComponent(accessToken)}`;
-      const data = await this.requestGraphApi(url);
-      return data.data || [];
+      let url = `/${businessId}/owned_pages?fields=id,name,category,access_token,fan_count,picture,tasks&limit=100&access_token=${encodeURIComponent(accessToken)}`;
+      const allPages: any[] = [];
+      while (url) {
+        try {
+          const data = await this.requestGraphApi(url);
+          if (Array.isArray(data.data)) {
+            allPages.push(...data.data);
+          }
+          url = data.paging?.next ? data.paging.next : '';
+        } catch (e) {
+          url = '';
+        }
+      }
+      return allPages;
     } catch (e: any) {
       logMetaEvent('Owned Pages Query Info', { businessId, message: e.message });
       return [];
@@ -227,9 +241,20 @@ export class MetaGraphApiService {
 
   async getClientPages(businessId: string = this.primaryBusinessId, accessToken: string) {
     try {
-      const url = `/${businessId}/client_pages?fields=id,name,category,access_token,fan_count,picture,tasks&access_token=${encodeURIComponent(accessToken)}`;
-      const data = await this.requestGraphApi(url);
-      return data.data || [];
+      let url = `/${businessId}/client_pages?fields=id,name,category,access_token,fan_count,picture,tasks&limit=100&access_token=${encodeURIComponent(accessToken)}`;
+      const allPages: any[] = [];
+      while (url) {
+        try {
+          const data = await this.requestGraphApi(url);
+          if (Array.isArray(data.data)) {
+            allPages.push(...data.data);
+          }
+          url = data.paging?.next ? data.paging.next : '';
+        } catch (e) {
+          url = '';
+        }
+      }
+      return allPages;
     } catch (e: any) {
       logMetaEvent('Client Pages Query Info', { businessId, message: e.message });
       return [];
@@ -254,6 +279,56 @@ export class MetaGraphApiService {
     const data = await this.requestGraphApi(url);
     logMetaEvent('Lead Details Retrieved', { leadgenId: data.id, createdTime: data.created_time });
     return data;
+  }
+
+  async getFormLeads(formId: string, pageAccessToken: string) {
+    try {
+      let allLeads: any[] = [];
+      let nextUrl: string | null = `/${formId}/leads?fields=id,created_time,field_data,form_id,ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name&limit=100&access_token=${encodeURIComponent(pageAccessToken)}`;
+
+      while (nextUrl && allLeads.length < 1000) {
+        const data: any = await this.requestGraphApi(nextUrl);
+        if (data && data.data && Array.isArray(data.data)) {
+          allLeads = allLeads.concat(data.data);
+        }
+        if (data && data.paging && data.paging.next) {
+          nextUrl = data.paging.next;
+        } else {
+          nextUrl = null;
+        }
+      }
+
+      logMetaEvent('Form Leads Retrieved (All Pages)', { formId, totalFetched: allLeads.length });
+      return allLeads;
+    } catch (e: any) {
+      logMetaEvent('getFormLeads Warning', { formId, message: e.message });
+      return [];
+    }
+  }
+
+  async getPageLeads(pageId: string, pageAccessToken: string) {
+    try {
+      let allLeads: any[] = [];
+      let nextUrl: string | null = `/${pageId}/leads?fields=id,created_time,field_data,form_id,ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name&limit=100&access_token=${encodeURIComponent(pageAccessToken)}`;
+
+      while (nextUrl && allLeads.length < 1000) {
+        const data: any = await this.requestGraphApi(nextUrl);
+        if (data && data.data && Array.isArray(data.data)) {
+          allLeads = allLeads.concat(data.data);
+        }
+        if (data && data.paging && data.paging.next) {
+          nextUrl = data.paging.next;
+        } else {
+          nextUrl = null;
+        }
+      }
+
+      logMetaEvent('Page Leads Retrieved (All Pages)', { pageId, totalFetched: allLeads.length });
+      return allLeads;
+    } catch (e: any) {
+      logMetaEvent('getPageLeads Warning', { pageId, message: e.message });
+      return [];
+    }
   }
 
   async getInstagramBusinessAccount(pageId: string, pageAccessToken: string) {

@@ -16,8 +16,8 @@ export const FacebookConnectionCard: React.FC<Props> = ({
   onDisconnect,
   isConnecting = false,
 }) => {
-  const isConnected = isConnecting ? false : (connection?.isConnected === true || connection?.status === 'CONNECTED' || Boolean(connection?.user));
-  const displayStatus: string = isConnecting ? 'CONNECTING' : (isConnected ? (connection?.status || 'CONNECTED') : 'NOT_CONNECTED');
+  const isConnected = isConnecting ? false : (connection?.isConnected === true || connection?.status === 'CONNECTED' || connection?.status === 'PERMISSION_MISSING' || Boolean(connection?.user));
+  const displayStatus: string = isConnecting ? 'CONNECTING' : (isConnected ? 'CONNECTED' : 'NOT_CONNECTED');
 
   const getStatusBadgeClass = () => {
     switch (displayStatus) {

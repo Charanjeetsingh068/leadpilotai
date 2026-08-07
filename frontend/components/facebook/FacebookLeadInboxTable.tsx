@@ -32,23 +32,30 @@ interface LeadInboxTableProps {
 }
 
 export const FacebookLeadInboxTable: React.FC<LeadInboxTableProps> = ({
-  pageName = 'Acme Real Estate',
+  pageName = 'Meta Page',
   leads,
-  totalLeadsCount = 324,
+  totalLeadsCount,
   onSelectLead,
   onExportCsv,
   onViewAllLeads,
 }) => {
   const [activeFilter, setActiveFilter] = useState('ALL');
 
+  const totalCount = totalLeadsCount || leads.length;
+  const newCount = leads.filter((l) => l.status.toUpperCase() === 'NEW').length;
+  const contactedCount = leads.filter((l) => l.status.toUpperCase() === 'CONTACTED').length;
+  const qualifiedCount = leads.filter((l) => l.status.toUpperCase() === 'QUALIFIED').length;
+  const convertedCount = leads.filter((l) => l.status.toUpperCase() === 'CONVERTED').length;
+  const spamCount = leads.filter((l) => l.status.toUpperCase() === 'SPAM' || l.status.toUpperCase() === 'REJECTED').length;
+
   const filterPills = [
-    { id: 'ALL', label: 'All Leads', count: 324 },
-    { id: 'UNREAD', label: 'Unread', count: 86 },
-    { id: 'NEW', label: 'New', count: 112 },
-    { id: 'CONTACTED', label: 'Contacted', count: 74 },
-    { id: 'QUALIFIED', label: 'Qualified', count: 32 },
-    { id: 'CONVERTED', label: 'Converted', count: 20 },
-    { id: 'SPAM', label: 'Spam', count: 0 },
+    { id: 'ALL', label: 'All Leads', count: totalCount },
+    { id: 'UNREAD', label: 'Unread', count: newCount },
+    { id: 'NEW', label: 'New', count: newCount },
+    { id: 'CONTACTED', label: 'Contacted', count: contactedCount },
+    { id: 'QUALIFIED', label: 'Qualified', count: qualifiedCount },
+    { id: 'CONVERTED', label: 'Converted', count: convertedCount },
+    { id: 'SPAM', label: 'Spam', count: spamCount },
   ];
 
   const filteredLeads = leads.filter((lead) => {
