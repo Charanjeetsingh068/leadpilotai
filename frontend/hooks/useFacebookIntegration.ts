@@ -78,44 +78,63 @@ export function useFacebookIntegration() {
     setIsConnecting(true);
     setConnectionErrorMsg(null);
 
-    const width = 600;
-    const height = 700;
-    const left = window.screen.width / 2 - width / 2;
-    const top = window.screen.height / 2 - height / 2;
+    const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || '1712255293083461';
+    const redirectUri = process.env.NEXT_PUBLIC_FACEBOOK_REDIRECT_URI || 'https://leadpilotai-2kar.onrender.com/api/integrations/facebook/callback';
+    const scopes = [
+      'public_profile',
+      'email',
+      'business_management',
+      'pages_show_list',
+      'pages_manage_metadata',
+      'pages_read_engagement',
+      'pages_manage_posts',
+      'leads_retrieval',
+      'instagram_basic',
+      'instagram_manage_messages',
+      'whatsapp_business_management',
+      'whatsapp_business_messaging',
+    ].join(',');
 
-    // Open popup synchronously during user click event to prevent browser popup blocker from blocking it
-    let popup: Window | null = null;
+    const statePayload = {
+      scope: { companyId: 'default-company', workspaceId: 'default-workspace', userId: 'default-user' },
+      timestamp: Date.now(),
+      frontendUrl: typeof window !== 'undefined' ? window.location.origin : 'https://leadpilotai-rust.vercel.app',
+    };
+    const state = typeof btoa !== 'undefined'
+      ? btoa(JSON.stringify(statePayload)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+      : '';
+
+    let oauthUrl = `https://www.facebook.com/v23.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&state=${state}&auth_type=rerequest&scope=${scopes}`;
+
     try {
-      popup = window.open(
-        'about:blank',
-        'Facebook Login',
-        `width=${width},height=${height},top=${top},left=${left},scrollbars=yes`
-      );
+      const apiData = await facebookIntegrationService.startOAuth();
+      if (apiData?.oauthUrl) {
+        oauthUrl = apiData.oauthUrl;
+      }
     } catch (e) {
-      console.warn('Popup creation error:', e);
+      console.warn('API startOAuth fallback used:', e);
     }
 
-    try {
-      const { oauthUrl } = await facebookIntegrationService.startOAuth();
+    const width = 600;
+    const height = 700;
+    const left = typeof window !== 'undefined' ? window.screen.width / 2 - width / 2 : 200;
+    const top = typeof window !== 'undefined' ? window.screen.height / 2 - height / 2 : 100;
 
-      if (popup && !popup.closed) {
-        popup.location.href = oauthUrl;
-        const timer = setInterval(() => {
-          if (popup.closed) {
-            clearInterval(timer);
-            setIsConnecting(false);
-          }
-        }, 1000);
-      } else {
-        window.location.href = oauthUrl;
-      }
-    } catch (e: any) {
-      if (popup && !popup.closed) {
-        try { popup.close(); } catch (err) {}
-      }
-      console.error('Failed to initiate Facebook OAuth:', e);
-      setConnectionErrorMsg(e.message || 'Failed to start Meta OAuth flow.');
-      setIsConnecting(false);
+    const popup = window.open(
+      oauthUrl,
+      'Facebook Login',
+      `width=${width},height=${height},top=${top},left=${left},scrollbars=yes`
+    );
+
+    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+      window.location.href = oauthUrl;
+    } else {
+      const timer = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(timer);
+          setIsConnecting(false);
+        }
+      }, 1000);
     }
   };
 
