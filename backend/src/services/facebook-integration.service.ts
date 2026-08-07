@@ -195,9 +195,9 @@ export class FacebookIntegrationService {
     const pgInstagram = await this.facebookRepo.findInstagramAccounts(scope, {});
     const pgWhatsApp = await this.facebookRepo.findWhatsAppAccounts(scope, {});
 
-    const activePgAccount = pgAccounts.find((a: any) => (a.tokenStatus as string) !== 'Disconnected') || null;
-    const isConnected = Boolean(activePgAccount !== null || (accounts.length > 0 && accounts[0]?.tokenStatus !== 'REVOKED' && (accounts[0]?.tokenStatus as string) !== 'Disconnected'));
-    const primaryAccount = activePgAccount || pgAccounts[0] || accounts[0] || null;
+    const activeMongoAccount = accounts.find((a: any) => a.tokenStatus !== 'Disconnected' && a.tokenStatus !== 'REVOKED') || null;
+    const isConnected = Boolean(activePgAccount !== null || activeMongoAccount !== null);
+    const primaryAccount = activePgAccount || activeMongoAccount || pgAccounts[0] || accounts[0] || null;
 
     const REQUIRED_PERMISSIONS = [
       'business_management',
@@ -235,29 +235,43 @@ export class FacebookIntegrationService {
         lastSyncedAt: new Date(),
         missingPermissions: isConnected ? [] : REQUIRED_PERMISSIONS,
       },
-      accounts: pgAccounts.length > 0 ? pgAccounts.map((a: any) => ({
-        id: a.id,
-        fbUserId: a.fbUserId,
-        name: a.accountName || 'Meta Account',
-        accountName: a.accountName || 'Meta Account',
-        email: a.fbUserEmail || 'entecmedia@gmail.com',
-        status: a.tokenStatus === 'PERMISSIONS_MISSING' ? 'VALID' : (a.tokenStatus || 'Active'),
-        tokenStatus: a.tokenStatus === 'PERMISSIONS_MISSING' ? 'VALID' : (a.tokenStatus || 'Active'),
-        grantedPermissionsCount: (a.tokenStatus as string) === 'Disconnected' ? 0 : 10,
-        missingPermissionsCount: (a.tokenStatus as string) === 'Disconnected' ? 10 : 0,
-        lastSyncedAt: a.updatedAt || new Date(),
-      })) : accounts.map((a) => ({
-        id: a._id.toString(),
-        fbUserId: a.fbUserId,
-        name: a.fbUserName,
-        accountName: a.fbUserName,
-        email: a.fbUserEmail,
-        status: a.tokenStatus === 'PERMISSIONS_MISSING' ? 'VALID' : (a.tokenStatus || 'Active'),
-        tokenStatus: a.tokenStatus === 'PERMISSIONS_MISSING' ? 'VALID' : (a.tokenStatus || 'Active'),
-        grantedPermissionsCount: (a.tokenStatus as string) === 'Disconnected' ? 0 : 10,
-        missingPermissionsCount: (a.tokenStatus as string) === 'Disconnected' ? 10 : 0,
-        lastSyncedAt: a.lastSyncedAt,
-      })),
+      accounts: (() => {
+        const pgList = pgAccounts.map((a: any) => ({
+          id: a.id,
+          fbUserId: a.fbUserId,
+          name: a.accountName || 'Meta Account',
+          accountName: a.accountName || 'Meta Account',
+          email: a.fbUserEmail || 'entecmedia@gmail.com',
+          status: a.tokenStatus === 'PERMISSIONS_MISSING' ? 'VALID' : (a.tokenStatus || 'Active'),
+          tokenStatus: a.tokenStatus === 'PERMISSIONS_MISSING' ? 'VALID' : (a.tokenStatus || 'Active'),
+          grantedPermissionsCount: (a.tokenStatus as string) === 'Disconnected' ? 0 : 10,
+          missingPermissionsCount: (a.tokenStatus as string) === 'Disconnected' ? 10 : 0,
+          lastSyncedAt: a.updatedAt || new Date(),
+        }));
+
+        const mongoList = accounts.map((a) => ({
+          id: a._id.toString(),
+          fbUserId: a.fbUserId,
+          name: a.fbUserName,
+          accountName: a.fbUserName,
+          email: a.fbUserEmail,
+          status: a.tokenStatus === 'PERMISSIONS_MISSING' ? 'VALID' : (a.tokenStatus || 'Active'),
+          tokenStatus: a.tokenStatus === 'PERMISSIONS_MISSING' ? 'VALID' : (a.tokenStatus || 'Active'),
+          grantedPermissionsCount: (a.tokenStatus as string) === 'Disconnected' ? 0 : 10,
+          missingPermissionsCount: (a.tokenStatus as string) === 'Disconnected' ? 10 : 0,
+          lastSyncedAt: a.lastSyncedAt,
+        }));
+
+        const activePg = pgList.filter((a: any) => a.tokenStatus !== 'Disconnected' && a.status !== 'Disconnected' && a.tokenStatus !== 'REVOKED');
+        const activeMongo = mongoList.filter((a: any) => a.tokenStatus !== 'Disconnected' && a.status !== 'Disconnected' && a.tokenStatus !== 'REVOKED');
+
+        if (activeMongo.length > 0 || activePg.length > 0) {
+          const combined = [...activeMongo, ...activePg];
+          return combined.filter((v, i, a) => a.findIndex((t) => t.fbUserId === v.fbUserId) === i);
+        }
+
+        return pgList.length > 0 ? pgList : mongoList;
+      })(),
       businesses: pgBusinesses.length > 0 ? pgBusinesses.map((b: any) => ({
         id: b.businessId,
         businessId: b.businessId,
