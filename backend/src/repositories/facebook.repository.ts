@@ -1072,6 +1072,9 @@ export class FacebookRepository {
     status?: string;
     createdTime?: Date | string;
   }) {
+    const tenant = await this.ensureTenantEntities({ companyId: '', workspaceId: data.workspaceId || '', userId: '' });
+    const validWorkspaceId = tenant.workspaceId;
+
     const searchConditions: Array<{ leadId?: string; facebookLeadId?: string }> = [];
     if (data.leadId) {
       searchConditions.push({ leadId: data.leadId });
@@ -1089,8 +1092,11 @@ export class FacebookRepository {
         })
       : null;
 
-    const { createdTime, ...leadData } = data;
+    const { createdTime, workspaceId, facebookPageId, facebookFormId, ...leadData } = data;
     const cTime = createdTime ? new Date(createdTime) : new Date();
+
+    const cleanPageId = isUuid(facebookPageId) ? facebookPageId : undefined;
+    const cleanFormId = isUuid(facebookFormId) ? facebookFormId : undefined;
 
     if (existing) {
       return prisma.lead.update({
@@ -1107,6 +1113,9 @@ export class FacebookRepository {
           pageName: data.pageName || existing.pageName,
           status: data.status || existing.status,
           createdTime: cTime || existing.createdTime,
+          workspaceId: validWorkspaceId,
+          facebookPageId: cleanPageId || existing.facebookPageId,
+          facebookFormId: cleanFormId || existing.facebookFormId,
         },
       });
     }
@@ -1119,6 +1128,9 @@ export class FacebookRepository {
         sourceName: data.sourceName || 'Meta Lead Ads',
         status: data.status || 'NEW',
         createdTime: cTime,
+        workspaceId: validWorkspaceId,
+        facebookPageId: cleanPageId,
+        facebookFormId: cleanFormId,
       },
     });
   }
