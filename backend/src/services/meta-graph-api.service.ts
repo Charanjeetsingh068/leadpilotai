@@ -188,22 +188,36 @@ export class MetaGraphApiService {
         }
       }
 
-      // Query Business Portfolio owned pages & client pages
+      // Query Business Portfolio owned pages & client pages dynamically for all user businesses
       try {
-        const owned = await this.getOwnedPages(this.primaryBusinessId, accessToken);
-        for (const p of owned) {
-          if (!pageIdSet.has(p.id)) {
-            pageIdSet.add(p.id);
-            allPages.push(p);
+        const businesses = await this.getBusinesses(accessToken);
+        const bizIds = new Set<string>([this.primaryBusinessId, '28149461204738597']);
+        if (Array.isArray(businesses)) {
+          for (const b of businesses) {
+            if (b.id) bizIds.add(b.id);
           }
         }
 
-        const clientPages = await this.getClientPages(this.primaryBusinessId, accessToken);
-        for (const p of clientPages) {
-          if (!pageIdSet.has(p.id)) {
-            pageIdSet.add(p.id);
-            allPages.push(p);
-          }
+        for (const bizId of Array.from(bizIds)) {
+          try {
+            const owned = await this.getOwnedPages(bizId, accessToken);
+            for (const p of owned) {
+              if (!pageIdSet.has(p.id)) {
+                pageIdSet.add(p.id);
+                allPages.push({ ...p, businessId: bizId });
+              }
+            }
+          } catch (e) {}
+
+          try {
+            const clientPages = await this.getClientPages(bizId, accessToken);
+            for (const p of clientPages) {
+              if (!pageIdSet.has(p.id)) {
+                pageIdSet.add(p.id);
+                allPages.push({ ...p, businessId: bizId });
+              }
+            }
+          } catch (e) {}
         }
       } catch (e) {}
 
