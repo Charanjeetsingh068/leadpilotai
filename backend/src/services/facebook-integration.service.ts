@@ -202,6 +202,7 @@ export class FacebookIntegrationService {
     const pgInstagram = await this.facebookRepo.findInstagramAccounts(scope, {});
     const pgWhatsApp = await this.facebookRepo.findWhatsAppAccounts(scope, {});
 
+    const activePgAccount = pgAccounts.find((a: any) => (a.tokenStatus as string) !== 'Disconnected') || null;
     const activeMongoAccount = accounts.find((a: any) => a.tokenStatus !== 'Disconnected' && a.tokenStatus !== 'REVOKED') || null;
     const isConnected = Boolean(activePgAccount !== null || activeMongoAccount !== null);
     const primaryAccount = activePgAccount || activeMongoAccount || pgAccounts[0] || accounts[0] || null;
