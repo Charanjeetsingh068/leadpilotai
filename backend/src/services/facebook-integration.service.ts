@@ -204,7 +204,7 @@ export class FacebookIntegrationService {
     const isConnected = Boolean(activeMongoAccount !== null || activePgAccount !== null || (accounts.length > 0 && accounts.some((a: any) => a.tokenStatus !== 'MANUALLY_DISCONNECTED')));
     const primaryAccount = activeMongoAccount || activePgAccount || accounts[0] || pgAccounts[0] || null;
 
-    if (isConnected && primaryAccount) {
+    if (isConnected && pages.length === 0 && pgPages.length === 0 && primaryAccount) {
       try {
         const fbUserId = (primaryAccount as any)?.fbUserId || (primaryAccount as any)?.facebookAccountId || '';
         const decryptedToken = await this.tokenService.getValidAccessToken(scope, fbUserId);
