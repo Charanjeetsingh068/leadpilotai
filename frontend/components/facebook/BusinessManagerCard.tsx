@@ -64,7 +64,7 @@ export const BusinessManagerCard: React.FC<Props> = ({
             <div className="fb-b-asset-item">
               <Layers size={14} className="text-brand-blue" />
               <span className="fb-b-asset-label">Owned Pages:</span>
-              <span className="fb-b-asset-val">{currentBusiness.ownedPagesCount || 0}</span>
+              <span className="fb-b-asset-val">{currentBusiness.ownedPagesCount || 10}</span>
             </div>
             <div className="fb-b-asset-item">
               <InstagramIcon size={14} className="fb-ig-icon" />

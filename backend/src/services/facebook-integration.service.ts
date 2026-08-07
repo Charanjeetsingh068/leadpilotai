@@ -139,7 +139,6 @@ export class FacebookIntegrationService {
   async getDashboard(scope: MultiTenantScope, businessId?: string) {
     const query: any = { workspaceId: scope.workspaceId };
     const pageQuery: any = { workspaceId: scope.workspaceId };
-    if (businessId) pageQuery.businessId = businessId;
 
     let accounts: any[] = [];
     let businesses: any[] = [];
@@ -192,7 +191,7 @@ export class FacebookIntegrationService {
     const accountsRes = await this.facebookRepo.findAccounts(scope, {});
     const pgAccounts = accountsRes.accounts || [];
     const pgBusinesses = await this.facebookRepo.findBusinesses(scope);
-    const pagesRes = await this.facebookRepo.findPagesByBusinessId(scope, businessId || 'ALL');
+    const pagesRes = await this.facebookRepo.findPagesByBusinessId(scope, 'ALL');
     const pgPages = pagesRes || [];
     const formsRes = await this.facebookRepo.findForms(scope, {});
     const pgForms = formsRes.forms || [];
