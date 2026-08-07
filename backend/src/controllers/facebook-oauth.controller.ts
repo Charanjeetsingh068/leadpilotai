@@ -164,17 +164,18 @@ export class FacebookOAuthController {
             </div>
             <script>
               const targetUrl = ${JSON.stringify(targetUrl)};
+              const safeData = ${JSON.stringify({ success: true, status: 'VALID' })};
               try {
-                localStorage.setItem('fb_oauth_success', JSON.stringify({ timestamp: Date.now(), data: ${JSON.stringify(result)} }));
+                localStorage.setItem('fb_oauth_success', JSON.stringify({ timestamp: Date.now(), data: safeData }));
               } catch (e) {}
 
               if (window.opener) {
                 try {
-                  window.opener.postMessage({ type: 'FB_OAUTH_SUCCESS', data: ${JSON.stringify(result)} }, '*');
+                  window.opener.postMessage({ type: 'FB_OAUTH_SUCCESS', data: safeData }, '*');
                 } catch (e) {}
                 setTimeout(function() {
                   try { window.close(); } catch(e) {}
-                }, 800);
+                }, 1000);
               } else {
                 setTimeout(function() {
                   window.location.href = targetUrl;
