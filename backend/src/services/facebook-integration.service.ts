@@ -293,42 +293,36 @@ export class FacebookIntegrationService {
           verificationStatus: b.verificationStatus || 'VERIFIED',
         }));
 
-        const pgList = pgBusinesses.map((b: any) => ({
-          id: b.businessId,
-          businessId: b.businessId,
-          name: b.businessName || b.name,
-          businessName: b.businessName || b.name,
-          verificationStatus: b.verificationStatus || 'VERIFIED',
-        }));
-
-        let list = mongoList.length > 0 ? mongoList : pgList;
+        // Filter out old static seed IDs
+        const liveMongoList = mongoList.filter(
+          (b) => b.businessId !== 'biz_entec_312449' && b.businessId !== 'biz_acme_98765' && b.businessId !== '1359154526345483'
+        );
 
         if (primaryAccount) {
           const accName = (primaryAccount as any).fbUserName || (primaryAccount as any).accountName || (primaryAccount as any).name || 'Meta';
           const accId = (primaryAccount as any).fbUserId || 'connected';
           const dynamicBizId = `biz_${accId}`;
-          if (!list.some((b) => b.businessId === dynamicBizId)) {
-            list.unshift({
+
+          const existingIndex = liveMongoList.findIndex((b) => b.businessId === dynamicBizId);
+          if (existingIndex >= 0) {
+            liveMongoList[existingIndex].name = `${accName} Business Portfolio`;
+            liveMongoList[existingIndex].businessName = `${accName} Business Portfolio`;
+            return liveMongoList;
+          }
+
+          return [
+            {
               id: dynamicBizId,
               businessId: dynamicBizId,
               name: `${accName} Business Portfolio`,
               businessName: `${accName} Business Portfolio`,
               verificationStatus: 'VERIFIED',
-            });
-          }
+            },
+            ...liveMongoList,
+          ];
         }
 
-        if (businessId && !list.some((b) => b.businessId === businessId || b.id === businessId)) {
-          list.unshift({
-            id: businessId,
-            businessId: businessId,
-            name: `Meta Business Portfolio`,
-            businessName: `Meta Business Portfolio`,
-            verificationStatus: 'VERIFIED',
-          });
-        }
-
-        return list;
+        return liveMongoList;
       })(),
       pages: (() => {
         const pgList = pgPages.map((p: any) => ({
