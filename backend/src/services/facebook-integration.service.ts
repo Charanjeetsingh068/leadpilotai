@@ -3,6 +3,7 @@ import { MetaGraphApiService, logMetaEvent } from './meta-graph-api.service';
 import { TokenManagementService, MultiTenantScope } from './token-management.service';
 import { MetaDiscoveryService } from './meta-discovery.service';
 import { MetaAccountModel } from '../models/MetaAccount.model';
+import { MetaTokenModel } from '../models/MetaToken.model';
 import { BusinessPortfolioModel } from '../models/BusinessPortfolio.model';
 import { FacebookPageModel } from '../models/FacebookPage.model';
 import { InstagramAccountModel } from '../models/InstagramAccount.model';
@@ -204,12 +205,16 @@ export class FacebookIntegrationService {
     const isConnected = Boolean(activeMongoAccount !== null || activePgAccount !== null || (accounts.length > 0 && accounts.some((a: any) => a.tokenStatus !== 'MANUALLY_DISCONNECTED')));
     const primaryAccount = activeMongoAccount || activePgAccount || accounts[0] || pgAccounts[0] || null;
 
-    if (isConnected && pages.length === 0 && pgPages.length === 0 && primaryAccount) {
+    if (isConnected && pages.length === 0 && pgPages.length === 0) {
       try {
-        const fbUserId = (primaryAccount as any)?.fbUserId || (primaryAccount as any)?.facebookAccountId || '';
-        const decryptedToken = await this.tokenService.getValidAccessToken(scope, fbUserId);
-        if (decryptedToken) {
-          await this.discoveryService.runAutomaticDiscovery(scope, decryptedToken, fbUserId);
+        const activeTokenDoc = await MetaTokenModel.findOne({ status: 'ACTIVE' }).sort({ createdAt: -1 });
+        let token = activeTokenDoc ? this.tokenService.decrypt(activeTokenDoc.encryptedToken, activeTokenDoc.iv, activeTokenDoc.authTag) : '';
+        if (!token && primaryAccount) {
+          const fbUserId = (primaryAccount as any)?.fbUserId || (primaryAccount as any)?.facebookAccountId || '';
+          token = (await this.tokenService.getValidAccessToken(scope, fbUserId)) || '';
+        }
+        if (token) {
+          await this.discoveryService.runAutomaticDiscovery(scope, token);
           pages = await FacebookPageModel.find({}).sort({ name: 1 });
           const pagesResRetry = await this.facebookRepo.findPagesByBusinessId(scope, 'ALL');
           pgPages = pagesResRetry || [];
@@ -443,15 +448,22 @@ export class FacebookIntegrationService {
   }
 
   async triggerManualSync(scope: MultiTenantScope) {
-    const metaAccount = await MetaAccountModel.findOne({ workspaceId: scope.workspaceId });
-    const fbUserId = metaAccount?.fbUserId || '';
-    const decryptedToken = await this.tokenService.getValidAccessToken(scope, fbUserId);
-    if (!decryptedToken) {
-      throw new Error('No valid encrypted Meta token found for workspace.');
+    let token = await this.tokenService.getValidAccessToken(scope, '');
+    if (!token) {
+      const activeTokenDoc = await MetaTokenModel.findOne({ status: 'ACTIVE' }).sort({ createdAt: -1 });
+      if (activeTokenDoc) {
+        token = this.tokenService.decrypt(activeTokenDoc.encryptedToken, activeTokenDoc.iv, activeTokenDoc.authTag);
+      }
+    }
+    if (!token) {
+      token = process.env.FACEBOOK_USER_ACCESS_TOKEN || process.env.FACEBOOK_ACCESS_TOKEN || '';
+    }
+    if (!token) {
+      throw new Error('No valid Meta access token found. Please click "Reconnect Meta Account".');
     }
 
     logMetaEvent('Manual Full Sync Triggered', { scope });
-    return this.discoveryService.runAutomaticDiscovery(scope, decryptedToken);
+    return this.discoveryService.runAutomaticDiscovery(scope, token);
   }
 
   async toggleFormActive(scope: MultiTenantScope, formId: string, isActive: boolean) {
