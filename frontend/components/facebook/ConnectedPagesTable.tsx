@@ -16,6 +16,7 @@ export const ConnectedPagesTable: React.FC<Props> = ({
   pages = [],
   totalPages = 0,
   onRefreshPages,
+  isRefreshing,
   activePageId,
   onSelectActivePage,
 }: Props) => {
