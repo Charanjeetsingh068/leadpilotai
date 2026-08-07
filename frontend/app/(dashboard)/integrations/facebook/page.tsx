@@ -47,6 +47,8 @@ export default function FacebookIntegrationPage() {
     isManualSyncing,
   } = useFacebookIntegration();
 
+  const [selectedPage, setSelectedPage] = React.useState<any>(null);
+
   const activeAccounts = data?.accounts?.filter((a: any) => a.tokenStatus !== 'Disconnected' && a.status !== 'Disconnected' && a.tokenStatus !== 'REVOKED') || [];
   const hasAccounts = Boolean(activeAccounts.length > 0);
   const isConnected = integrationStatus === 'CONNECTED' || hasAccounts || data?.connection?.isConnected === true;
@@ -150,13 +152,15 @@ export default function FacebookIntegrationPage() {
                 totalPages={data?.totalPages || 0}
                 onRefreshPages={() => syncPages(undefined)}
                 isRefreshing={isSyncingPages}
+                activePageId={selectedPage?.pageId || selectedPage?.id}
+                onSelectActivePage={(page) => setSelectedPage(page)}
               />
             </div>
 
             <div className="fb-grid-three-col">
               <InstagramAccountsCard accounts={data?.instagramAccounts || []} />
               <WhatsAppBusinessCard accounts={data?.whatsAppAccounts || []} />
-              <AdAccountsCard accounts={data?.adAccounts || []} />
+              <AdAccountsCard accounts={data?.adAccounts || []} selectedPage={selectedPage} />
             </div>
 
             <LeadFormsTable

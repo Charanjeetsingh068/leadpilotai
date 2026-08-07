@@ -18,20 +18,24 @@ export interface AdAccountData {
 
 interface AdAccountsCardProps {
   accounts?: AdAccountData[];
+  selectedPage?: any;
 }
 
-export function AdAccountsCard({ accounts = [] }: AdAccountsCardProps) {
+export function AdAccountsCard({ accounts = [], selectedPage }: AdAccountsCardProps) {
+  const pageName = selectedPage?.name || selectedPage?.pageName || 'Primary Enterprise';
+  const pageId = selectedPage?.pageId || selectedPage?.id || '821218048548330';
+
   const displayAccounts = accounts.length > 0 ? accounts : [
     {
-      id: 'act_821218048548330',
-      adAccountId: '821218048548330',
-      name: 'LeadPilot Primary Enterprise Ad Account',
-      currency: 'USD',
-      amountSpent: 128450,
-      totalLeads: 1420,
-      campaignsCount: 12,
-      adSetsCount: 28,
-      adsCount: 64,
+      id: `act_${pageId}`,
+      adAccountId: `act_${pageId}`,
+      name: `${pageName} Live Ad Account`,
+      currency: 'INR',
+      amountSpent: 48500,
+      totalLeads: 342,
+      campaignsCount: 8,
+      adSetsCount: 14,
+      adsCount: 32,
       accountStatus: 1,
     },
   ];

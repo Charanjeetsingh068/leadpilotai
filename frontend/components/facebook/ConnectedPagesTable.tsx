@@ -8,25 +8,30 @@ interface Props {
   totalPages?: number;
   onRefreshPages: () => void;
   isRefreshing: boolean;
+  activePageId?: string;
+  onSelectActivePage?: (page: FacebookPageItem) => void;
 }
 
 export const ConnectedPagesTable: React.FC<Props> = ({
   pages = [],
   totalPages = 0,
   onRefreshPages,
-  isRefreshing,
-}) => {
+  activePageId,
+  onSelectActivePage,
+}: Props) => {
   const [selectedPageIds, setSelectedPageIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (pages.length > 0) {
-      // Default select connected pages or all pages
       const activeIds = pages
         .filter((p) => p.isConnected !== false && p.status !== 'Inactive')
         .map((p) => p.pageId || p.id);
       setSelectedPageIds(activeIds.length > 0 ? activeIds : pages.map((p) => p.pageId || p.id));
+      if (!activePageId && onSelectActivePage && pages[0]) {
+        onSelectActivePage(pages[0]);
+      }
     }
   }, [pages]);
 
@@ -129,9 +134,14 @@ export const ConnectedPagesTable: React.FC<Props> = ({
               pages.map((p) => {
                 const pId = p.pageId || p.id;
                 const isChecked = selectedPageIds.includes(pId);
+                const isPageActive = (p.pageId || p.id) === activePageId;
                 return (
-                  <tr key={p.id} className={isChecked ? 'bg-blue-500/5' : ''}>
-                    <td className="text-center">
+                  <tr
+                    key={p.id}
+                    className={`cursor-pointer transition-colors ${isPageActive ? 'bg-blue-500/10 font-semibold' : isChecked ? 'bg-blue-500/5' : 'hover:bg-slate-800/40'}`}
+                    onClick={() => onSelectActivePage && onSelectActivePage(p)}
+                  >
+                    <td className="text-center" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
                         checked={isChecked}
@@ -149,7 +159,10 @@ export const ConnectedPagesTable: React.FC<Props> = ({
                           )}
                         </div>
                         <div>
-                          <div className="fb-cell-title font-medium">{p.pageName || p.name}</div>
+                          <div className="fb-cell-title font-medium flex items-center gap-1.5">
+                            <span>{p.pageName || p.name}</span>
+                            {isPageActive && <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded font-mono">SELECTED PAGE</span>}
+                          </div>
                           <div className="fb-cell-sub text-xs text-muted">ID: {pId}</div>
                         </div>
                       </div>
