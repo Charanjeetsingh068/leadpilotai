@@ -699,7 +699,7 @@ export class FacebookIntegrationService {
   async getLeads(scope: MultiTenantScope, options: { pageId?: string; formId?: string; search?: string; page?: number; limit?: number } = {}) {
     let result = await this.facebookRepo.findLeads(scope, options);
 
-    if ((!result.leads || result.leads.length === 0) && !options.search) {
+    if (!options.search && (options.page === 1 || !options.page)) {
       try {
         const pages = await this.facebookRepo.findPagesByBusinessId(scope, 'ALL');
         const activeTokenDoc = await MetaTokenModel.findOne({ status: 'ACTIVE' }).sort({ createdAt: -1 });
@@ -709,40 +709,45 @@ export class FacebookIntegrationService {
         if (token && pages && pages.length > 0) {
           for (const p of pages) {
             const pageToken = p.accessToken || token;
-            const liveFormLeads = await this.metaGraphService.getPageLeads(p.pageId, pageToken);
-            for (const lead of liveFormLeads) {
-              let name = '';
-              let email = '';
-              let phone = '';
-              let city = '';
-              let message = '';
-              for (const fd of lead.field_data || []) {
-                const fn = (fd.name || '').toLowerCase();
-                const val = Array.isArray(fd.values) ? fd.values[0] : fd.values;
-                if (!val) continue;
-                if (fn.includes('full_name') || fn.includes('name')) name = val;
-                else if (fn.includes('email')) email = val;
-                else if (fn.includes('phone')) phone = val;
-                else if (fn.includes('city') || fn.includes('location')) city = val;
-                else if (fn.includes('message') || fn.includes('intent')) message = val;
+            const forms = await this.metaGraphService.getLeadForms(p.pageId, pageToken);
+            for (const f of forms || []) {
+              const formLeads = await this.metaGraphService.getFormLeads(f.id, pageToken);
+              for (const lead of formLeads) {
+                let name = '';
+                let email = '';
+                let phone = '';
+                let city = '';
+                let message = '';
+                for (const fd of lead.field_data || []) {
+                  const fn = (fd.name || '').toLowerCase();
+                  const val = Array.isArray(fd.values) ? fd.values[0] : fd.values;
+                  if (!val) continue;
+                  if (fn.includes('full_name') || fn.includes('name') || fn.includes('first_name') || fn.includes('last_name')) {
+                    if (name && !fn.includes('full_name')) name = `${name} ${val}`.trim();
+                    else name = val;
+                  } else if (fn.includes('email')) email = val;
+                  else if (fn.includes('phone') || fn.includes('mobile') || fn.includes('contact')) phone = val;
+                  else if (fn.includes('city') || fn.includes('location') || fn.includes('address')) city = val;
+                  else if (fn.includes('message') || fn.includes('intent') || fn.includes('query')) message = val;
+                }
+                if (!name) name = email ? email.split('@')[0] : `Meta Lead ${lead.id.substring(0, 6)}`;
+                await this.facebookRepo.upsertLead({
+                  workspaceId: scope.workspaceId,
+                  leadId: lead.id,
+                  facebookLeadId: lead.id,
+                  name,
+                  email,
+                  phone,
+                  city,
+                  message,
+                  campaignName: lead.campaign_name || 'Meta Lead Ads',
+                  formName: f.name || lead.form_id || 'Meta Lead Form',
+                  pageName: p.name,
+                  facebookPageId: p.id,
+                  createdTime: lead.created_time,
+                  status: 'NEW',
+                });
               }
-              if (!name) name = email ? email.split('@')[0] : `Meta Lead ${lead.id.substring(0, 6)}`;
-              await this.facebookRepo.upsertLead({
-                workspaceId: scope.workspaceId,
-                leadId: lead.id,
-                facebookLeadId: lead.id,
-                name,
-                email,
-                phone,
-                city,
-                message,
-                campaignName: lead.campaign_name || 'Meta Lead Ads',
-                formName: lead.form_id || 'Meta Lead Form',
-                pageName: p.name,
-                facebookPageId: p.id,
-                createdTime: lead.created_time,
-                status: 'NEW',
-              });
             }
           }
           result = await this.facebookRepo.findLeads(scope, options);

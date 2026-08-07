@@ -61,7 +61,7 @@ export default function LeadInboxPage() {
         assignedSalesUser: filters.assignedSalesUser,
         page: pagination.page,
         limit: pagination.limit,
-      });
+      }, isSilent);
 
       if (Array.isArray(data)) {
         setLeads(data);
