@@ -189,16 +189,28 @@ export class FacebookIntegrationService {
       }
     }
 
-    const accountsRes = await this.facebookRepo.findAccounts(scope, {});
-    const pgAccounts = accountsRes.accounts || [];
-    const pgBusinesses = await this.facebookRepo.findBusinesses(scope);
-    const pagesRes = await this.facebookRepo.findPagesByBusinessId(scope, 'ALL');
-    let pgPages = pagesRes || [];
-    const formsRes = await this.facebookRepo.findForms(scope, {});
-    const pgForms = formsRes.forms || [];
-    const pgLeads = await this.facebookRepo.findLeads(scope, {});
-    const pgInstagram = await this.facebookRepo.findInstagramAccounts(scope, {});
-    const pgWhatsApp = await this.facebookRepo.findWhatsAppAccounts(scope, {});
+    let pgAccounts: any[] = [];
+    let pgBusinesses: any[] = [];
+    let pgPages: any[] = [];
+    let pgForms: any[] = [];
+    let pgLeads: any = { leads: [] };
+    let pgInstagram: any[] = [];
+    let pgWhatsApp: any[] = [];
+
+    try {
+      const accountsRes = await this.facebookRepo.findAccounts(scope, {});
+      pgAccounts = accountsRes.accounts || [];
+      pgBusinesses = await this.facebookRepo.findBusinesses(scope);
+      const pagesRes = await this.facebookRepo.findPagesByBusinessId(scope, 'ALL');
+      pgPages = pagesRes || [];
+      const formsRes = await this.facebookRepo.findForms(scope, {});
+      pgForms = formsRes.forms || [];
+      pgLeads = await this.facebookRepo.findLeads(scope, {});
+      pgInstagram = await this.facebookRepo.findInstagramAccounts(scope, {});
+      pgWhatsApp = await this.facebookRepo.findWhatsAppAccounts(scope, {});
+    } catch (pgErr) {
+      logMetaEvent('PostgreSQL Dashboard Query Warning', { error: (pgErr as Error).message });
+    }
 
     const activePgAccount = pgAccounts.find((a: any) => a.tokenStatus !== 'MANUALLY_DISCONNECTED') || null;
     const activeMongoAccount = accounts.find((a: any) => a.tokenStatus !== 'MANUALLY_DISCONNECTED') || null;
