@@ -49,8 +49,8 @@ export default function LeadInboxPage() {
   const [isAssignModalOpen, setIsAssignModalOpen] = useState<boolean>(false);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState<boolean>(false);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     setHasError(false);
     try {
       const data = await fetchLeads({
@@ -65,26 +65,19 @@ export default function LeadInboxPage() {
 
       if (Array.isArray(data)) {
         setLeads(data);
-        if (data.length > 0) {
-          if (!activeLead || !data.find((l) => l.id === activeLead.id)) {
-            setActiveLead(data[0]);
-          }
-        } else {
-          setActiveLead(null);
-        }
       }
     } catch {
       setHasError(true);
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
-  }, [fetchLeads, filters, pagination.page, pagination.limit, setLeads, setActiveLead, activeLead, setLoading]);
+  }, [fetchLeads, filters, pagination.page, pagination.limit, setLeads, setLoading]);
 
   useEffect(() => {
-    loadData();
+    loadData(false);
     const timer = setInterval(() => {
-      loadData();
-    }, 2000);
+      loadData(true);
+    }, 4000);
     return () => clearInterval(timer);
   }, [loadData]);
 
