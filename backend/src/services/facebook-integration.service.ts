@@ -225,11 +225,57 @@ export class FacebookIntegrationService {
           const fbUserId = (primaryAccount as any)?.fbUserId || (primaryAccount as any)?.facebookAccountId || '';
           token = (await this.tokenService.getValidAccessToken(scope, fbUserId)) || '';
         }
+        if (!token) {
+          token = process.env.FACEBOOK_USER_ACCESS_TOKEN || process.env.FACEBOOK_ACCESS_TOKEN || '';
+        }
+
         if (token) {
-          await this.discoveryService.runAutomaticDiscovery(scope, token);
-          pages = await FacebookPageModel.find({}).sort({ name: 1 });
-          const pagesResRetry = await this.facebookRepo.findPagesByBusinessId(scope, 'ALL');
-          pgPages = pagesResRetry || [];
+          const livePages = await this.metaGraphService.getPages(token);
+          if (livePages && livePages.length > 0) {
+            for (const lp of livePages) {
+              const fCount = Number(lp.followers_count ?? lp.fan_count ?? 0);
+              await FacebookPageModel.updateOne(
+                { pageId: lp.id },
+                {
+                  $set: {
+                    workspaceId: scope.workspaceId,
+                    companyId: scope.companyId,
+                    name: lp.name,
+                    category: lp.category || 'Page',
+                    fanCount: fCount,
+                    pictureUrl: lp.picture?.data?.url || '',
+                    isConnected: true,
+                    status: 'Active',
+                    webhookStatus: 'SUBSCRIBED',
+                  },
+                },
+                { upsert: true }
+              );
+              try {
+                await this.facebookRepo.upsertPage({
+                  companyId: scope.companyId,
+                  workspaceId: scope.workspaceId,
+                  facebookAccountId: (primaryAccount as any)?.fbUserId || 'system_oauth_account',
+                  pageId: lp.id,
+                  name: lp.name,
+                  pageName: lp.name,
+                  category: lp.category || 'Page',
+                  followersCount: fCount,
+                  followers: fCount,
+                  accessToken: lp.access_token || token,
+                  connected: true,
+                });
+              } catch (pgErr) {}
+            }
+            pages = await FacebookPageModel.find({}).sort({ name: 1 });
+            const pagesResRetry = await this.facebookRepo.findPagesByBusinessId(scope, 'ALL');
+            pgPages = pagesResRetry || [];
+          } else {
+            await this.discoveryService.runAutomaticDiscovery(scope, token);
+            pages = await FacebookPageModel.find({}).sort({ name: 1 });
+            const pagesResRetry = await this.facebookRepo.findPagesByBusinessId(scope, 'ALL');
+            pgPages = pagesResRetry || [];
+          }
         }
       } catch (err: any) {
         logMetaEvent('Auto discovery during dashboard load warning', { error: err.message });
