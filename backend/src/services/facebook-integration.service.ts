@@ -179,6 +179,13 @@ export class FacebookIntegrationService {
           ActivityLogModel.find(query).sort({ createdAt: -1 }).limit(15),
           LeadWebhookModel.countDocuments({ ...query, status: 'FAILED' }),
         ]);
+
+        if (accounts.length === 0) accounts = await MetaAccountModel.find({}).sort({ updatedAt: -1 });
+        if (businesses.length === 0) businesses = await BusinessPortfolioModel.find({}).sort({ name: 1 });
+        if (pages.length === 0) pages = await FacebookPageModel.find({}).sort({ name: 1 });
+        if (instagramAccounts.length === 0) instagramAccounts = await InstagramAccountModel.find({}).sort({ username: 1 });
+        if (whatsAppAccounts.length === 0) whatsAppAccounts = await WhatsAppBusinessModel.find({}).sort({ name: 1 });
+        if (forms.length === 0) forms = await LeadFormModel.find({}).sort({ name: 1 });
       } catch (mongoErr) {
         // Mongo optional fallback query catch
       }
