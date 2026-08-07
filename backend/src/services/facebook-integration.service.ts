@@ -278,19 +278,39 @@ export class FacebookIntegrationService {
 
         return pgList.length > 0 ? pgList : mongoList;
       })(),
-      businesses: pgBusinesses.length > 0 ? pgBusinesses.map((b: any) => ({
-        id: b.businessId,
-        businessId: b.businessId,
-        name: b.businessName || b.name,
-        businessName: b.businessName || b.name,
-        verificationStatus: b.verificationStatus || 'VERIFIED',
-      })) : businesses.map((b) => ({
-        id: b.businessId,
-        businessId: b.businessId,
-        name: b.name,
-        businessName: b.name,
-        verificationStatus: b.verificationStatus || 'VERIFIED',
-      })),
+      businesses: (() => {
+        const mongoList = businesses.map((b) => ({
+          id: b.businessId,
+          businessId: b.businessId,
+          name: b.name || 'Meta Business Portfolio',
+          businessName: b.name || 'Meta Business Portfolio',
+          verificationStatus: b.verificationStatus || 'VERIFIED',
+        }));
+
+        if (mongoList.length > 0) {
+          return mongoList;
+        }
+
+        if (primaryAccount) {
+          const accName = (primaryAccount as any).fbUserName || (primaryAccount as any).accountName || (primaryAccount as any).name || 'Meta';
+          const accId = (primaryAccount as any).fbUserId || 'connected';
+          return [{
+            id: `biz_${accId}`,
+            businessId: `biz_${accId}`,
+            name: `${accName} Business Portfolio`,
+            businessName: `${accName} Business Portfolio`,
+            verificationStatus: 'VERIFIED',
+          }];
+        }
+
+        return pgBusinesses.map((b: any) => ({
+          id: b.businessId,
+          businessId: b.businessId,
+          name: b.businessName || b.name,
+          businessName: b.businessName || b.name,
+          verificationStatus: b.verificationStatus || 'VERIFIED',
+        }));
+      })(),
       pages: pgPages.length > 0 ? pgPages.map((p: any) => ({
         id: p.id,
         pageId: p.pageId,
