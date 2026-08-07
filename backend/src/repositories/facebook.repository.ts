@@ -429,15 +429,8 @@ export class FacebookRepository {
     });
 
     if (pages.length === 0) {
-      const fallbackWhere: any = {};
-      if (businessId && businessId !== 'ALL') {
-        const biz = await prisma.facebookBusiness.findFirst({
-          where: { OR: [{ businessId }, { id: isUuid(businessId) ? businessId : undefined }] },
-        });
-        if (biz) fallbackWhere.facebookBusinessId = biz.id;
-      }
       pages = await prisma.facebookPage.findMany({
-        where: fallbackWhere,
+        where: {},
         include: { forms: true, assignedAiAgent: true },
         orderBy: { createdAt: 'desc' },
       });
