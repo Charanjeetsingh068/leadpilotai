@@ -21,6 +21,7 @@ const CORE_PERMISSIONS = [
   'pages_show_list',
   'pages_read_engagement',
   'pages_manage_metadata',
+  'pages_manage_ads',
   'leads_retrieval',
 ];
 
@@ -709,45 +710,53 @@ export class FacebookIntegrationService {
         if (token && pages && pages.length > 0) {
           for (const p of pages) {
             const pageToken = p.accessToken || token;
+            const pageDirectLeads = await this.metaGraphService.getPageLeads(p.pageId, pageToken);
             const forms = await this.metaGraphService.getLeadForms(p.pageId, pageToken);
+            let formLeads: any[] = [];
             for (const f of forms || []) {
-              const formLeads = await this.metaGraphService.getFormLeads(f.id, pageToken);
-              for (const lead of formLeads) {
-                let name = '';
-                let email = '';
-                let phone = '';
-                let city = '';
-                let message = '';
-                for (const fd of lead.field_data || []) {
-                  const fn = (fd.name || '').toLowerCase();
-                  const val = Array.isArray(fd.values) ? fd.values[0] : fd.values;
-                  if (!val) continue;
-                  if (fn.includes('full_name') || fn.includes('name') || fn.includes('first_name') || fn.includes('last_name')) {
-                    if (name && !fn.includes('full_name')) name = `${name} ${val}`.trim();
-                    else name = val;
-                  } else if (fn.includes('email')) email = val;
-                  else if (fn.includes('phone') || fn.includes('mobile') || fn.includes('contact')) phone = val;
-                  else if (fn.includes('city') || fn.includes('location') || fn.includes('address')) city = val;
-                  else if (fn.includes('message') || fn.includes('intent') || fn.includes('query')) message = val;
-                }
-                if (!name) name = email ? email.split('@')[0] : `Meta Lead ${lead.id.substring(0, 6)}`;
-                await this.facebookRepo.upsertLead({
-                  workspaceId: scope.workspaceId,
-                  leadId: lead.id,
-                  facebookLeadId: lead.id,
-                  name,
-                  email,
-                  phone,
-                  city,
-                  message,
-                  campaignName: lead.campaign_name || 'Meta Lead Ads',
-                  formName: f.name || lead.form_id || 'Meta Lead Form',
-                  pageName: p.name,
-                  facebookPageId: p.id,
-                  createdTime: lead.created_time,
-                  status: 'NEW',
-                });
+              const fls = await this.metaGraphService.getFormLeads(f.id, pageToken);
+              formLeads = formLeads.concat(fls);
+            }
+
+            const combinedLiveLeads = [...pageDirectLeads, ...formLeads].filter(
+              (v, i, a) => a.findIndex((t) => t.id === v.id) === i
+            );
+
+            for (const lead of combinedLiveLeads) {
+              let name = '';
+              let email = '';
+              let phone = '';
+              let city = '';
+              let message = '';
+              for (const fd of lead.field_data || []) {
+                const fn = (fd.name || '').toLowerCase();
+                const val = Array.isArray(fd.values) ? fd.values[0] : fd.values;
+                if (!val) continue;
+                if (fn.includes('full_name') || fn.includes('name') || fn.includes('first_name') || fn.includes('last_name')) {
+                  if (name && !fn.includes('full_name')) name = `${name} ${val}`.trim();
+                  else name = val;
+                } else if (fn.includes('email')) email = val;
+                else if (fn.includes('phone') || fn.includes('mobile') || fn.includes('contact')) phone = val;
+                else if (fn.includes('city') || fn.includes('location') || fn.includes('address')) city = val;
+                else if (fn.includes('message') || fn.includes('intent') || fn.includes('query')) message = val;
               }
+              if (!name) name = email ? email.split('@')[0] : `Meta Lead ${lead.id.substring(0, 6)}`;
+              await this.facebookRepo.upsertLead({
+                workspaceId: scope.workspaceId,
+                leadId: lead.id,
+                facebookLeadId: lead.id,
+                name,
+                email,
+                phone,
+                city,
+                message,
+                campaignName: lead.campaign_name || 'Meta Lead Ads',
+                formName: lead.form_id || 'Meta Lead Form',
+                pageName: p.name,
+                facebookPageId: p.id,
+                createdTime: lead.created_time,
+                status: 'NEW',
+              });
             }
           }
           result = await this.facebookRepo.findLeads(scope, options);
