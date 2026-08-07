@@ -167,7 +167,7 @@ export class MetaGraphApiService {
 
   async getPages(accessToken: string) {
     try {
-      let url = `/me/accounts?fields=id,name,category,access_token,fan_count,picture,tasks&limit=100&access_token=${encodeURIComponent(accessToken)}`;
+      let url = `/me/accounts?fields=id,name,category,access_token,fan_count,followers_count,picture,tasks&limit=100&access_token=${encodeURIComponent(accessToken)}`;
       const allPages: any[] = [];
       const pageIdSet = new Set<string>();
 
@@ -219,7 +219,7 @@ export class MetaGraphApiService {
 
   async getOwnedPages(businessId: string = this.primaryBusinessId, accessToken: string) {
     try {
-      let url = `/${businessId}/owned_pages?fields=id,name,category,access_token,fan_count,picture,tasks&limit=100&access_token=${encodeURIComponent(accessToken)}`;
+      let url = `/${businessId}/owned_pages?fields=id,name,category,access_token,fan_count,followers_count,picture,tasks&limit=100&access_token=${encodeURIComponent(accessToken)}`;
       const allPages: any[] = [];
       while (url) {
         try {

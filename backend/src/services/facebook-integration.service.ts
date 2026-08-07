@@ -204,13 +204,38 @@ export class FacebookIntegrationService {
     const isConnected = Boolean(activeMongoAccount !== null || activePgAccount !== null || (accounts.length > 0 && accounts.some((a: any) => a.tokenStatus !== 'MANUALLY_DISCONNECTED')));
     const primaryAccount = activeMongoAccount || activePgAccount || accounts[0] || pgAccounts[0] || null;
 
-    if (isConnected && pages.length === 0 && pgPages.length === 0 && primaryAccount) {
+    if (isConnected && primaryAccount) {
       try {
         const fbUserId = (primaryAccount as any)?.fbUserId || (primaryAccount as any)?.facebookAccountId || '';
         const decryptedToken = await this.tokenService.getValidAccessToken(scope, fbUserId);
         if (decryptedToken) {
-          await this.discoveryService.runAutomaticDiscovery(scope, decryptedToken);
-          pages = await FacebookPageModel.find({}).sort({ name: 1 });
+          const liveGraphPages = await this.metaGraphService.getPages(decryptedToken);
+          if (liveGraphPages && liveGraphPages.length > 0) {
+            for (const gp of liveGraphPages) {
+              const fCount = Number(gp.followers_count ?? gp.fan_count ?? 0);
+              await FacebookPageModel.updateOne(
+                { pageId: gp.id },
+                { $set: { fanCount: fCount, category: gp.category || 'Page', name: gp.name } },
+                { upsert: true }
+              );
+              try {
+                await this.facebookRepo.upsertPage({
+                  companyId: scope.companyId,
+                  workspaceId: scope.workspaceId,
+                  facebookAccountId: fbUserId,
+                  pageId: gp.id,
+                  name: gp.name,
+                  pageName: gp.name,
+                  category: gp.category || 'Page',
+                  followersCount: fCount,
+                  followers: fCount,
+                  accessToken: decryptedToken,
+                  connected: true,
+                });
+              } catch (pgErr) {}
+            }
+            pages = await FacebookPageModel.find({}).sort({ name: 1 });
+          }
         }
       } catch (err: any) {
         logMetaEvent('Auto discovery during dashboard load warning', { error: err.message });
