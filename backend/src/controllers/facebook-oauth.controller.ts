@@ -60,10 +60,7 @@ export class FacebookOAuthController {
       ];
 
       // Facebook Login for Business Auth URL using Config ID Flow & Graph API v23.0
-      // NOTE: Per Meta specification, when config_id is present, scope parameter MUST NOT be appended.
-      const oauthUrl = configId
-        ? `https://www.facebook.com/${graphVersion}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&config_id=${configId}&response_type=code&state=${state}&auth_type=rerequest`
-        : `https://www.facebook.com/${graphVersion}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&state=${state}&auth_type=rerequest&scope=${VALID_META_SCOPES.join(',')}`;
+      const oauthUrl = `https://www.facebook.com/${graphVersion}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&state=${state}&auth_type=rerequest&scope=${VALID_META_SCOPES.join(',')}`;
 
       const fallbackOauthUrl = `https://www.facebook.com/${graphVersion}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&state=${state}&auth_type=rerequest&scope=${VALID_META_SCOPES.join(',')}`;
 

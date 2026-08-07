@@ -140,9 +140,6 @@ export const facebookIntegrationService = {
     }
 
     let oauthUrl = data.oauthUrl || '';
-    if (oauthUrl.includes('config_id=') && oauthUrl.includes('&scope=')) {
-      oauthUrl = oauthUrl.replace(/&scope=[^&]*/, '');
-    }
 
     return {
       ...data,
