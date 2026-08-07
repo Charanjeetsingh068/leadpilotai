@@ -47,6 +47,22 @@ const getInitials = (name: string) => {
   return name.slice(0, 2).toUpperCase();
 };
 
+const formatLeadTime = (dateStr?: string | Date) => {
+  if (!dateStr) return 'Just now';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return 'Just now';
+
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+
+  if (diffMins < 1) return 'Just now (< 2s)';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+};
+
 export const LeadInboxTable: React.FC<LeadInboxTableProps> = ({
   leads,
   selectedLeadId,
@@ -197,7 +213,7 @@ export const LeadInboxTable: React.FC<LeadInboxTableProps> = ({
                         <span className="lead-phone-text">{lead.phone}</span>
                       </td>
                       <td>
-                        <span className="lead-project-text">{lead.project || 'General'}</span>
+                        <span className="lead-project-text">{(lead as any).pageName || lead.project || 'Meta Facebook Page'}</span>
                       </td>
                       <td>
                         <SourceBadge source={lead.source} />
@@ -218,7 +234,7 @@ export const LeadInboxTable: React.FC<LeadInboxTableProps> = ({
                       </td>
                       <td>
                         <span className="text-muted lead-created-text">
-                          {lead.createdAt ? '2m ago' : '5m ago'}
+                          {formatLeadTime((lead as any).createdTime || lead.createdAt)}
                         </span>
                       </td>
                       <td className="text-right" onClick={(e) => e.stopPropagation()}>

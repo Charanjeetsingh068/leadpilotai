@@ -82,6 +82,10 @@ export default function LeadInboxPage() {
 
   useEffect(() => {
     loadData();
+    const timer = setInterval(() => {
+      loadData();
+    }, 2000);
+    return () => clearInterval(timer);
   }, [loadData]);
 
   const handleSelectLead = (lead: Lead) => {

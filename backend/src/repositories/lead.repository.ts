@@ -171,7 +171,7 @@ export class LeadRepository {
       prisma.lead.count({ where }),
     ]);
 
-    const formattedLeads = leads.map((lead) => ({
+    const formattedLeads = leads.map((lead: any) => ({
       _id: lead.id,
       id: lead.id,
       name: lead.name,
@@ -179,7 +179,9 @@ export class LeadRepository {
       email: lead.email,
       source: lead.sourceName || 'MANUAL_ENTRY',
       campaign: lead.campaign,
-      project: lead.project,
+      project: lead.pageName || lead.project || 'Meta Performance Lead Gen',
+      pageName: lead.pageName || lead.project || 'Meta Facebook Page',
+      formName: lead.formName || lead.campaign || 'Meta Lead Form',
       industry: lead.industry,
       budget: lead.budget,
       timeline: lead.timeline,
@@ -188,6 +190,7 @@ export class LeadRepository {
       qualificationScore: lead.qualificationScore,
       assignedSalesUser: lead.assignedSalesUser ? { id: lead.assignedSalesUser.id, name: lead.assignedSalesUser.name, email: lead.assignedSalesUser.email } : null,
       organizationId: lead.workspaceId || 'org_leadpilot_demo',
+      createdTime: lead.createdTime || lead.createdAt,
       createdAt: lead.createdAt,
       updatedAt: lead.updatedAt,
     }));
