@@ -329,7 +329,7 @@ export class FacebookIntegrationService {
           pageId: p.pageId,
           name: p.name || p.pageName,
           category: p.category || 'Page',
-          followersCount: p.followersCount ?? p.followers ?? p.fanCount ?? 0,
+          followersCount: p.followersCount ?? p.followers ?? p.fanCount ?? p.fan_count ?? 0,
           leadFormsCount: (forms || []).filter((f: any) => f.pageId === p.pageId).length,
           pictureUrl: p.pictureUrl || '',
           isConnected: true,
@@ -337,12 +337,12 @@ export class FacebookIntegrationService {
           webhookStatus: 'Active',
         }));
 
-        const mongoList = pages.map((p) => ({
+        const mongoList = pages.map((p: any) => ({
           id: p._id ? p._id.toString() : p.id,
           pageId: p.pageId,
           name: p.name,
           category: p.category || 'Page',
-          followersCount: p.followersCount ?? p.followers ?? 0,
+          followersCount: p.fanCount ?? p.followersCount ?? p.followers ?? 0,
           leadFormsCount: (forms || []).filter((f: any) => f.pageId === p.pageId).length,
           pictureUrl: p.pictureUrl || '',
           isConnected: true,
