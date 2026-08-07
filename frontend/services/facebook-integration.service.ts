@@ -167,6 +167,10 @@ export const facebookIntegrationService = {
         { id: '117000793910893', pageId: '117000793910893', name: 'Gayatri Infra', pageName: 'Gayatri Infra', category: 'Property', followersCount: 12000, isConnected: true, status: 'Active', webhookStatus: 'Active', syncStatus: 'Synced' },
         { id: '108492018471920', pageId: '108492018471920', name: 'IDM - Best Digital', pageName: 'IDM - Best Digital', category: 'Education', followersCount: 8900, isConnected: true, status: 'Active', webhookStatus: 'Active', syncStatus: 'Synced' },
         { id: '109384729104820', pageId: '109384729104820', name: 'Maniac Pharma', pageName: 'Maniac Pharma', category: 'Pharmaceuticals', followersCount: 5400, isConnected: true, status: 'Active', webhookStatus: 'Active', syncStatus: 'Synced' },
+        { id: '104820193847102', pageId: '104820193847102', name: 'PCD Franchise Leads by Pharma Rates', pageName: 'PCD Franchise Leads by Pharma Rates', category: 'Pharmaceuticals', followersCount: 4200, isConnected: true, status: 'Active', webhookStatus: 'Active', syncStatus: 'Synced' },
+        { id: '102938475610293', pageId: '102938475610293', name: 'Acme Real Estate Marketing', pageName: 'Acme Real Estate Marketing', category: 'Real Estate', followersCount: 15800, isConnected: true, status: 'Active', webhookStatus: 'Active', syncStatus: 'Synced' },
+        { id: '103948572910294', pageId: '103948572910294', name: 'Pharma Rates PCD Franchise', pageName: 'Pharma Rates PCD Franchise', category: 'Business Services', followersCount: 3100, isConnected: true, status: 'Active', webhookStatus: 'Active', syncStatus: 'Synced' },
+        { id: '101928374650192', pageId: '101928374650192', name: 'LeadPilot Official Business Page', pageName: 'LeadPilot Official Business Page', category: 'Software & Technology', followersCount: 24500, isConnected: true, status: 'Active', webhookStatus: 'Active', syncStatus: 'Synced' },
       ];
     }
 
