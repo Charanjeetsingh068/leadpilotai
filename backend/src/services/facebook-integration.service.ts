@@ -204,45 +204,16 @@ export class FacebookIntegrationService {
     const isConnected = Boolean(activeMongoAccount !== null || activePgAccount !== null || (accounts.length > 0 && accounts.some((a: any) => a.tokenStatus !== 'MANUALLY_DISCONNECTED')));
     const primaryAccount = activeMongoAccount || activePgAccount || accounts[0] || pgAccounts[0] || null;
 
-    if (isConnected && pages.length === 0 && pgPages.length === 0) {
+    if (isConnected && pages.length === 0 && pgPages.length === 0 && primaryAccount) {
       try {
-        const fbUserId = (primaryAccount as any)?.fbUserId || (primaryAccount as any)?.facebookAccountId || '28149461204738597';
-        const realMetaPages = [
-          { pageId: '730195300500995', name: '100square', category: 'Property service', fanCount: 32 },
-          { pageId: '202005495526505', name: 'Begumpura Team - Ambala', category: 'Non-governmental organisation (NGO)', fanCount: 653 },
-          { pageId: '107603092654737', name: 'Entec Media-Digital Marketing Agency', category: 'Internet marketing service', fanCount: 104 },
-          { pageId: '117000793910893', name: 'Gayatri Infra', category: 'Property', fanCount: 12000 },
-          { pageId: '108492018471920', name: 'IDM - Best Digital Marketing Institute in Ambala', category: 'Education', fanCount: 17 },
-          { pageId: '1175924892278602', name: 'Infushion Equipment Inc.', category: 'Product/service', fanCount: 14 },
-          { pageId: '109384729104820', name: 'Maniac Pharma', category: 'Pharmaceuticals', fanCount: 5400 },
-        ];
-
-        for (const rp of realMetaPages) {
-          await FacebookPageModel.updateOne(
-            { pageId: rp.pageId },
-            { $set: { workspaceId: scope.workspaceId, companyId: scope.companyId, name: rp.name, category: rp.category, fanCount: rp.fanCount, isConnected: true, status: 'Active', webhookStatus: 'SUBSCRIBED' } },
-            { upsert: true }
-          );
-          try {
-            await this.facebookRepo.upsertPage({
-              companyId: scope.companyId,
-              workspaceId: scope.workspaceId,
-              facebookAccountId: fbUserId,
-              pageId: rp.pageId,
-              name: rp.name,
-              pageName: rp.name,
-              category: rp.category,
-              followersCount: rp.fanCount,
-              followers: rp.fanCount,
-              accessToken: 'token_system_connected',
-              connected: true,
-            });
-          } catch (pgErr) {}
+        const fbUserId = (primaryAccount as any)?.fbUserId || (primaryAccount as any)?.facebookAccountId || '';
+        const decryptedToken = await this.tokenService.getValidAccessToken(scope, fbUserId);
+        if (decryptedToken) {
+          await this.discoveryService.runAutomaticDiscovery(scope, decryptedToken, fbUserId);
+          pages = await FacebookPageModel.find({}).sort({ name: 1 });
+          const pagesResRetry = await this.facebookRepo.findPagesByBusinessId(scope, 'ALL');
+          pgPages = pagesResRetry || [];
         }
-
-        pages = await FacebookPageModel.find({}).sort({ name: 1 });
-        const pagesResRetry = await this.facebookRepo.findPagesByBusinessId(scope, 'ALL');
-        pgPages = pagesResRetry || [];
       } catch (err: any) {
         logMetaEvent('Auto discovery during dashboard load warning', { error: err.message });
       }
