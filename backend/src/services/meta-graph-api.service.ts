@@ -233,7 +233,8 @@ export class MetaGraphApiService {
 
   async getOwnedPages(businessId: string = this.primaryBusinessId, accessToken: string) {
     try {
-      let url = `/${businessId}/owned_pages?fields=id,name,category,access_token,fan_count,followers_count,picture,tasks&limit=100&access_token=${encodeURIComponent(accessToken)}`;
+      const cleanBizId = (businessId || this.primaryBusinessId).replace(/^biz_/, '');
+      let url = `/${cleanBizId}/owned_pages?fields=id,name,category,access_token,fan_count,followers_count,picture,tasks&limit=100&access_token=${encodeURIComponent(accessToken)}`;
       const allPages: any[] = [];
       while (url) {
         try {
@@ -255,7 +256,8 @@ export class MetaGraphApiService {
 
   async getClientPages(businessId: string = this.primaryBusinessId, accessToken: string) {
     try {
-      let url = `/${businessId}/client_pages?fields=id,name,category,access_token,fan_count,picture,tasks&limit=100&access_token=${encodeURIComponent(accessToken)}`;
+      const cleanBizId = (businessId || this.primaryBusinessId).replace(/^biz_/, '');
+      let url = `/${cleanBizId}/client_pages?fields=id,name,category,access_token,fan_count,picture,tasks&limit=100&access_token=${encodeURIComponent(accessToken)}`;
       const allPages: any[] = [];
       while (url) {
         try {
