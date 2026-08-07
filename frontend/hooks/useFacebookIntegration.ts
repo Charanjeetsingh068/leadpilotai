@@ -77,33 +77,45 @@ export function useFacebookIntegration() {
   const handleConnectFacebook = async () => {
     setIsConnecting(true);
     setConnectionErrorMsg(null);
-    try {
-      const { oauthUrl } = await facebookIntegrationService.startOAuth();
-      const width = 600;
-      const height = 700;
-      const left = window.screen.width / 2 - width / 2;
-      const top = window.screen.height / 2 - height / 2;
 
-      const popup = window.open(
-        oauthUrl,
+    const width = 600;
+    const height = 700;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+
+    // Open popup synchronously during user click event to prevent browser popup blocker from blocking it
+    let popup: Window | null = null;
+    try {
+      popup = window.open(
+        'about:blank',
         'Facebook Login',
         `width=${width},height=${height},top=${top},left=${left},scrollbars=yes`
       );
+    } catch (e) {
+      console.warn('Popup creation error:', e);
+    }
 
-      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-        window.location.href = oauthUrl;
-      } else {
+    try {
+      const { oauthUrl } = await facebookIntegrationService.startOAuth();
+
+      if (popup && !popup.closed) {
+        popup.location.href = oauthUrl;
         const timer = setInterval(() => {
           if (popup.closed) {
             clearInterval(timer);
             setIsConnecting(false);
           }
         }, 1000);
+      } else {
+        window.location.href = oauthUrl;
       }
-    } catch (err: any) {
-      console.error('Failed to start OAuth flow:', err);
+    } catch (e: any) {
+      if (popup && !popup.closed) {
+        try { popup.close(); } catch (err) {}
+      }
+      console.error('Failed to initiate Facebook OAuth:', e);
+      setConnectionErrorMsg(e.message || 'Failed to start Meta OAuth flow.');
       setIsConnecting(false);
-      setConnectionErrorMsg('Failed to initialize Meta OAuth flow.');
     }
   };
 
