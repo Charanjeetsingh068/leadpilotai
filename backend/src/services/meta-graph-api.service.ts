@@ -140,33 +140,14 @@ export class MetaGraphApiService {
 
   async getBusinesses(accessToken: string) {
     try {
-      const url = `/me/businesses?fields=id,name,verification_status,primary_page,vertical,created_time&access_token=${encodeURIComponent(accessToken)}`;
+      const url = `/me/businesses?fields=id,name,verification_status,primary_page,vertical,created_time&limit=100&access_token=${encodeURIComponent(accessToken)}`;
       const data = await this.requestGraphApi(url);
-      const businesses = data.data || [];
-      
-      const knownBizList = [
-        { id: '1672437417291049', name: 'Gayatri Infra Business Portfolio', verification_status: 'VERIFIED' },
-        { id: '578085605850555', name: 'Meta Business Portfolio', verification_status: 'VERIFIED' },
-        { id: '28149461204738597', name: 'Entec Media (Sumit Chaudhary) Business Portfolio', verification_status: 'VERIFIED' },
-        { id: this.primaryBusinessId, name: 'LeadPilot Enterprise Business Portfolio', verification_status: 'VERIFIED' },
-      ];
-
-      for (const kb of knownBizList) {
-        if (!businesses.some((b: any) => b.id === kb.id || b.id === `biz_${kb.id}`)) {
-          businesses.unshift(kb);
-        }
-      }
-
-      logMetaEvent('Businesses Found', { count: businesses.length, primaryBusinessId: this.primaryBusinessId, businesses });
+      const businesses = Array.isArray(data.data) ? data.data : [];
+      logMetaEvent('Businesses Found Dynamically', { count: businesses.length, businesses });
       return businesses;
     } catch (err: any) {
-      logMetaEvent('getBusinesses Warning (Missing Permission / Non-Business Account)', { message: err.message });
-      return [
-        { id: '1672437417291049', name: 'Gayatri Infra Business Portfolio', verification_status: 'VERIFIED' },
-        { id: '578085605850555', name: 'Meta Business Portfolio', verification_status: 'VERIFIED' },
-        { id: '28149461204738597', name: 'Entec Media (Sumit Chaudhary) Business Portfolio', verification_status: 'VERIFIED' },
-        { id: this.primaryBusinessId, name: 'LeadPilot Enterprise Business Portfolio', verification_status: 'VERIFIED' },
-      ];
+      logMetaEvent('getBusinesses Warning', { message: err.message });
+      return [];
     }
   }
 
@@ -193,15 +174,10 @@ export class MetaGraphApiService {
         }
       }
 
-      // Query Business Portfolio owned pages & client pages dynamically for all user businesses
+      // Query Business Portfolios dynamically returned from /me/businesses
       try {
         const businesses = await this.getBusinesses(accessToken);
-        const bizIds = new Set<string>([
-          '1672437417291049',
-          '578085605850555',
-          '28149461204738597',
-          this.primaryBusinessId,
-        ]);
+        const bizIds = new Set<string>();
         if (Array.isArray(businesses)) {
           for (const b of businesses) {
             if (b.id) bizIds.add(b.id);
