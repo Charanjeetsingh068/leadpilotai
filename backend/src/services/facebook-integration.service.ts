@@ -395,25 +395,7 @@ export class FacebookIntegrationService {
         });
 
         const combined = [...pgList, ...mongoList];
-        const unique = combined.filter((v, i, a) => a.findIndex((t) => t.pageId === v.pageId) === i);
-        if (unique.length > 0) return unique;
-
-        if (isConnected) {
-          return [
-            { id: '730195300500995', pageId: '730195300500995', name: '100square', category: 'Property service', followersCount: 32, isConnected: true, status: 'Active', webhookStatus: 'Active' },
-            { id: '202005495526505', pageId: '202005495526505', name: 'Begumpura Team - Ambala', category: 'Non-governmental organisation (NGO)', followersCount: 653, isConnected: true, status: 'Active', webhookStatus: 'Active' },
-            { id: '107603092654737', pageId: '107603092654737', name: 'Entec Media- Digital Marketing Agency', category: 'Internet marketing service', followersCount: 104, isConnected: true, status: 'Active', webhookStatus: 'Active' },
-            { id: '117000793910893', pageId: '117000793910893', name: 'Gayatri Infra', category: 'Property', followersCount: 12000, isConnected: true, status: 'Active', webhookStatus: 'Active' },
-            { id: '108492018471920', pageId: '108492018471920', name: 'IDM - Best Digital', category: 'Education', followersCount: 8900, isConnected: true, status: 'Active', webhookStatus: 'Active' },
-            { id: '109384729104820', pageId: '109384729104820', name: 'Maniac Pharma', category: 'Pharmaceuticals', followersCount: 5400, isConnected: true, status: 'Active', webhookStatus: 'Active' },
-            { id: '104820193847102', pageId: '104820193847102', name: 'PCD Franchise Leads by Pharma Rates', category: 'Pharmaceuticals', followersCount: 4200, isConnected: true, status: 'Active', webhookStatus: 'Active' },
-            { id: '102938475610293', pageId: '102938475610293', name: 'Acme Real Estate Marketing', category: 'Real Estate', followersCount: 15800, isConnected: true, status: 'Active', webhookStatus: 'Active' },
-            { id: '103948572910294', pageId: '103948572910294', name: 'Pharma Rates PCD Franchise', category: 'Business Services', followersCount: 3100, isConnected: true, status: 'Active', webhookStatus: 'Active' },
-            { id: '101928374650192', pageId: '101928374650192', name: 'LeadPilot Official Business Page', category: 'Software & Technology', followersCount: 24500, isConnected: true, status: 'Active', webhookStatus: 'Active' },
-          ];
-        }
-
-        return [];
+        return combined.filter((v, i, a) => a.findIndex((t) => t.pageId === v.pageId) === i);
       })(),
       instagramAccounts: pgInstagram.length > 0 ? pgInstagram.map((ig: any) => ({
         id: ig.id || ig.instagramId,
@@ -455,21 +437,7 @@ export class FacebookIntegrationService {
         }));
 
         const combined = [...pgList, ...mongoList];
-        const unique = combined.filter((v, i, a) => a.findIndex((t) => t.formId === v.formId) === i);
-        if (unique.length > 0) return unique;
-
-        if (isConnected) {
-          return [
-            { id: 'form_730195300500995_01', formId: 'form_730195300500995_01', name: '100Square Real Estate Instant Inquiry Form', pageId: '730195300500995', status: 'Active', leadsCount: 32, isActive: true, assignedAiAgentId: 'agent_realestate_01' },
-            { id: 'form_202005495526505_01', formId: 'form_202005495526505_01', name: 'Begumpura Team NGO Support & Volunteer Form', pageId: '202005495526505', status: 'Active', leadsCount: 653, isActive: true, assignedAiAgentId: 'agent_ngo_01' },
-            { id: 'form_107603092654737_01', formId: 'form_107603092654737_01', name: 'Entec Media Digital Marketing Growth Audit Form', pageId: '107603092654737', status: 'Active', leadsCount: 104, isActive: true, assignedAiAgentId: 'agent_entec_01' },
-            { id: 'form_117000793910893_01', formId: 'form_117000793910893_01', name: 'Gayatri Infra Residential Villa Booking Form', pageId: '117000793910893', status: 'Active', leadsCount: 62, isActive: true, assignedAiAgentId: 'agent_infra_01' },
-            { id: 'form_108492018471920_01', formId: 'form_108492018471920_01', name: 'IDM Course Enrollment & Inquiry Form', pageId: '108492018471920', status: 'Active', leadsCount: 17, isActive: true, assignedAiAgentId: 'agent_idm_01' },
-            { id: 'form_109384729104820_01', formId: 'form_109384729104820_01', name: 'Maniac Pharma PCD Franchise Inquiry Form', pageId: '109384729104820', status: 'Active', leadsCount: 14, isActive: true, assignedAiAgentId: 'agent_pharma_01' },
-          ];
-        }
-
-        return [];
+        return combined.filter((v, i, a) => a.findIndex((t) => t.formId === v.formId) === i);
       })(),
       leads: pgLeads.leads || [],
       permissions: permissionsSummary,
