@@ -9,7 +9,7 @@ import { errorMiddleware } from './middlewares/error.middleware';
 export const createApp = (): Application => {
   const app = express();
 
-  app.use(helmet());
+  app.use(helmet({ crossOriginResourcePolicy: false }));
   app.use(cors({ origin: true, credentials: true }));
   app.use(morgan('dev'));
   app.use(
@@ -24,9 +24,10 @@ export const createApp = (): Application => {
 
   app.use('/api/v1', masterRouter);
   app.use('/api', masterRouter);
-
+  app.use('/', masterRouter);
 
   app.use(errorMiddleware);
 
   return app;
 };
+

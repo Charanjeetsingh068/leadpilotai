@@ -50,7 +50,8 @@ export class LeadController {
         totalPages: result.totalPages,
       };
       sendResponse(res, 200, 'Leads fetched successfully', result.leads, meta);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('getLeads error stack:', error?.stack || error);
       next(error);
     }
   };

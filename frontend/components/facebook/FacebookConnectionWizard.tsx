@@ -25,7 +25,12 @@ import {
   Check
 } from 'lucide-react';
 
-export const FacebookConnectionWizard: React.FC = () => {
+interface FacebookConnectionWizardProps {
+  onConnect?: () => void;
+  isConnecting?: boolean;
+}
+
+export const FacebookConnectionWizard: React.FC<FacebookConnectionWizardProps> = ({ onConnect, isConnecting }) => {
   const [capabilities, setCapabilities] = useState<MetaCapabilities | null>(null);
   const [status, setStatus] = useState<MetaConnectionStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,6 +54,12 @@ export const FacebookConnectionWizard: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
+      try {
+        await facebookIntegrationService.triggerManualSync();
+      } catch (syncErr) {
+        console.warn('Auto sync warning on loadData:', syncErr);
+      }
+
       const [capsData, statusData] = await Promise.all([
         facebookIntegrationService.getCapabilities(),
         facebookIntegrationService.getStatus(),
@@ -68,6 +79,10 @@ export const FacebookConnectionWizard: React.FC = () => {
   };
 
   const handleStartOAuth = async () => {
+    if (onConnect) {
+      onConnect();
+      return;
+    }
     if (!capabilities?.oauthUrl) return;
     window.location.href = capabilities.oauthUrl;
   };
@@ -198,7 +213,7 @@ export const FacebookConnectionWizard: React.FC = () => {
                 Your Meta App (ID: <code>{capabilities?.appId || '1712255293083461'}</code>) requires product configuration for Lead Ads and Business Manager access. Please grant or enable these permissions in the Meta Developer Console:
               </div>
               <div className="fb-warning-scopes-list">
-                {capabilities.missingRequiredPermissions.map((scope) => (
+                {capabilities.missingRequiredPermissions.map((scope: string) => (
                   <span key={scope} className="fb-warning-scope-tag">
                     {scope}
                   </span>
@@ -280,9 +295,15 @@ export const FacebookConnectionWizard: React.FC = () => {
             <div className="fb-actions-row">
               <button
                 onClick={handleStartOAuth}
+                disabled={isConnecting}
                 className="fb-btn-next fb-btn-blue"
               >
-                <Share2 size={18} /> Connect Facebook Account
+                {isConnecting ? (
+                  <RefreshCw size={18} className="fb-spin" />
+                ) : (
+                  <Share2 size={18} />
+                )}
+                {isConnecting ? 'Connecting...' : 'Connect Facebook Account'}
               </button>
             </div>
           </div>
@@ -520,7 +541,7 @@ export const FacebookConnectionWizard: React.FC = () => {
               </div>
             </div>
             <div className="fb-warning-scopes-list">
-              {(status?.permissionsGranted || ['public_profile', 'pages_show_list', 'pages_read_engagement', 'pages_manage_metadata', 'leads_retrieval', 'business_management']).map((perm) => (
+              {(status?.permissionsGranted || ['business_management', 'pages_show_list', 'pages_read_engagement', 'pages_manage_metadata', 'leads_retrieval', 'instagram_basic']).map((perm: string) => (
                 <span key={perm} className="terms-perm-code">
                   ✔ {perm}
                 </span>

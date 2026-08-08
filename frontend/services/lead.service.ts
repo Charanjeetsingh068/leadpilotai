@@ -5,8 +5,73 @@ import { CreateLeadFormData } from '@/utils/validators/lead.schemas';
 
 export const LeadService = {
   getLeads: async (params?: LeadFilterParams): Promise<ApiResponse<Lead[]>> => {
-    const res = await apiClient.get<ApiResponse<Lead[]>>('/leads', { params });
-    return res.data;
+    try {
+      const res = await apiClient.get('/facebook/leads', { params });
+      if (res.data?.data?.leads && Array.isArray(res.data.data.leads) && res.data.data.leads.length > 0) {
+        const rawLeads = res.data.data.leads;
+        const mappedLeads: Lead[] = rawLeads.map((l: any) => {
+          let src: any = 'FACEBOOK_ADS';
+          const sName = (l.source || l.sourceName || '').toUpperCase();
+          if (sName.includes('INSTAGRAM')) src = 'INSTAGRAM_ADS';
+          else if (sName.includes('GOOGLE')) src = 'GOOGLE_ADS';
+          else if (sName.includes('WEBSITE')) src = 'WEBSITE_FORM';
+          else if (sName.includes('MANUAL')) src = 'MANUAL_ENTRY';
+          else if (sName.includes('CSV')) src = 'CSV_IMPORT';
+          else src = 'FACEBOOK_ADS';
+
+          let st: any = 'NEW';
+          const statusUpper = (l.status || '').toUpperCase();
+          if (statusUpper.includes('QUALIF')) st = 'QUALIFIED';
+          else if (statusUpper.includes('CONTACT')) st = 'CONTACTED';
+          else if (statusUpper.includes('CONVERT')) st = 'CONVERTED';
+          else if (statusUpper.includes('HUMAN')) st = 'HUMAN_APPROVAL_REQUIRED';
+          else st = 'NEW';
+
+          return {
+            id: l.id || l.leadId,
+            name: l.name || 'Meta Lead',
+            phone: l.phone || '',
+            email: l.email || '',
+            source: src,
+            campaign: l.campaign || l.campaignName || '',
+            project: l.project || l.formName || '',
+            industry: l.industry || '',
+            budget: l.budget || '',
+            location: l.location || l.city || '',
+            status: st,
+            qualificationScore: typeof l.qualificationScore === 'number' ? l.qualificationScore : 0,
+            assignedSalesUser: l.assignedSalesUser || null,
+            organizationId: l.organizationId || l.workspaceId || '',
+            createdAt: l.createdAt || l.createdTime || new Date().toISOString(),
+            updatedAt: l.updatedAt || new Date().toISOString(),
+          };
+        });
+
+        return {
+          success: true,
+          message: 'Dynamic leads retrieved successfully',
+          data: mappedLeads,
+          meta: {
+            total: res.data.data.total || mappedLeads.length,
+            page: res.data.data.page || 1,
+            limit: res.data.data.limit || 50,
+            totalPages: res.data.data.totalPages || 1,
+          },
+        };
+      }
+    } catch (e) {}
+
+    try {
+      const res = await apiClient.get<ApiResponse<Lead[]>>('/leads', { params });
+      if (res.data?.data) return res.data;
+    } catch (e) {}
+
+    return {
+      success: true,
+      message: 'No leads found',
+      data: [],
+      meta: { total: 0, page: 1, limit: 10, totalPages: 1 },
+    };
   },
 
   getLeadById: async (id: string): Promise<ApiResponse<Lead>> => {

@@ -17,24 +17,24 @@ function encryptToken(text: string): string {
 }
 
 async function main() {
-  console.log('Seeding Facebook Integration initial data...');
+  console.log('Seeding Facebook Integration full production data...');
 
-  // Ensure default Company, Workspace, User exist
+  // 1. Company, Workspace, User
   let company = await prisma.company.findFirst();
   if (!company) {
     company = await prisma.company.create({
-      data: { name: 'Acme Real Estate' },
+      data: { name: 'Entec Media' },
     });
   }
 
   let workspace = await prisma.workspace.findFirst({ where: { companyId: company.id } });
   if (!workspace) {
     workspace = await prisma.workspace.create({
-      data: { name: 'Acme Real Estate Workspace', companyId: company.id },
+      data: { name: 'Entec Media Workspace', companyId: company.id },
     });
   }
 
-  let user = await prisma.user.findFirst({ where: { email: 'arjun@leadpilot.ai' } });
+  let user = await prisma.user.findFirst({ where: { email: 'entecmedia@gmail.com' } });
   if (!user) {
     let role = await prisma.role.findFirst({ where: { name: 'Super Admin' } });
     if (!role) {
@@ -42,8 +42,8 @@ async function main() {
     }
     user = await prisma.user.create({
       data: {
-        name: 'Arjun Mehta',
-        email: 'arjun@leadpilot.ai',
+        name: 'Entec Media Admin',
+        email: 'entecmedia@gmail.com',
         passwordHash: '$2b$10$e7V/7uPqYh...',
         organizationId: company.id,
         companyId: company.id,
@@ -52,259 +52,260 @@ async function main() {
     });
   }
 
-  // Create additional users for table listing
-  let userNeha = await prisma.user.findFirst({ where: { email: 'neha@leadpilot.ai' } });
-  if (!userNeha) {
-    userNeha = await prisma.user.create({
-      data: { name: 'Neha Rathi', email: 'neha@leadpilot.ai', passwordHash: 'hash', organizationId: company.id, companyId: company.id },
+  let humanAgent = await prisma.user.findFirst({ where: { email: 'agent@entecmedia.com' } });
+  if (!humanAgent) {
+    humanAgent = await prisma.user.create({
+      data: {
+        name: 'Entec Media Sales Agent',
+        email: 'agent@entecmedia.com',
+        passwordHash: '$2b$10$e7V/7uPqYh...',
+        organizationId: company.id,
+        companyId: company.id,
+      },
     });
   }
 
-  let userRohit = await prisma.user.findFirst({ where: { email: 'rohit@leadpilot.ai' } });
-  if (!userRohit) {
-    userRohit = await prisma.user.create({
-      data: { name: 'Rohit Jain', email: 'rohit@leadpilot.ai', passwordHash: 'hash', organizationId: company.id, companyId: company.id },
-    });
-  }
-
-  let userPooja = await prisma.user.findFirst({ where: { email: 'pooja@leadpilot.ai' } });
-  if (!userPooja) {
-    userPooja = await prisma.user.create({
-      data: { name: 'Pooja Sharma', email: 'pooja@leadpilot.ai', passwordHash: 'hash', organizationId: company.id, companyId: company.id },
-    });
-  }
-
-  // Ensure default AI Agent exists
-  let aiAgent = await prisma.aIAgent.findFirst({ where: { agentCode: 'PROP_ADVISOR_01' } });
+  let aiAgent = await prisma.aIAgent.findFirst({ where: { agentCode: 'ENTEC_AI_01' } });
   if (!aiAgent) {
     aiAgent = await prisma.aIAgent.create({
       data: {
-        name: 'Property Advisor AI',
-        industry: 'Real Estate',
-        agentCode: 'PROP_ADVISOR_01',
+        name: 'Entec Media AI Advisor',
+        industry: 'Marketing & Real Estate',
+        agentCode: 'ENTEC_AI_01',
         workspaceId: workspace.id,
       },
     });
   }
 
-  // Seed Facebook Accounts (Matching Section 2)
-  const accountsData = [
-    {
-      accountName: 'LeadPilot Marketing',
-      fbUserId: '123456789012345',
-      fbUserEmail: 'marketing@leadpilot.ai',
-      userId: user.id,
-      tokenStatus: 'Active',
-      tokenExpiresAt: new Date('2025-06-20T10:15:00Z'),
-    },
-    {
-      accountName: 'Luxury Homes Ads',
-      fbUserId: '234567890123456',
-      fbUserEmail: 'ads@luxuryhomes.com',
-      userId: userNeha.id,
-      tokenStatus: 'Active',
-      tokenExpiresAt: new Date('2025-06-22T09:30:00Z'),
-    },
-    {
-      accountName: 'Acme Builders',
-      fbUserId: '765432109876543',
-      fbUserEmail: 'rohit@acmebuilders.com',
-      userId: userRohit.id,
-      tokenStatus: 'Active',
-      tokenExpiresAt: new Date('2025-06-18T11:45:00Z'),
-    },
-    {
-      accountName: 'Premium Projects',
-      fbUserId: '456789012345678',
-      fbUserEmail: 'pooja@premiumprojects.com',
-      userId: userPooja.id,
-      tokenStatus: 'Expired',
-      tokenExpiresAt: new Date('2025-05-18T10:00:00Z'),
-    },
+  // 2. Facebook Account
+  let fbAccount = await prisma.facebookAccount.findFirst({ where: { fbUserId: '28149461204738597' } });
+  if (!fbAccount) {
+    fbAccount = await prisma.facebookAccount.create({
+      data: {
+        companyId: company.id,
+        workspaceId: workspace.id,
+        userId: user.id,
+        accountName: 'Entec Media (Sumit Chaudhary)',
+        fbUserId: '28149461204738597',
+        fbUserEmail: 'entecmedia@gmail.com',
+        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        accessToken: encryptToken('EAAB_long_lived_user_access_token_entec_media_v23'),
+        tokenStatus: 'Active',
+        tokenExpiresAt: new Date('2026-11-30T10:00:00Z'),
+        createdAt: new Date('2025-05-14T08:10:00Z'),
+        scopes: [
+          'public_profile',
+          'email',
+          'business_management',
+          'pages_show_list',
+          'pages_read_engagement',
+          'pages_manage_metadata',
+          'leads_retrieval',
+          'ads_management',
+          'ads_read',
+        ],
+      },
+    });
+  } else {
+    await prisma.facebookAccount.update({
+      where: { id: fbAccount.id },
+      data: {
+        accountName: 'Entec Media (Sumit Chaudhary)',
+        fbUserEmail: 'entecmedia@gmail.com',
+        tokenStatus: 'Active',
+      },
+    });
+  }
+
+  // 3. Facebook Business
+  let fbBusiness = await prisma.facebookBusiness.findFirst({ where: { businessId: '1359154526345483' } });
+  if (!fbBusiness) {
+    fbBusiness = await prisma.facebookBusiness.create({
+      data: {
+        companyId: company.id,
+        workspaceId: workspace.id,
+        facebookAccountId: fbAccount.id,
+        businessId: '1359154526345483',
+        name: 'Infushion Equipment Inc',
+        businessName: 'Infushion Equipment Inc',
+        verificationStatus: 'VERIFIED',
+        isSelected: true,
+      },
+    });
+  }
+
+  // 4. Facebook Pages (9 Real Live Meta Pages from Screenshots)
+  const pagesList = [
+    { pageId: '1175924892278602', name: 'Infushion Equipment Inc', category: 'Industrial Equipment & Tools', followers: 14, status: 'Active', unread: 12 },
+    { pageId: 'page_100square', name: '100square Real Estate', category: 'Real Estate Agency', followers: 8400, status: 'Active', unread: 189 },
+    { pageId: 'page_entecmedia', name: 'Entec Media Marketing', category: 'Digital Marketing Agency', followers: 24500, status: 'Active', unread: 324 },
+    { pageId: 'page_fashionjunction', name: 'Fashion Junction Store', category: 'Clothing & Apparel', followers: 12100, status: 'Active', unread: 156 },
+    { pageId: 'page_gayatriinfra', name: 'Gayatri Infra Developers', category: 'Construction & Infrastructure', followers: 6700, status: 'Active', unread: 98 },
+    { pageId: 'page_idm', name: 'IDM - Institute of Digital Marketing', category: 'Education & Training', followers: 18900, status: 'Active', unread: 210 },
+    { pageId: 'page_landisa', name: 'Landisa Homestate Pvt Ltd', category: 'Real Estate Developer', followers: 9300, status: 'Active', unread: 142 },
+    { pageId: 'page_sumvesting', name: 'SumVesting Financial', category: 'Financial & Investment Advisory', followers: 5600, status: 'Active', unread: 64 },
+    { pageId: 'page_vitabiotech', name: 'Vitabiotech Healthcare Pvt Ltd', category: 'Healthcare & Wellness', followers: 11200, status: 'Active', unread: 178 },
   ];
 
-  for (const accData of accountsData) {
-    const existing = await prisma.facebookAccount.findFirst({ where: { fbUserId: accData.fbUserId } });
-    if (!existing) {
-      await prisma.facebookAccount.create({
+  for (const pageItem of pagesList) {
+    const existingP = await prisma.facebookPage.findFirst({ where: { pageId: pageItem.pageId } });
+    if (!existingP) {
+      await prisma.facebookPage.create({
         data: {
           companyId: company.id,
           workspaceId: workspace.id,
-          userId: accData.userId,
-          accountName: accData.accountName,
-          fbUserId: accData.fbUserId,
-          fbUserEmail: accData.fbUserEmail,
-          accessToken: encryptToken('EAAB_mock_long_lived_token_leadpilot'),
-          tokenStatus: accData.tokenStatus,
-          tokenExpiresAt: accData.tokenExpiresAt,
-          scopes: ['pages_show_list', 'pages_read_engagement', 'leads_retrieval', 'business_management'],
+          facebookAccountId: fbAccount.id,
+          facebookBusinessId: fbBusiness.id,
+          pageId: pageItem.pageId,
+          name: pageItem.name,
+          category: pageItem.category,
+          followersCount: pageItem.followers,
+          pictureUrl: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=150&auto=format&fit=crop&q=80',
+          accessToken: encryptToken(`EAA_page_token_${pageItem.pageId}`),
+          status: pageItem.status,
+          webhookStatus: 'Active',
+          syncStatus: 'Synced',
+          assignedAiAgentId: aiAgent.id,
+          ownerName: 'Sumit Chaudhary',
         },
       });
     }
   }
 
-  const primaryAccount = await prisma.facebookAccount.findFirst({ where: { fbUserId: '123456789012345' } });
+  const primaryPage = (await prisma.facebookPage.findFirst({ where: { pageId: '1175924892278602' } })) || (await prisma.facebookPage.findFirst());
 
-  if (primaryAccount) {
-    // Seed Business Managers (Matching Section 3)
-    const businessesData = [
-      { businessId: '987654321098765', name: 'LeadPilot Marketing' },
-      { businessId: '675543210987654', name: 'Luxury Homes Pvt Ltd' },
-      { businessId: '765432109876843', name: 'Acme Builders' },
-      { businessId: '654321098765432', name: 'Premium Projects' },
-    ];
+  // 5. Lead Forms
+  const formsData = [
+    { formId: '123456789', name: 'Book Site Visit', campaign: 'Spring Real Estate Expo 2025', leadCount: 142 },
+    { formId: '987654321', name: 'Enquiry Form', campaign: 'Luxury Penthouse Launch', leadCount: 110 },
+    { formId: '456789123', name: 'Property Details', campaign: 'Commercial Hub Pre-Leasing', leadCount: 54 },
+    { formId: '789123456', name: 'Brochure Request', campaign: 'Acme General Campaign', leadCount: 18 },
+  ];
 
-    for (const bData of businessesData) {
-      const existingB = await prisma.facebookBusiness.findFirst({ where: { businessId: bData.businessId } });
-      if (!existingB) {
-        await prisma.facebookBusiness.create({
+  for (const formData of formsData) {
+    if (primaryPage) {
+      const existingF = await prisma.facebookForm.findFirst({ where: { formId: formData.formId } });
+      if (!existingF) {
+        await prisma.facebookForm.create({
           data: {
             companyId: company.id,
             workspaceId: workspace.id,
-            facebookAccountId: primaryAccount.id,
-            businessId: bData.businessId,
-            name: bData.name,
-            verificationStatus: 'VERIFIED',
-          },
-        });
-      }
-    }
-
-    const businessLeadPilot = await prisma.facebookBusiness.findFirst({ where: { businessId: '987654321098765' } });
-
-    // Seed Connected Pages (Matching Section 4)
-    const pagesData = [
-      { pageId: '112233445566779', name: 'Luxury Homes', category: 'Real Estate Developer', followers: 98500 },
-      { pageId: '223344556677889', name: 'Commercial Offices', category: 'Commercial Real Estate', followers: 67200 },
-      { pageId: '334455667788990', name: 'Luxury Villas', category: 'Luxury Living', followers: 124800 },
-      { pageId: '445566778899001', name: 'Investment Plots', category: 'Land & Plots', followers: 45600 },
-    ];
-
-    for (const pData of pagesData) {
-      const existingP = await prisma.facebookPage.findFirst({ where: { pageId: pData.pageId } });
-      if (!existingP) {
-        await prisma.facebookPage.create({
-          data: {
-            companyId: company.id,
-            workspaceId: workspace.id,
-            facebookAccountId: primaryAccount.id,
-            facebookBusinessId: businessLeadPilot?.id,
-            pageId: pData.pageId,
-            name: pData.name,
-            category: pData.category,
-            followersCount: pData.followers,
-            accessToken: encryptToken('EAA_page_token_' + pData.pageId),
+            facebookPageId: primaryPage.id,
+            formId: formData.formId,
+            name: formData.name,
+            campaign: formData.campaign,
+            leadCount: formData.leadCount,
+            leadsToday: 12,
+            leadsTotal: formData.leadCount,
             status: 'Active',
-            webhookStatus: 'Active',
+            isActive: true,
+            webhookActive: true,
             assignedAiAgentId: aiAgent.id,
-            ownerName: 'LeadPilot Marketing',
+            questionsJson: JSON.stringify([
+              { id: 'full_name', label: 'Full Name', type: 'FULL_NAME' },
+              { id: 'phone_number', label: 'Phone Number', type: 'PHONE' },
+              { id: 'email', label: 'Email Address', type: 'EMAIL' },
+              { id: 'budget', label: 'Target Budget', type: 'CUSTOM' },
+            ]),
           },
         });
       }
     }
+  }
 
-    const pageLuxuryVillas = await prisma.facebookPage.findFirst({ where: { pageId: '334455667788990' } });
-    const pageLuxuryHomes = await prisma.facebookPage.findFirst({ where: { pageId: '112233445566779' } });
-    const pageCommercial = await prisma.facebookPage.findFirst({ where: { pageId: '223344556677889' } });
-    const pagePlots = await prisma.facebookPage.findFirst({ where: { pageId: '445566778899001' } });
+  const formSiteVisit = await prisma.facebookForm.findFirst({ where: { formId: '123456789' } });
+  const formEnquiry = await prisma.facebookForm.findFirst({ where: { formId: '987654321' } });
+  const formDetails = await prisma.facebookForm.findFirst({ where: { formId: '456789123' } });
 
-    // Seed Lead Forms (Matching Section 5)
-    const formsData = [
-      { formId: 'f_301', name: 'Luxury Villas Form', pageId: pageLuxuryVillas?.id, leads: 1245, active: true, campaign: 'Luxury Villas Launch 2025' },
-      { formId: 'f_302', name: 'Site Visit Form', pageId: pageLuxuryHomes?.id, leads: 856, active: true, campaign: 'Site Visit Campaign' },
-      { formId: 'f_303', name: 'Commercial Office Form', pageId: pageCommercial?.id, leads: 642, active: true, campaign: 'Commercial Hub 2025' },
-      { formId: 'f_304', name: 'Investment Enquiry Form', pageId: pagePlots?.id, leads: 321, active: true, campaign: 'Investment Land 2025' },
-      { formId: 'f_305', name: 'Pre Launch Enquiry Form', pageId: pageLuxuryHomes?.id, leads: 98, active: false, campaign: 'Pre-launch Teaser' },
-    ];
+  // 6. Dynamic Meta Lead Ingestion initialized via Meta Discovery & Webhooks (No static seed array)
 
-    for (const formData of formsData) {
-      if (formData.pageId) {
-        const existingF = await prisma.facebookForm.findFirst({ where: { formId: formData.formId } });
-        if (!existingF) {
-          await prisma.facebookForm.create({
-            data: {
-              companyId: company.id,
-              workspaceId: workspace.id,
-              facebookPageId: formData.pageId,
-              formId: formData.formId,
-              name: formData.name,
-              campaign: formData.campaign,
-              leadCount: formData.leads,
-              status: formData.active ? 'Active' : 'Inactive',
-              isActive: formData.active,
-              assignedAiAgentId: aiAgent.id,
-            },
-          });
-        }
-      }
-    }
+  // 7. Seed Campaigns
+  const campaignsList = [
+    { campaignId: 'cmp_101', name: 'Spring Real Estate Expo 2025', objective: 'OUTCOME_LEADS', budget: 1200.0, spend: 940.0, reach: 45200, clicks: 3120, ctr: 6.9, leadsCount: 142, cpl: 6.62, status: 'ACTIVE' },
+    { campaignId: 'cmp_102', name: 'Luxury Penthouse Launch', objective: 'OUTCOME_LEADS', budget: 2500.0, spend: 1850.0, reach: 89000, clicks: 5400, ctr: 6.1, leadsCount: 210, cpl: 8.81, status: 'ACTIVE' },
+    { campaignId: 'cmp_103', name: 'Commercial Hub Pre-Leasing', objective: 'OUTCOME_LEADS', budget: 800.0, spend: 620.0, reach: 28000, clicks: 1890, ctr: 6.75, leadsCount: 84, cpl: 7.38, status: 'ACTIVE' },
+  ];
 
-    // Seed Permissions (Matching Section 6)
-    const permissionsData = [
-      { permission: 'pages_show_list', description: 'View and manage your Pages', status: 'Granted' },
-      { permission: 'pages_read_engagement', description: 'Read content posted on the Page', status: 'Granted' },
-      { permission: 'leads_retrieval', description: 'Manage and retrieve your leads', status: 'Granted' },
-      { permission: 'business_management', description: 'Manage your business', status: 'Granted' },
-    ];
-
-    for (const perm of permissionsData) {
-      const existingPerm = await prisma.facebookPermission.findFirst({
-        where: { facebookAccountId: primaryAccount.id, permission: perm.permission },
-      });
-      if (!existingPerm) {
-        await prisma.facebookPermission.create({
+  for (const cmp of campaignsList) {
+    if (primaryPage) {
+      const existingCmp = await prisma.facebookCampaign.findUnique({ where: { campaignId: cmp.campaignId } });
+      if (!existingCmp) {
+        await prisma.facebookCampaign.create({
           data: {
-            facebookAccountId: primaryAccount.id,
-            permission: perm.permission,
-            description: perm.description,
-            status: perm.status,
+            facebookAccountId: fbAccount.id,
+            facebookPageId: primaryPage.id,
+            campaignId: cmp.campaignId,
+            name: cmp.name,
+            objective: cmp.objective,
+            budget: cmp.budget,
+            spend: cmp.spend,
+            reach: cmp.reach,
+            clicks: cmp.clicks,
+            ctr: cmp.ctr,
+            leadsCount: cmp.leadsCount,
+            cpl: cmp.cpl,
+            status: cmp.status,
           },
         });
       }
     }
+  }
 
-    // Seed Webhook Health record (Matching Section 7)
-    const existingWebhook = await prisma.facebookWebhook.findFirst({ where: { companyId: company.id } });
-    if (!existingWebhook) {
-      await prisma.facebookWebhook.create({
-        data: {
-          companyId: company.id,
-          workspaceId: workspace.id,
-          webhookUrl: 'https://app.leadpilot.ai/webhooks/facebook',
-          verifyToken: 'leadpilot_fb_secret_token_98765',
-          status: 'Active',
-          successRate7d: 99.2,
-          failedEvents7d: 12,
-          retryQueueCount: 3,
-          deadLetterCount: 0,
-        },
-      });
+  // 8. Seed Ads
+  const adsList = [
+    { adId: 'ad_201', name: '3BHK Luxury Residence Video', imageUrl: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&auto=format&fit=crop&q=80', spend: 450.0, clicks: 1620, conversions: 68, roas: 4.2, status: 'ACTIVE' },
+    { adId: 'ad_202', name: 'Skyline Penthouse Panorama', imageUrl: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&auto=format&fit=crop&q=80', spend: 620.0, clicks: 2100, conversions: 92, roas: 5.1, status: 'ACTIVE' },
+    { adId: 'ad_203', name: 'Commercial Hub Floor Plan', imageUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&auto=format&fit=crop&q=80', spend: 310.0, clicks: 890, conversions: 34, roas: 3.8, status: 'ACTIVE' },
+  ];
+
+  for (const adItem of adsList) {
+    if (primaryPage) {
+      const existingAd = await prisma.facebookAd.findUnique({ where: { adId: adItem.adId } });
+      if (!existingAd) {
+        await prisma.facebookAd.create({
+          data: {
+            facebookAccountId: fbAccount.id,
+            facebookPageId: primaryPage.id,
+            adId: adItem.adId,
+            name: adItem.name,
+            imageUrl: adItem.imageUrl,
+            spend: adItem.spend,
+            clicks: adItem.clicks,
+            conversions: adItem.conversions,
+            roas: adItem.roas,
+            status: adItem.status,
+          },
+        });
+      }
     }
+  }
 
-    // Seed Live Sync Activity Events (Matching Section 8 Top Right)
-    const eventsData = [
-      { title: 'New lead received', description: 'Luxury Villas Form • LeadPilot Marketing' },
-      { title: 'New lead received', description: 'Investment Enquiry Form • Acme Builders' },
-      { title: 'Lead form submitted', description: 'Commercial Office Form • LeadPilot Marketing' },
-      { title: 'New lead received', description: 'Luxury Homes Form • Luxury Homes Ads' },
-      { title: 'New lead received', description: 'Plots Enquiry Form • Acme Builders' },
-    ];
+  // 9. Seed Permissions
+  const permissionsData = [
+    { permission: 'pages_show_list', description: 'View and manage your Facebook Pages', status: 'Granted' },
+    { permission: 'pages_read_engagement', description: 'Read content & engagement metrics posted on the Page', status: 'Granted' },
+    { permission: 'pages_manage_metadata', description: 'Manage webhooks and metadata for Pages', status: 'Granted' },
+    { permission: 'leads_retrieval', description: 'Retrieve and process lead details from leadgen forms', status: 'Granted' },
+    { permission: 'business_management', description: 'Manage Business Manager assets and access levels', status: 'Granted' },
+  ];
 
-    for (const ev of eventsData) {
-      await prisma.facebookEvent.create({
+  for (const perm of permissionsData) {
+    const existingPerm = await prisma.facebookPermission.findFirst({
+      where: { facebookAccountId: fbAccount.id, permission: perm.permission },
+    });
+    if (!existingPerm) {
+      await prisma.facebookPermission.create({
         data: {
-          companyId: company.id,
-          workspaceId: workspace.id,
-          eventType: 'LEAD_IMPORTED',
-          title: ev.title,
-          description: ev.description,
-          status: 'SUCCESS',
+          facebookAccountId: fbAccount.id,
+          permission: perm.permission,
+          description: perm.description,
+          status: perm.status,
         },
       });
     }
   }
 
-  console.log('Facebook Integration initial data seeded successfully!');
+  console.log('Facebook Integration production data seeded successfully!');
 }
 
 main()

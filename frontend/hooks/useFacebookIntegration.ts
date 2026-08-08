@@ -42,47 +42,102 @@ export function useFacebookIntegration() {
       }
     };
 
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === 'fb_oauth_success' && event.newValue) {
+        setIsConnecting(false);
+        setIsAddAccountOpen(false);
+        setConnectionErrorMsg(null);
+        setConnectionSuccessMsg('Meta Business account authorized successfully!');
+        
+        queryClient.invalidateQueries({ queryKey: ['facebook-dashboard'] });
+        queryClient.invalidateQueries({ queryKey: ['facebook-status'] });
+        queryClient.invalidateQueries({ queryKey: ['connected-accounts'] });
+        localStorage.removeItem('fb_oauth_success');
+      }
+    };
+
     window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    window.addEventListener('storage', handleStorage);
+    
+    // Auto-close if this window is a popup fallback
+    if (typeof window !== 'undefined' && window.location.search.includes('popup_close=true')) {
+      if (window.opener) {
+        try { window.opener.postMessage({ type: 'FB_OAUTH_SUCCESS' }, '*'); } catch (e) {}
+      }
+      try { window.close(); } catch(e) {}
+    }
+    
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      window.removeEventListener('storage', handleStorage);
+    };
   }, [queryClient]);
 
   // Start Meta OAuth Flow
   const handleConnectFacebook = async () => {
     setIsConnecting(true);
     setConnectionErrorMsg(null);
+
+    const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || '1712255293083461';
+    const redirectUri = process.env.NEXT_PUBLIC_FACEBOOK_REDIRECT_URI || 'https://leadpilotai-2kar.onrender.com/api/integrations/facebook/callback';
+    const scopes = [
+      'public_profile',
+      'business_management',
+      'pages_show_list',
+      'pages_read_engagement',
+      'pages_manage_metadata',
+      'leads_retrieval',
+    ].join(',');
+
+    const statePayload = {
+      scope: { companyId: 'default-company', workspaceId: 'default-workspace', userId: 'default-user' },
+      timestamp: Date.now(),
+      frontendUrl: typeof window !== 'undefined' ? window.location.origin : 'https://leadpilotai-rust.vercel.app',
+    };
+    const state = typeof btoa !== 'undefined'
+      ? btoa(JSON.stringify(statePayload)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+      : '';
+
+    let oauthUrl = `https://www.facebook.com/v23.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&state=${state}&auth_type=rerequest&scope=${scopes}`;
+
     try {
-      const { oauthUrl } = await facebookIntegrationService.startOAuth();
-      const width = 600;
-      const height = 700;
-      const left = window.screen.width / 2 - width / 2;
-      const top = window.screen.height / 2 - height / 2;
-
-      const popup = window.open(
-        oauthUrl,
-        'Facebook Login',
-        `width=${width},height=${height},top=${top},left=${left},scrollbars=yes`
-      );
-
-      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-        window.location.href = oauthUrl;
-      } else {
-        const timer = setInterval(() => {
-          if (popup.closed) {
-            clearInterval(timer);
-            setIsConnecting(false);
-          }
-        }, 1000);
+      const apiData = await facebookIntegrationService.startOAuth();
+      if (apiData?.oauthUrl) {
+        oauthUrl = apiData.oauthUrl;
       }
-    } catch (err: any) {
-      console.error('Failed to start OAuth flow:', err);
-      setIsConnecting(false);
-      setConnectionErrorMsg('Failed to initialize Meta OAuth flow.');
+    } catch (e) {
+      console.warn('API startOAuth fallback used:', e);
+    }
+
+    const width = 600;
+    const height = 700;
+    const left = typeof window !== 'undefined' ? window.screen.width / 2 - width / 2 : 200;
+    const top = typeof window !== 'undefined' ? window.screen.height / 2 - height / 2 : 100;
+
+    const popup = window.open(
+      oauthUrl,
+      'Facebook Login',
+      `width=${width},height=${height},top=${top},left=${left},scrollbars=yes`
+    );
+
+    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+      window.location.href = oauthUrl;
+    } else {
+      const timer = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(timer);
+          setIsConnecting(false);
+        }
+      }, 1000);
     }
   };
 
   // Business Switch Mutation
-  const handleBusinessChange = (businessId: string) => {
+  const handleBusinessChange = async (businessId: string) => {
     setSelectedBusinessId(businessId);
+    try {
+      await facebookIntegrationService.selectBusiness(businessId);
+    } catch (e) {}
     queryClient.invalidateQueries({ queryKey: ['facebook-dashboard'] });
   };
 
@@ -139,16 +194,17 @@ export function useFacebookIntegration() {
   // Disconnect Account Mutation
   const disconnectAccountMutation = useMutation({
     mutationFn: (accountId: string) => facebookIntegrationService.disconnectAccount(accountId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['facebook-dashboard'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['facebook-dashboard'] });
+      await queryClient.invalidateQueries({ queryKey: ['facebook-status'] });
+      await queryClient.invalidateQueries({ queryKey: ['connected-accounts'] });
       setConnectionSuccessMsg('Facebook account disconnected. All imported leads remain safe.');
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      dashboardQuery.refetch();
     },
   });
 
-  const hasConnectedAccount = Boolean(dashboardQuery.data?.accounts && dashboardQuery.data.accounts.length > 0);
+  const activeAccounts = dashboardQuery.data?.accounts?.filter((a: any) => a.tokenStatus !== 'Disconnected' && a.status !== 'Disconnected' && a.tokenStatus !== 'REVOKED') || [];
+  const hasConnectedAccount = Boolean(activeAccounts.length > 0);
   const rawStatus = dashboardQuery.data?.connection?.status;
   const connectionStatus = (rawStatus && rawStatus !== 'NOT_CONNECTED') ? rawStatus : (hasConnectedAccount ? 'CONNECTED' : 'NOT_CONNECTED');
   const isBackendConnected = hasConnectedAccount || (dashboardQuery.data?.connection?.isConnected === true) || connectionStatus === 'CONNECTED';

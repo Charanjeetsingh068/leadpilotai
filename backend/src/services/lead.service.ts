@@ -56,7 +56,7 @@ export class LeadService {
   }
 
   public async getLeadById(id: string) {
-    if (!id || id.length !== 36) {
+    if (!id) {
       throw new ApiError(404, 'Lead not found');
     }
     const lead = await this.leadRepository.findById(id);
@@ -65,8 +65,8 @@ export class LeadService {
     }
 
     const [timeline, notes] = await Promise.all([
-      this.timelineRepository.findByLeadId(id),
-      this.notesRepository.findByLeadId(id),
+      this.timelineRepository.findByLeadId(lead.id),
+      this.notesRepository.findByLeadId(lead.id),
     ]);
 
     return {
@@ -77,7 +77,7 @@ export class LeadService {
   }
 
   public async updateLeadStatus(id: string, status: LeadStatus, actorId?: string) {
-    if (!id || id.length !== 36) {
+    if (!id) {
       throw new ApiError(404, 'Lead not found');
     }
     const lead = await this.leadRepository.updateStatus(id, status);
@@ -86,7 +86,7 @@ export class LeadService {
     }
 
     await this.timelineRepository.logEvent(
-      id,
+      lead.id,
       TimelineEventType.STATUS_UPDATED,
       'Status Updated',
       `Lead status transitioned to ${status}`,
@@ -101,7 +101,7 @@ export class LeadService {
   }
 
   public async assignLead(id: string, salesUserId: string, assignedBy: string, reason?: string) {
-    if (!id || id.length !== 36) {
+    if (!id) {
       throw new ApiError(404, 'Lead not found');
     }
     const lead = await this.leadRepository.assignUser(id, salesUserId);

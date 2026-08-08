@@ -29,20 +29,20 @@ export const seedInitialData = async () => {
     }
 
     // 2. Ensure default Company Exists
-    let company = await prisma.company.findFirst({ where: { name: 'Acme Real Estate' } });
+    let company = await prisma.company.findFirst({ where: { name: 'Entec Media' } });
     if (!company) {
       company = await prisma.company.create({
-        data: { name: 'Acme Real Estate' },
+        data: { name: 'Entec Media' },
       });
-      console.log('[Seed] Default company Acme Real Estate created.');
+      console.log('[Seed] Default company Entec Media created.');
     }
 
     // 3. Ensure default Workspace Exists
-    let workspace = await prisma.workspace.findFirst({ where: { name: 'Acme Real Estate Workspace' } });
+    let workspace = await prisma.workspace.findFirst({ where: { name: 'Entec Media Workspace' } });
     if (!workspace) {
       workspace = await prisma.workspace.create({
         data: {
-          name: 'Acme Real Estate Workspace',
+          name: 'Entec Media Workspace',
           companyId: company.id,
         },
       });
@@ -295,147 +295,6 @@ export const seedInitialData = async () => {
         await prisma.knowledgeDocument.create({ data: doc });
       }
       console.log('[Seed] Default 8 Knowledge Documents seeded in PostgreSQL.');
-    }
-
-    const leadCount = await prisma.lead.count();
-    if (leadCount === 0) {
-      const dbSources = await prisma.leadSource.findMany();
-      const sourceMap = new Map(dbSources.map((s) => [s.name, s.id]));
-
-      const mockLeads = [
-        {
-          name: 'Rohit Sharma',
-          phone: '+91 98765 43210',
-          email: 'rohit.sharma@example.com',
-          source: LeadSource.FACEBOOK_ADS,
-          status: LeadStatus.HUMAN_APPROVAL_REQUIRED,
-          project: 'Sunshine Villas',
-          location: 'Indore',
-          budget: '₹50 - ₹70 Lakhs',
-          timeline: '1-3 months',
-          qualificationScore: 85,
-          pendingReply: 'Sure Rohit! 👋\nThe price for 2BHK in Sunshine Villas starts from ₹45 Lakhs onwards.\nWould you like to schedule a site visit this weekend to explore the project?',
-          reason: 'Pricing shared by AI',
-          priority: 'High',
-          confidenceScore: 78,
-        },
-        {
-          name: 'Priya Verma',
-          phone: '+91 91234 56789',
-          email: 'priya.v@example.com',
-          source: LeadSource.INSTAGRAM_ADS,
-          status: LeadStatus.HUMAN_APPROVAL_REQUIRED,
-          project: 'Lake View Homes',
-          location: 'Bhopal',
-          budget: '₹80 - ₹90 Lakhs',
-          timeline: 'Immediate',
-          qualificationScore: 94,
-          pendingReply: "Hi Priya! I've generated the official brochure for Lake View Homes. You can download it here or let me know if you would like me to walk you through the floor plan details.",
-          reason: 'Brochure request detected',
-          priority: 'Medium',
-          confidenceScore: 92,
-        },
-        {
-          name: 'Amit Kumar',
-          phone: '+91 99887 76655',
-          email: 'amit.k@example.com',
-          source: LeadSource.GOOGLE_ADS,
-          status: LeadStatus.HUMAN_APPROVAL_REQUIRED,
-          project: 'Royal Residency',
-          location: 'Indore',
-          budget: '₹60 - ₹70 Lakhs',
-          timeline: '3-6 months',
-          qualificationScore: 78,
-          pendingReply: 'Hi Amit, we currently have two 2BHK units available in Royal Residency matching your budget of ₹60 Lakhs. Can I reserve one for a site visit?',
-          reason: 'Budget mentioned needs confirmation',
-          priority: 'High',
-          confidenceScore: 68,
-        },
-      ];
-
-      for (const m of mockLeads) {
-        // Create Lead
-        const lead = await prisma.lead.create({
-          data: {
-            name: m.name,
-            phone: m.phone,
-            email: m.email,
-            sourceId: sourceMap.get(m.source),
-            sourceName: m.source,
-            project: m.project,
-            location: m.location,
-            budget: m.budget,
-            timeline: m.timeline,
-            status: m.status,
-            qualificationScore: m.qualificationScore,
-            workspaceId: workspace.id,
-            assignedSalesUserId: salesUser.id,
-          },
-        });
-
-        // Create AI Agent
-        const aiAgent = await prisma.aIAgent.create({
-          data: {
-            name: 'Property Advisor Agent',
-            industry: 'Real Estate',
-            status: 'Running',
-          },
-        });
-
-        // Create Conversation
-        const conv = await prisma.conversation.create({
-          data: {
-            leadId: lead.id,
-            organizationId: 'org_leadpilot_demo',
-            isAiAutomated: true,
-            status: 'Active',
-            pendingAiReply: m.pendingReply,
-            lastMessageContent: 'Yes, please share.',
-            aiAgentId: aiAgent.id,
-          },
-        });
-
-        // Create initial WhatsApp messages
-        await prisma.message.createMany({
-          data: [
-            {
-              conversationId: conv.id,
-              sender: 'LEAD',
-              senderName: m.name,
-              content: 'Yes, please share.',
-              status: 'READ',
-              createdAt: new Date(Date.now() - 60000),
-            },
-          ],
-        });
-
-        // Create Human Approval Item
-        await prisma.humanApproval.create({
-          data: {
-            leadId: lead.id,
-            conversationId: conv.id,
-            pendingReplyText: m.pendingReply,
-            reason: m.reason,
-            priority: m.priority,
-            status: 'Pending',
-            confidenceScore: m.confidenceScore,
-            organizationId: 'org_leadpilot_demo',
-          },
-        });
-
-        // Create Activity Logs
-        await prisma.activityLog.create({
-          data: {
-            leadId: lead.id,
-            userId: adminUser.id,
-            eventType: 'HUMAN_ESCALATION',
-            title: 'Human Approval Required',
-            description: `AI reply held in queue: ${m.reason}`,
-            actorType: 'AI',
-          },
-        });
-      }
-      console.log('[Seed] Seeding mock leads completed successfully.');
     }
 
     console.log('[Seed] PostgreSQL Seeding completed successfully!');

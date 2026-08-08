@@ -16,169 +16,6 @@ import { Lead, LeadStatus } from '@/types/lead.types';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const MOCK_FALLBACK_LEADS: Lead[] = [
-  {
-    id: 'lead_1',
-    name: 'Rohit Sharma',
-    phone: '+91 98765 43210',
-    email: 'rohit.sharma@example.com',
-    project: 'Sunshine Villas',
-    source: 'FACEBOOK_ADS',
-    qualificationScore: 85,
-    status: 'NEW',
-    assignedSalesUser: { id: 'usr_1', name: 'Neha Singh', email: 'neha@leadpilot.ai' },
-    organizationId: 'org_1',
-    createdAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    budget: '₹50 - ₹70 Lakhs',
-    location: 'Indore, MP',
-  },
-  {
-    id: 'lead_2',
-    name: 'Priya Verma',
-    phone: '+91 91234 56789',
-    email: 'priya.v@example.com',
-    project: 'Green Heights',
-    source: 'INSTAGRAM_ADS',
-    qualificationScore: 72,
-    status: 'CONTACTED',
-    assignedSalesUser: { id: 'usr_2', name: 'Amit Kumar', email: 'amit@leadpilot.ai' },
-    organizationId: 'org_1',
-    createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    budget: '₹80 - ₹1 Cr',
-    location: 'Bhopal, MP',
-  },
-  {
-    id: 'lead_3',
-    name: 'Amit Kumar',
-    phone: '+91 99887 76655',
-    email: 'amit.k@example.com',
-    project: 'Royal Residency',
-    source: 'GOOGLE_ADS',
-    qualificationScore: 68,
-    status: 'AI_IN_PROGRESS',
-    assignedSalesUser: { id: 'usr_3', name: 'Raj Mehta', email: 'raj@leadpilot.ai' },
-    organizationId: 'org_1',
-    createdAt: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    budget: '₹40 - ₹60 Lakhs',
-    location: 'Ujjain, MP',
-  },
-  {
-    id: 'lead_4',
-    name: 'Sneha Iyer',
-    phone: '+91 87654 32109',
-    email: 'sneha.iyer@example.com',
-    project: 'Lake View Homes',
-    source: 'WEBSITE_FORM',
-    qualificationScore: 90,
-    status: 'QUALIFIED',
-    assignedSalesUser: { id: 'usr_1', name: 'Neha Singh', email: 'neha@leadpilot.ai' },
-    organizationId: 'org_1',
-    createdAt: new Date(Date.now() - 18 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    budget: '₹1.2 Cr+',
-    location: 'Indore, MP',
-  },
-  {
-    id: 'lead_5',
-    name: 'Vikram Singh',
-    phone: '+91 76543 21098',
-    email: 'vikram.singh@example.com',
-    project: 'Park Avenue',
-    source: 'MANUAL_ENTRY',
-    qualificationScore: 55,
-    status: 'NEW',
-    assignedSalesUser: { id: 'usr_4', name: 'Rohit Tiwari', email: 'rohit.t@leadpilot.ai' },
-    organizationId: 'org_1',
-    createdAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    budget: '₹35 - ₹50 Lakhs',
-    location: 'Dewas, MP',
-  },
-  {
-    id: 'lead_6',
-    name: 'Deepak Sharma',
-    phone: '+91 88991 12233',
-    email: 'deepak.s@example.com',
-    project: 'Sunshine Villas',
-    source: 'FACEBOOK_ADS',
-    qualificationScore: 63,
-    status: 'CONTACTED',
-    assignedSalesUser: { id: 'usr_2', name: 'Amit Kumar', email: 'amit@leadpilot.ai' },
-    organizationId: 'org_1',
-    createdAt: new Date(Date.now() - 32 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    budget: '₹60 - ₹75 Lakhs',
-    location: 'Indore, MP',
-  },
-  {
-    id: 'lead_7',
-    name: 'Anjali Nair',
-    phone: '+91 93456 77889',
-    email: 'anjali.nair@example.com',
-    project: 'Green Heights',
-    source: 'INSTAGRAM_ADS',
-    qualificationScore: 78,
-    status: 'AI_IN_PROGRESS',
-    assignedSalesUser: { id: 'usr_3', name: 'Raj Mehta', email: 'raj@leadpilot.ai' },
-    organizationId: 'org_1',
-    createdAt: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    budget: '₹75 - ₹90 Lakhs',
-    location: 'Bhopal, MP',
-  },
-  {
-    id: 'lead_8',
-    name: 'Manish Gupta',
-    phone: '+91 90011 22334',
-    email: 'manish.g@example.com',
-    project: 'Royal Residency',
-    source: 'GOOGLE_ADS',
-    qualificationScore: 80,
-    status: 'QUALIFIED',
-    assignedSalesUser: { id: 'usr_1', name: 'Neha Singh', email: 'neha@leadpilot.ai' },
-    organizationId: 'org_1',
-    createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    budget: '₹90 Lakhs - ₹1.1 Cr',
-    location: 'Indore, MP',
-  },
-  {
-    id: 'lead_9',
-    name: 'Pooja Bansal',
-    phone: '+91 91222 33445',
-    email: 'pooja.b@example.com',
-    project: 'Lake View Homes',
-    source: 'WEBSITE_FORM',
-    qualificationScore: 61,
-    status: 'NEW',
-    assignedSalesUser: { id: 'usr_4', name: 'Rohit Tiwari', email: 'rohit.t@leadpilot.ai' },
-    organizationId: 'org_1',
-    createdAt: new Date(Date.now() - 65 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    budget: '₹50 - ₹65 Lakhs',
-    location: 'Indore, MP',
-  },
-  {
-    id: 'lead_10',
-    name: 'Sandeep Kumar',
-    phone: '+91 98880 11223',
-    email: 'sandeep.k@example.com',
-    project: 'Park Avenue',
-    source: 'MANUAL_ENTRY',
-    qualificationScore: 70,
-    status: 'CONTACTED',
-    assignedSalesUser: { id: 'usr_2', name: 'Amit Kumar', email: 'amit@leadpilot.ai' },
-    organizationId: 'org_1',
-    createdAt: new Date(Date.now() - 120 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    budget: '₹70 - ₹85 Lakhs',
-    location: 'Bhopal, MP',
-  },
-];
-
 export default function LeadInboxPage() {
   const router = useRouter();
   const { fetchLeads, updateStatus, assignLead, softDelete } = useLeadEngine();
@@ -212,8 +49,8 @@ export default function LeadInboxPage() {
   const [isAssignModalOpen, setIsAssignModalOpen] = useState<boolean>(false);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState<boolean>(false);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     setHasError(false);
     try {
       const data = await fetchLeads({
@@ -224,27 +61,24 @@ export default function LeadInboxPage() {
         assignedSalesUser: filters.assignedSalesUser,
         page: pagination.page,
         limit: pagination.limit,
-      });
+      }, isSilent);
 
       if (Array.isArray(data)) {
         setLeads(data);
-        if (data.length > 0) {
-          if (!activeLead || !data.find((l) => l.id === activeLead.id)) {
-            setActiveLead(data[0]);
-          }
-        } else {
-          setActiveLead(null);
-        }
       }
     } catch {
       setHasError(true);
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
-  }, [fetchLeads, filters, pagination.page, pagination.limit, setLeads, setActiveLead, activeLead, setLoading]);
+  }, [fetchLeads, filters, pagination.page, pagination.limit, setLeads, setLoading]);
 
   useEffect(() => {
-    loadData();
+    loadData(false);
+    const timer = setInterval(() => {
+      loadData(true);
+    }, 4000);
+    return () => clearInterval(timer);
   }, [loadData]);
 
   const handleSelectLead = (lead: Lead) => {

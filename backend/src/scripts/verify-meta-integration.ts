@@ -1,4 +1,4 @@
-import { prisma } from '../config/database';
+import { prisma, connectDatabase } from '../config/database';
 import { MetaGraphApiService } from '../services/meta-graph-api.service';
 import { FacebookIntegrationService } from '../services/facebook-integration.service';
 
@@ -6,6 +6,12 @@ async function runVerification() {
   console.log('====================================================');
   console.log('  LEADPILOT AI — META INTEGRATION & ENDPOINT AUDIT  ');
   console.log('====================================================\n');
+
+  try {
+    await connectDatabase();
+  } catch (e: any) {
+    console.warn('Database init note:', e.message);
+  }
 
   const metaService = new MetaGraphApiService();
   const integrationService = new FacebookIntegrationService();

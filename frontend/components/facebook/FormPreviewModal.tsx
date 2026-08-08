@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, FileText, Bot, CheckCircle, Clock } from 'lucide-react';
+import { X, FileText } from 'lucide-react';
 import { FacebookFormItem } from '@/types/facebook.types';
 
 interface Props {
@@ -9,6 +9,15 @@ interface Props {
 
 export const FormPreviewModal: React.FC<Props> = ({ form, onClose }) => {
   if (!form) return null;
+
+  const totalLeads = form.leadsCount ?? form.leadCount ?? 0;
+  const questionsList = form.questions && form.questions.length > 0
+    ? form.questions
+    : [
+        { label: 'Full Name', type: 'FULL_NAME' },
+        { label: 'Phone Number', type: 'PHONE' },
+        { label: 'Email Address', type: 'EMAIL' },
+      ];
 
   return (
     <div className="fb-modal-overlay" onClick={onClose}>
@@ -27,33 +36,29 @@ export const FormPreviewModal: React.FC<Props> = ({ form, onClose }) => {
           <div className="fb-form-preview-grid">
             <div className="fb-fp-row">
               <span className="fb-fp-label">Form ID:</span>
-              <span className="fb-fp-value font-mono">{form.formId}</span>
+              <span className="fb-fp-value font-mono">{form.formId || form.id}</span>
             </div>
             <div className="fb-fp-row">
-              <span className="fb-fp-label">Connected Page:</span>
-              <span className="fb-fp-value">{form.pageName}</span>
+              <span className="fb-fp-label">Connected Page ID:</span>
+              <span className="fb-fp-value">{form.pageId || form.associatedPage || 'Connected Page'}</span>
             </div>
             <div className="fb-fp-row">
-              <span className="fb-fp-label">Campaign:</span>
-              <span className="fb-fp-value">{form.campaign || 'Performance Ads 2025'}</span>
+              <span className="fb-fp-label">Campaign / Status:</span>
+              <span className="fb-fp-value">{form.status || 'ACTIVE'}</span>
             </div>
             <div className="fb-fp-row">
               <span className="fb-fp-label">Leads Captured:</span>
-              <span className="fb-fp-value font-semibold text-brand-blue">{form.leadCount.toLocaleString()}</span>
-            </div>
-            <div className="fb-fp-row">
-              <span className="fb-fp-label">Assigned AI Agent:</span>
-              <span className="fb-fp-value">{form.assignedAiAgent?.name || 'Villas Specialist AI'}</span>
+              <span className="fb-fp-value font-semibold text-brand-blue">{totalLeads.toLocaleString()}</span>
             </div>
           </div>
 
           <div className="fb-fp-fields-section">
             <h4 className="fb-fp-section-title">Form Question Schema</h4>
-            <div className="fb-fp-field-item">1. Full Name (System Field)</div>
-            <div className="fb-fp-field-item">2. Phone Number (System Field)</div>
-            <div className="fb-fp-field-item">3. Email Address (System Field)</div>
-            <div className="fb-fp-field-item">4. Preferred Property Type (Custom Field)</div>
-            <div className="fb-fp-field-item">5. Budget Range (Custom Field)</div>
+            {questionsList.map((q: any, idx: number) => (
+              <div key={idx} className="fb-fp-field-item">
+                {idx + 1}. {q.label || q.key || q.type} ({q.type || 'Custom Field'})
+              </div>
+            ))}
           </div>
         </div>
 

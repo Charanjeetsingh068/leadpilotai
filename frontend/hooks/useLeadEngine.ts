@@ -23,8 +23,8 @@ export const useLeadEngine = () => {
   } = useLeadStore();
 
   const fetchLeads = useCallback(
-    async (params?: Partial<LeadFilterParams>): Promise<Lead[] | undefined> => {
-      setLoading(true);
+    async (params?: Partial<LeadFilterParams>, isSilent: boolean = false): Promise<Lead[] | undefined> => {
+      if (!isSilent) setLoading(true);
       const combinedParams = { ...filters, ...params };
       try {
         const res = await LeadService.getLeads(combinedParams);
@@ -41,9 +41,9 @@ export const useLeadEngine = () => {
           return res.data;
         }
       } catch {
-        toast.error('Failed to fetch leads.');
+        if (!isSilent) toast.error('Failed to fetch leads.');
       } finally {
-        setLoading(false);
+        if (!isSilent) setLoading(false);
       }
     },
     [filters, setLeads, setPagination, setLoading]
